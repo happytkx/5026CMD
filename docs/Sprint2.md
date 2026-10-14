@@ -57,7 +57,7 @@ The seed inventory is sample data. Actual area availability also depends on its 
 
 Build: `dotnet build RROMS/RROMS.csproj`
 
-The former automated verification project was removed at the user's request after its checks passed. For future integration, build the application and manually verify booking, simulated payment, modification, cancellation, staff check-in and notifications using a separate development database.
+The automated verification project is restored under tests/RROMS.Sprint2.Tests. Run policy checks with `dotnet run --project tests/RROMS.Sprint2.Tests`. Run all 55 checks with `dotnet run --project tests/RROMS.Sprint2.Tests -- --integration`. Integration checks create and remove their own uniquely named temporary LocalDB database and use a fake email sender; application data and real emails are unaffected.
 
 Reference inspiration: https://firegroup.my/branch/firewood-penang-2/ . The design is original; restaurant policies come from the group's agreed requirements and subsequent VIP clarification.
 
@@ -129,5 +129,6 @@ Each handwritten Sprint 2 source/view file now starts with a purpose comment. Im
 These comments explain the current implementation; they do not change booking rules or introduce additional functionality.
 Formatting: the remaining C# sources, Razor pages and shared stylesheet use consistent indentation and readable blocks. Formatting changes do not alter reservation rules; the website builds successfully.
 
-The optional test project and shared formatter settings have been removed. The solution still references only RROMS/RROMS.csproj; application code, service registration, database migrations and group integration points remain intact.
+The optional test project is restored. Shared formatter settings remain removed. The solution still references only RROMS/RROMS.csproj; application code, service registration, database migrations and group integration points remain intact.
+
 
