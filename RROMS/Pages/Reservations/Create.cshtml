@@ -1,0 +1,287 @@
+@page
+@model RROMS.Pages.Reservations.CreateModel
+@* Customer booking interface: Search -> Availability -> Guest Details.
+   Photo cards filter areas immediately; the page handlers and service still validate every submitted selection. *@
+
+@{
+    ViewData["Title"] = "Reserve your table";
+
+    var photo = Model.Area switch
+    {
+        "Outdoor" => "celeste-outdoor.jpg",
+        "VIP Room" => "celeste-private-dining.jpg",
+        _ => "celeste-indoor.jpg"
+    };
+}
+
+@* Search introduction and shared booking progress. *@
+@if (Model.Stage == "Search")
+{
+    <section class="search-hero">
+        <div>
+            <p class="eyebrow">THE CÉLESTE EXPERIENCE</p>
+            <h1>Reserve Your <em>Table</em></h1>
+            <p>A special occasion, an intimate dinner, or simply time well spent. Your dining experience begins here.</p>
+            <p class="eyebrow">INDOOR · OUTDOOR · PRIVATE DINING</p>
+        </div>
+        <img src="~/images/celeste-indoor.jpg" alt="Warm Céleste dining room" />
+    </section>
+}
+
+<partial name="_BookingSteps" model="@(Model.Stage == "Guest" ? 2 : 1)" />
+
+<div asp-validation-summary="All" class="error" role="alert"></div>
+
+@* Step 1: choose guest count, date and an eligible dining area. *@
+@if (Model.Stage == "Search")
+{
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">STEP 01 · PLAN YOUR VISIT</p>
+            <h2>Find Your Ideal Table</h2>
+            <p>Choose your preferred dining experience. We'll show available slots that fit your party.</p>
+        </div>
+    </div>
+
+    <form method="get" class="card search-card" id="search-form">
+        <input type="hidden" name="Stage" value="Availability" />
+
+        <div class="field-grid">
+            <div>
+                <label asp-for="PartySize">Number of guests</label>
+                <select asp-for="PartySize">
+                    @for (var n = 1; n <= 12; n++)
+                    {
+                        <option value="@n">@n Guests</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label asp-for="Date">Preferred date</label>
+                <input asp-for="Date" type="date"
+                       min="@ReservationPolicy.Now.ToString("yyyy-MM-dd")" required />
+            </div>
+        </div>
+
+        <p class="eyebrow">CHOOSE YOUR DINING AREA</p>
+        <div class="area-cards">
+            @foreach (var area in new[] { "Indoor", "Outdoor", "VIP Room" })
+            {
+                var img = area switch
+                {
+                    "Outdoor" => "celeste-outdoor.jpg",
+                    "VIP Room" => "celeste-private-dining.jpg",
+                    _ => "celeste-indoor.jpg"
+                };
+                var allowed = ReservationPolicy.Areas(Model.PartySize).Contains(area);
+
+                <label class="area-choice @(!allowed ? "unavailable" : "")">
+                    <input type="radio" name="Area" value="@area"
+                           checked="@(Model.Area == area)" disabled="@(!allowed)" required />
+                    <img src="~/images/@img" alt="@area dining space" />
+                    <span>
+                        <strong>@area</strong>
+                        <small>@(area == "Indoor" ? "Refined, intimate interiors" : area == "Outdoor" ? "Open-air twilight dining" : "An exclusive private setting")</small>
+                        <small class="area-eligibility">@(allowed ? "Select dining area" : "Unavailable for this party size")</small>
+                    </span>
+                </label>
+            }
+        </div>
+
+        <div class="form-actions">
+            <p class="muted">
+                Tables are assigned automatically within your chosen area.<br />
+                RM50 deposit per guest · Indoor/outdoor: 2 hours · VIP: until closing.
+            </p>
+            <button>Check availability →</button>
+        </div>
+    </form>
+}
+else if (Model.Stage == "Availability")
+{
+    @* Show the selected area and live arrival slots before collecting guest requests. *@
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">AVAILABLE RESERVATIONS</p>
+            <h1>Choose a Date &amp; Time</h1>
+            <p>Select your preferred arrival time. We assign a suitable table behind the scenes.</p>
+        </div>
+        <a class="button secondary" asp-page="Create"
+           asp-route-PartySize="@Model.PartySize"
+           asp-route-Area="@Model.Area"
+           asp-route-Date="@Model.Date.ToString("yyyy-MM-dd")">← Edit search</a>
+    </div>
+
+    <div class="availability-grid">
+        <aside class="card selection-card">
+            <img src="~/images/@photo" alt="@Model.Area dining area" />
+            <div>
+                <p class="eyebrow">YOUR SELECTION</p>
+                <h3>@Model.Area Dining</h3>
+                <p>@Model.PartySize guests · @Model.Date.ToString("dddd, dd MMMM yyyy")</p>
+                <hr />
+                <p>Only available times that fit your group in this area are shown.</p>
+                <p>Minimum spend: RM @ReservationPolicy.MinimumSpend(Model.PartySize, Model.Area).ToString("N2")</p>
+            </div>
+        </aside>
+
+        <section class="card time-selection">
+            <p class="eyebrow">SELECT A DATE</p>
+            <div class="date-strip">
+                @for (var i = 0; i < 5; i++)
+                {
+                    var day = Model.Date.AddDays(i);
+
+                    <a class="date-choice @(i == 0 ? "selected" : "")" asp-page="Create"
+                       asp-route-Stage="Availability"
+                       asp-route-PartySize="@Model.PartySize"
+                       asp-route-Area="@Model.Area"
+                       asp-route-Date="@day.ToString("yyyy-MM-dd")">
+                        <small>@day.ToString("ddd")</small>
+                        <strong>@day.Day</strong>
+                        <small>@day.ToString("MMM")</small>
+                    </a>
+                }
+            </div>
+
+            <form method="get">
+                <input type="hidden" name="Stage" value="Guest" />
+                <input type="hidden" asp-for="PartySize" />
+                <input type="hidden" asp-for="Area" />
+                <input type="hidden" name="Date" value="@Model.Date.ToString("yyyy-MM-dd")" />
+
+                <fieldset class="time-fieldset">
+                    <legend>Available dining times</legend>
+                    <div class="slots">
+                        @foreach (var slot in Model.Slots)
+                        {
+                            <label class="slot">
+                                <input type="radio" name="Time" value="@slot.ToString("HH:mm")" required />
+                                <span>@slot.ToString("h:mm tt")</span>
+                            </label>
+                        }
+                    </div>
+                </fieldset>
+
+                @if (Model.Slots.Count == 0)
+                {
+                    <p class="notice">No suitable tables are available. Try another date or dining area.</p>
+                }
+                else
+                {
+                    <p class="notice">Availability follows table capacity, opening hours and existing reservations. A time is secured only when you continue to deposit.</p>
+                    <div class="form-actions">
+                        <span class="muted">Select an available time slot</span>
+                        <button>Continue →</button>
+                    </div>
+                }
+            </form>
+        </section>
+    </div>
+}
+else
+{
+    @* Step 2: account contact details, optional dining requests and required policy acceptance. *@
+    <p class="eyebrow">STEP 02 · YOUR DETAILS</p>
+    <h1>A Thoughtful Experience</h1>
+    <p>Tell us a little about your party so our team can prepare for your visit.</p>
+
+    <div class="workflow-columns">
+        <form method="post">
+            <input type="hidden" asp-for="PartySize" />
+            <input type="hidden" asp-for="Area" />
+            <input type="hidden" name="Date" value="@Model.Date.ToString("yyyy-MM-dd")" />
+            <input type="hidden" asp-for="Time" />
+
+            <section class="card">
+                <h3>Contact Information</h3>
+                <p>Your confirmation is associated with your Céleste account.</p>
+
+                <div class="field-grid">
+                    <div>
+                        <label for="guest-name">Full name</label>
+                        <input id="guest-name" value="@Model.Guest.CustomerName" readonly />
+                    </div>
+                    <div>
+                        <label for="guest-phone">Contact number</label>
+                        <input id="guest-phone" value="@Model.Guest.PhoneNo" readonly />
+                    </div>
+                </div>
+
+                <label for="guest-email">Email address</label>
+                <input id="guest-email" value="@Model.Guest.Email" readonly />
+            </section>
+
+            <section class="card">
+                <p class="eyebrow">DINING PREFERENCES</p>
+                <h3>Let Us Take Care of the Details</h3>
+                <p>Share dietary restrictions or allergies to help our staff prepare.</p>
+
+                <label>Dietary preferences (optional)</label>
+                <div class="preference-chips">
+                    @foreach (var pref in new[] { "Vegetarian", "Vegan", "No Pork", "No Beef", "No Chicken" })
+                    {
+                        <label>
+                            <input type="checkbox" name="Preferences" value="@pref"
+                                   checked="@Model.Preferences.Contains(pref)" />@pref
+                        </label>
+                    }
+                </div>
+
+                <label asp-for="Allergies">Food allergies (optional)</label>
+                <input asp-for="Allergies" maxlength="200" placeholder="e.g. shellfish, peanuts, dairy" />
+
+                <label asp-for="Requests">Special occasions or requests (optional)</label>
+                <textarea asp-for="Requests" rows="4" maxlength="700"
+                          placeholder="e.g. Anniversary dinner, wheelchair access"></textarea>
+
+                <p class="notice">Please also inform staff of serious allergies when you arrive.</p>
+                <label class="check">
+                    <input asp-for="AcceptPolicy" required />
+                    <span>I agree to the minimum spend, full deposit forfeiture on cancellation, and one reschedule at least 168 hours before the original booking.</span>
+                </label>
+            </section>
+
+            <div class="form-actions">
+                <a class="button secondary" asp-page="Create"
+                   asp-route-Stage="Availability"
+                   asp-route-PartySize="@Model.PartySize"
+                   asp-route-Area="@Model.Area"
+                   asp-route-Date="@Model.Date.ToString("yyyy-MM-dd")">← Back to times</a>
+                <button>Continue to deposit →</button>
+            </div>
+        </form>
+
+        <partial name="_ReservationSummary" model="Model.Summary" />
+    </div>
+}
+
+@section Scripts
+{
+    <script>
+        // Filter dining areas without reloading the page or moving the customer's scroll position.
+        const guests = document.querySelector('#search-form #PartySize');
+
+        if (guests) {
+            guests.addEventListener('change', () => {
+                const size = Number(guests.value);
+                const radios = [...document.querySelectorAll('.area-choice input')];
+
+                radios.forEach(r => {
+                    const allowed = r.value === 'VIP Room' ? size >= 4 : size <= 8;
+
+                    r.disabled = !allowed;
+                    r.closest('label').classList.toggle('unavailable', !allowed);
+                    r.closest('label').querySelector('.area-eligibility').textContent =
+                        allowed ? 'Select dining area' : 'Unavailable for this party size';
+                });
+
+                // If the previous area is no longer allowed, select the first eligible area.
+                if (!radios.some(r => r.checked && !r.disabled)) {
+                    radios.find(r => !r.disabled).checked = true;
+                }
+            });
+        }
+    </script>
+}
+

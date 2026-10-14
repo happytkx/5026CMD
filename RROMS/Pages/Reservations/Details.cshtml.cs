@@ -1,0 +1,97 @@
+// Loads an owned booking or staff-accessible booking and handles actions through ReservationService. Selects payment, confirmation, details, modify and late-arrival views.
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
+using RROMS.Data;
+using RROMS.Models;
+using RROMS.Services;
+namespace RROMS.Pages.Reservations;
+
+[Authorize(Roles = "Customer,Restaurant Staff,Staff")]
+public class DetailsModel(ApplicationDbContext db, ReservationService service, TableAllocationService allocation, IConfiguration config) : PageModel
+{
+    public Reservation? Booking
+    {
+        get; set;
+    }
+    public bool IsStaff => User.IsInRole("Restaurant Staff") || User.IsInRole("Staff");
+    public List<Notification> Notifications { get; set; } = [];
+    public List<ReservationEmail> EmailMessages { get; set; } = [];
+    public bool EmailEnabled => config.GetValue<bool>("Email:Enabled");
+    public List<RestaurantTable> AvailableTables { get; set; } = [];
+    public List<Reservation> CustomerHistory { get; set; } = [];
+    public List<DateTime> ModifySlots { get; set; } = [];
+    [BindProperty(SupportsGet = true)] public string? View { get; set; } = "Details";
+    [BindProperty(SupportsGet = true)] public DateTime NewDate { get; set; } = ReservationPolicy.Now.Date.AddDays(8);
+    [BindProperty] public string NewTime { get; set; } = "";
+    private async Task<bool> Load(int id)
+    {
+        await service.Expire();
+        var customerId = ReservationIdentity.CustomerId(User);
+        Booking = await db.Reservations.AsSplitQuery().Include(r => r.Customer).Include(r => r.Payments).Include(r => r.ReservationHistories)
+            .SingleOrDefaultAsync(r => r.ReservationID == id && (IsStaff || r.CustomerID == customerId));
+        if (Booking == null)
+            return false;
+        Notifications = await db.Notifications.Where(n => n.ReservationID == id).OrderByDescending(n => n.SentDate).ToListAsync();
+        EmailMessages = await db.ReservationEmails.AsNoTracking().Where(e => e.ReservationID == id)
+            .OrderByDescending(e => e.ReservationEmailID).ToListAsync();
+        if (Booking.ReservationStatus == "Confirmed")
+        {
+            ModifySlots = await service.Slots(Booking.PartySize, Booking.PreferredDiningOption, NewDate, id);
+            if (IsStaff)
+                AvailableTables = await allocation.Available(Booking.PartySize, Booking.PreferredDiningOption,
+                Booking.ReservationDate.Add(Booking.StartTime), Booking.ReservationDate.Add(Booking.EndTime), id);
+        }
+        if (IsStaff)
+            CustomerHistory = await db.Reservations.Where(r => r.CustomerID == Booking.CustomerID).OrderByDescending(r => r.ReservationDate).ToListAsync();
+        return true;
+    }
+    public async Task<IActionResult> OnGetAsync(int id)
+    {
+        if (!await Load(id))
+            return NotFound();
+        if (View is not ("Details" or "Payment" or "Confirmation" or "Modify" or "Late"))
+            View = "Details";
+        if (Booking!.ReservationStatus == "Pending")
+            View = "Payment";
+        else if (View == "Payment" || (View == "Confirmation" && Booking.ReservationStatus != "Confirmed"))
+            View = "Details";
+        return Page();
+    }
+    public async Task<IActionResult> OnPostActionAsync(int id, string action, string? tableId, string? dummyReference, bool paymentSuccess = true)
+    {
+        if (!await Load(id))
+            return NotFound();
+        try
+        {
+            DateTime? newStart = null;
+            if (action == "Modify")
+            {
+                if (!TimeSpan.TryParse(NewTime, out var time) || time < TimeSpan.Zero || time >= TimeSpan.FromDays(1))
+                    throw new InvalidOperationException("Choose a valid rescheduling time.");
+                newStart = NewDate.Date.Add(time);
+            }
+            if (action == "Pay" && (string.IsNullOrWhiteSpace(dummyReference) || dummyReference.Length > 40))
+                throw new InvalidOperationException("Enter a dummy payment reference, up to 40 characters.");
+            await service.Change(id, ReservationIdentity.CustomerId(User), IsStaff, action, newStart, tableId, paymentSuccess, dummyReference);
+            TempData["Message"] = action == "Pay" && !paymentSuccess ? "Payment failed. Your booking remains pending; you can retry before the hold expires." : "Reservation updated.";
+            return RedirectToPage(new
+            {
+                id,
+                view = action == "Pay" && paymentSuccess ? "Confirmation" : action == "Pay" ? "Payment" : "Details"
+            });
+        }
+        catch (InvalidOperationException ex) { ModelState.AddModelError("", ex.Message); }
+        catch (DbUpdateException) { ModelState.AddModelError("", "This reservation changed while you were viewing it. Please refresh and retry."); }
+        catch (Microsoft.Data.SqlClient.SqlException ex) when (ex.Number == 1205)
+        {
+            ModelState.AddModelError("", "Another booking was processed at the same time. Please retry.");
+        }
+        db.ChangeTracker.Clear();
+        await Load(id);
+        if (Booking!.ReservationStatus == "Pending")
+            View = "Payment";
+        return Page();
+    }
+}

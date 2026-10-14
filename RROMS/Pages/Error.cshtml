@@ -1,0 +1,10 @@
+@page
+@* Friendly fallback page shown when the application cannot complete a request. *@
+@{
+    ViewData["Title"] = "Unable to load";
+}
+<h1>Something went wrong</h1>
+<p>Please retry. If the problem continues, contact your restaurant staff.</p>
+<a asp-page="/Index">
+    Return home
+</a>

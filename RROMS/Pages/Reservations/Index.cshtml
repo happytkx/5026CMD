@@ -1,0 +1,62 @@
+@page
+@* Customer booking list: Upcoming/All tabs, live status, deposit details and permitted reschedule links. *@
+@model RROMS.Pages.Reservations.IndexModel
+@{
+    ViewData["Title"] = "My reservations";
+}
+<section class="account-heading">
+    <p class="eyebrow">YOUR CÉLESTE ACCOUNT</p>
+    <h1>My Reservations</h1>
+    <p>A complete view of your dining plans and previous experiences.</p>
+</section>
+<div class="section-heading">
+    <nav class="reservation-tabs" aria-label="Reservation filter">
+        <a class="@(Model.Tab!="All"?"active":"")" asp-page="Index">
+            Upcoming
+        </a>
+        <a class="@(Model.Tab=="All"?"active":"")" asp-page="Index" asp-route-Tab="All">
+            All Reservations
+        </a>
+    </nav>
+    <a class="button" asp-page="Create">
+        + New reservation
+    </a>
+</div>
+@if (Model.Bookings.Count==0)
+{
+    <section class="card">
+        <h3>No reservations in this view</h3>
+        <p>Make a new reservation or select All Reservations to view your history.</p>
+    </section>
+}
+@foreach (var r in Model.Bookings)
+{
+    var photo=r.PreferredDiningOption switch
+    {
+        "Outdoor"=>"celeste-outdoor.jpg","VIP Room"=>"celeste-private-dining.jpg",_=>"celeste-indoor.jpg"
+    };
+    <article class="reservation-row">
+        <img src="~/images/@photo" alt="@r.PreferredDiningOption dining space"/>
+        <div>
+            <p>
+                <span class="reference">@r.BookingReference</span>
+                <span class="badge">@r.ReservationStatus</span>
+            </p>
+            <h3>@r.ReservationDate.ToString("ddd, dd MMMM yyyy")</h3>
+            <p>@r.ReservationDate.Add(r.StartTime).ToString("h:mm tt") · @r.PartySize guests · @r.PreferredDiningOption</p>
+            <p>Deposit @r.DepositStatus: RM @r.DepositAmount.ToString("N2")</p>
+        </div>
+        <div class="row-actions">
+            <a class="button secondary" asp-page="Details" asp-route-id="@r.ReservationID">
+                View details →
+            </a>
+            @if (r.ReservationStatus=="Confirmed" && ReservationPolicy.CanModify(r.OriginalStart,r.ModificationCount,ReservationPolicy.Now))
+            {
+                <a asp-page="Details" asp-route-id="@r.ReservationID" asp-route-View="Modify">
+                    Reschedule
+                </a>
+            }
+        </div>
+    </article>
+}
+<p class="notice">Reservations can be rescheduled once, at least 168 hours before their original date and time, subject to availability.</p>

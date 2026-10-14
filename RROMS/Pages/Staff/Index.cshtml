@@ -1,0 +1,127 @@
+@page
+@* Staff workspace dashboard: service totals, date/status/name filters and links to manage each reservation. *@
+@model RROMS.Pages.Staff.IndexModel
+@{
+    ViewData["Title"]="Daily reservations";
+}
+<p class="eyebrow">YOUR SERVICE OVERVIEW</p>
+<h1>Daily Reservations</h1>
+<p>Manage arrivals, guest preferences, seating and live reservation statuses.</p>
+<section class="staff-stats">
+    <article class="card">
+        <small>TOTAL RESERVATIONS</small>
+        <h2>@Model.DailyBookings.Count</h2>
+        <p>Booked across dining areas</p>
+    </article>
+    <article class="card">
+        <small>EXPECTED ARRIVALS</small>
+        <h2>@Model.DailyBookings.Count(r=>r.ReservationStatus=="Confirmed")</h2>
+        <p>Confirmed and awaiting check-in</p>
+    </article>
+    <article class="card">
+        <small>CHECKED IN</small>
+        <h2>@Model.DailyBookings.Count(r=>r.ReservationStatus=="Seated")</h2>
+        <p>Parties currently seated</p>
+    </article>
+    <article class="card">
+        <small>ATTENTION NEEDED</small>
+        <h2>@Model.DailyBookings.Count(r=>r.ReservationStatus=="No-show" || (r.ReservationStatus=="Confirmed" && r.LateArrivalNotified))</h2>
+        <p>Late arrivals / no-shows</p>
+    </article>
+</section>
+<section class="card">
+    <h3>Reservation Schedule</h3>
+    <p>Review bookings and open a reservation for seating or check-in.</p>
+    <form method="get" class="staff-search">
+        <input asp-for="Search" aria-label="Search reference or guest name" placeholder="Search reference or guest name…"/>
+        <select asp-for="Status" aria-label="Reservation status">
+            <option value="">
+                All statuses
+            </option>
+            @foreach (var s in new[]{"Pending","Confirmed","Seated","Completed","Cancelled","No-show","Expired"})
+            {
+                <option>
+                    @s
+                </option>
+            }
+        </select>
+        <input asp-for="Date" type="date" aria-label="Service date"/>
+        <button>View</button>
+    </form>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>
+                        Time / Ref
+                    </th>
+                    <th>
+                        Guest
+                    </th>
+                    <th>
+                        Dining area
+                    </th>
+                    <th>
+                        Party
+                    </th>
+                    <th>
+                        Status
+                    </th>
+                    <th>
+                        Assigned
+                    </th>
+                    <th>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model.Bookings)
+                {
+                    <tr>
+                        <td>
+                            <strong>@r.ReservationDate.Add(r.StartTime).ToString("h:mm tt")</strong>
+                            <br/>
+                            <small>@r.BookingReference</small>
+                        </td>
+                        <td>
+                            <strong>@r.Customer.CustomerName</strong>
+                            @if (r.LateArrivalNotified)
+                            {
+                                <br/>
+                                <small>Late arrival notified</small>
+                            }
+                        </td>
+                        <td>
+                            @r.PreferredDiningOption
+                        </td>
+                        <td>
+                            @r.PartySize guests
+                        </td>
+                        <td>
+                            <span class="badge">@r.ReservationStatus</span>
+                        </td>
+                        <td>
+                            @r.TableID
+                        </td>
+                        <td>
+                            <a asp-page="/Reservations/Details" asp-route-id="@r.ReservationID">
+                                View →
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (Model.Bookings.Count==0)
+    {
+        <p>No reservations match this date and filter.</p>
+    }
+</section>
+<p class="notice">Unseated reservations become No-show after 10 minutes, or 30 minutes when late arrival was reported. The paid deposit is forfeited and the table released.</p>
+@section Scripts
+{
+    <script>
+        setTimeout(() => { if (!document.hidden && !document.querySelector('input:focus,select:focus')) location.reload(); }, 30000);
+    </script>
+}

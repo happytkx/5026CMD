@@ -1,0 +1,67 @@
+@page
+@* Staff area/date/time seating overview using real table and reservation records, with links to the associated bookings. *@
+@model RROMS.Pages.Staff.SeatingModel
+@{
+    ViewData["Title"]="Seating & allocation";var photo=Model.Area switch
+    {
+        "Outdoor"=>"celeste-outdoor.jpg","VIP Room"=>"celeste-private-dining.jpg",_=>"celeste-indoor.jpg"
+    };
+}
+<p class="eyebrow">TABLE OVERSIGHT</p>
+<h1>Seating &amp; Allocation</h1>
+<p>Track dining spaces and manage allocations without double-booking.</p>
+<nav class="area-tabs">
+    @foreach (var area in new[]{"Indoor","Outdoor","VIP Room"})
+    {
+        <a class="button @(area==Model.Area?"":"secondary")" asp-page="Seating" asp-route-Area="@area" asp-route-Date="@Model.Date.ToString("yyyy-MM-dd")" asp-route-Time="@Model.Time">
+            @area
+        </a>
+    }
+</nav>
+<form method="get" class="filters">
+    <input type="hidden" asp-for="Area"/>
+    <label asp-for="Date">Service date</label>
+    <input asp-for="Date" type="date"/>
+    <label asp-for="Time">At time</label>
+    <input asp-for="Time" type="time"/>
+    <button>View seating</button>
+</form>
+<div class="workflow-columns">
+    <section class="card">
+        <p class="eyebrow">DINING AREA</p>
+        <h3>@Model.Area</h3>
+        <img class="seating-photo" src="~/images/@photo" alt="@Model.Area dining space"/>
+        <div class="seating-options">
+            @foreach (var table in Model.Tables)
+            {
+                var booking=Model.Reservations.FirstOrDefault(r=>r.TableID==table.TableID && r.ReservationDate.Add(r.StartTime)<=Model.At && r.ReservationDate.Add(r.EndTime)>Model.At); var state=table.Status!="Available"?table.Status:booking==null?"Available":booking.ReservationStatus=="Seated"?"Occupied":booking.ReservationStatus=="Pending"?"Payment hold":"Reserved";
+                <div class="seat-tile @(booking!=null?"reserved":"")">
+                    <strong>@table.TableID</strong>
+                    <small>@state · @table.Capacity seats</small>
+                    @if (booking!=null)
+                    {
+                        <a asp-page="/Reservations/Details" asp-route-id="@booking.ReservationID">
+                            View reservation →
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+        @if (Model.Tables.Count==0)
+        {
+            <p>No tables configured for this dining area.</p>
+        }
+    </section>
+    <aside class="card">
+        <h3>Allocation Guidelines</h3>
+        <p>A suitable table is assigned automatically when the payment hold is created.</p>
+        <hr/>
+        <p>Match the chosen dining area.</p>
+        <p>Ensure sufficient capacity.</p>
+        <p>Prevent overlapping reservations.</p>
+        <p>Hold arrivals for 10 minutes, or 30 minutes after a timely late notice.</p>
+        <a class="button" asp-page="Index">
+            View daily reservations
+        </a>
+    </aside>
+</div>

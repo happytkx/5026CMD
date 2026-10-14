@@ -1,0 +1,23 @@
+@model int
+@* Reusable four-step booking progress indicator. Its integer model is the active step number (1 to 4). *@
+
+@{
+    var steps = new[]
+    {
+        "Find a Table",
+        "Guest Details",
+        "Deposit Payment",
+        "Confirmation"
+    };
+}
+
+<ol class="booking-steps" aria-label="Reservation progress">
+    @for (var i = 0; i < steps.Length; i++)
+    {
+        <li class="@(i + 1 == Model ? "current" : i + 1 < Model ? "done" : "")"
+            aria-current="@(i + 1 == Model ? "step" : null)">
+            <span>@(i + 1 < Model ? "✓" : (i + 1).ToString())</span>
+            @steps[i]
+        </li>
+    }
+</ol>

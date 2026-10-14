@@ -1,0 +1,106 @@
+@page
+@* Public landing page: introduces the dining spaces and links to the Sprint 2 booking flow. *@
+@{
+    ViewData["Title"] = "Fine dining and reservations";
+}
+<section class="home-hero">
+    <div class="hero-copy">
+        <p class="eyebrow">WELCOME TO CÉLESTE</p>
+        <h1>
+            Exceptional dining.
+            <br/>
+            <em>
+                Memorable moments.
+            </em>
+        </h1>
+        <p>
+            A thoughtfully reserved table. A beautifully shared evening.
+            <br/>
+            Make time for something special.
+        </p>
+        <a class="button" asp-page="/Reservations/Create">
+            Book a table
+            <span aria-hidden="true">→</span>
+        </a>
+        <a class="text-link" href="#dining-spaces">
+            Discover our spaces
+        </a>
+    </div>
+    <figure>
+        <img src="~/images/celeste-indoor.jpg" alt="An intimate dining room with warm architectural lighting and elegantly set tables" fetchpriority="high" />
+    </figure>
+</section>
+<section id="dining-spaces" class="dining-spaces">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">A SETTING FOR EVERY OCCASION</p>
+            <h2>Find your kind of evening.</h2>
+        </div>
+        <p class="muted">Intimate tables. Open-air moments. Private celebrations.</p>
+    </div>
+    <div class="space-grid">
+        <article class="space-card">
+            <img src="~/images/celeste-indoor.jpg" alt="Warm, curved walls surrounding intimate indoor dining tables" loading="lazy"/>
+            <div>
+                <h3>Indoor Dining</h3>
+                <p>
+                    A warm and intimate setting for 1–8 guests.
+                    <br/>
+                    Enjoy a two-hour dining experience.
+                </p>
+                <a asp-page="/Reservations/Create" asp-route-Area="Indoor">
+                    Reserve indoors
+                    <span aria-hidden="true">→</span>
+                </a>
+            </div>
+        </article>
+        <article class="space-card">
+            <img src="~/images/celeste-outdoor.jpg" alt="An outdoor dining terrace overlooking the sunset" loading="lazy"/>
+            <div>
+                <h3>Outdoor Dining</h3>
+                <p>
+                    An open-air evening for 1–8 guests.
+                    <br/>
+                    Enjoy a two-hour dining experience.
+                </p>
+                <a asp-page="/Reservations/Create" asp-route-Area="Outdoor">
+                    Reserve outdoors
+                    <span aria-hidden="true">→</span>
+                </a>
+            </div>
+        </article>
+        <article class="space-card">
+            <img src="~/images/celeste-private-dining.jpg" alt="A private dining room with a beautifully set long table" loading="lazy"/>
+            <div>
+                <h3>Private Dining</h3>
+                <p>
+                    A room of your own for 4–12 guests.
+                    <br/>
+                    Reserved from your arrival until closing.
+                </p>
+                <a asp-page="/Reservations/Create" asp-route-Area="VIP Room" asp-route-PartySize="4">
+                    Explore private dining
+                    <span aria-hidden="true">→</span>
+                </a>
+            </div>
+        </article>
+    </div>
+</section>
+<section class="home-reserve">
+    <p class="eyebrow">YOUR NEXT OCCASION</p>
+    <h2>
+        Good food deserves
+        <br/>
+        <em>
+            great company.
+        </em>
+    </h2>
+    <p>
+        RM50 per guest secures your reservation and is deducted from your final bill.
+        <br/>
+        Private rooms have a minimum spend of RM2,400 for 4–8 guests or RM3,600 for 9–12 guests.
+    </p>
+    <a class="button" asp-page="/Reservations/Create">
+        Reserve your table
+    </a>
+</section>
