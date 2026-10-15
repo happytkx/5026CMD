@@ -22,7 +22,7 @@ public class Bill
     [Column(TypeName = "decimal(18,2)")]
     public decimal BalanceToPay { get; set; }
 
-    public string BillStatus { get; set; } = "N/A";
+    public string BillStatus { get; set; } = "Draft";
 
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
