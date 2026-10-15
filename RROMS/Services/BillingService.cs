@@ -19,12 +19,13 @@ public class BillingService
                 "The customer must be seated before billing.");
         }
 
-        // The reservation deposit must have been paid
+        // Ensure the deposit was paid
         if (reservation.DepositStatus != "Paid")
         {
             throw new InvalidOperationException(
                 "The reservation deposit has not been paid.");
         }
+
 
         // Calculate the bill using existing reservation data
         BillingCalculation calculation =

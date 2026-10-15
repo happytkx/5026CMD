@@ -1,0 +1,82 @@
+﻿@page
+@model RROMS.Pages.Staff.BillingModel
+@{
+	ViewData["Title"] = "Billing";
+}
+
+<p class="eyebrow">BILLING & PAYMENTS</p>
+
+<h1>Dining Billing</h1>
+
+<p>
+	View seated reservations and 
+	their minimum dining spending requirements.
+</p>
+
+<section class="card">
+	<h2>Seated Reservations</h2>
+
+	@if (Model.SeatedReservations.Count == 0)
+	{
+		<p>
+			No seated reservations are available at the moment.
+		</p>
+
+		<a asp-page="/Staff/Index">
+			View Daily Reservations
+		</a>
+	}
+	else
+	{
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Booking Reference</th>
+                        <th>Customer</th>
+                        <th>Dining Option</th>
+                        <th>Guests</th>
+                        <th>Minimum Spend</th>
+                        <th>Deposit Paid</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var reservation in Model.SeatedReservations)
+                    {
+                        <tr>
+                            <td>@reservation.BookingReference</td>
+
+                            <td>@reservation.Customer.CustomerName</td>
+
+                            <td>@reservation.PreferredDiningOption</td>
+
+                            <td>@reservation.PartySize</td>
+
+                            <td>
+                                RM @reservation.MinimumSpend.ToString("N2")
+                            </td>
+
+                            <td>
+                                RM @reservation.DepositAmount.ToString("N2")
+                            </td>
+
+                            <td>
+                                <a asp-page="/Reservations/Details"
+                                   asp-route-id="@reservation.ReservationID">
+                                    View Reservation
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <p class="notice">
+            Food and beverage totals will be available
+            after integration with the ordering module.
+        </p>
+    }
+</section>

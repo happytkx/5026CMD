@@ -51,6 +51,5 @@ public static class BillingCalculator
             depositApplied,
             shortfall,
             balanceToPay);
-
     }
 }
