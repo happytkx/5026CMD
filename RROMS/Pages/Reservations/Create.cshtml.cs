@@ -62,7 +62,7 @@ public class CreateModel(ReservationService service, ApplicationDbContext db) : 
     {
         Stage = "Guest";
         if (!AcceptPolicy)
-            ModelState.AddModelError("", "Accept the booking policy to continue.");
+            ModelState.AddModelError(nameof(AcceptPolicy), "Please read and accept the Reservation Policy before continuing.");
         if (!TimeSpan.TryParse(Time, out var time) || time < TimeSpan.Zero || time >= TimeSpan.FromDays(1))
             ModelState.AddModelError("", "Choose a valid time.");
         if (ModelState.IsValid)

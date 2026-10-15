@@ -8,8 +8,8 @@ public static class ReservationPolicy
     // Guests choose an area; they never choose a specific table. Invalid party sizes have no eligible areas.
     public static string[] Areas(int size) => size switch
     {
-        >= 1 and <= 3 => ["Indoor", "Outdoor"],
-        >= 4 and <= 8 => ["Indoor", "Outdoor", "VIP Room"],
+        >= 1 and <= 5 => ["Indoor", "Outdoor"],
+        >= 6 and <= 8 => ["Indoor", "Outdoor", "VIP Room"],
         >= 9 and <= 12 => ["VIP Room"],
         _ => []
     };

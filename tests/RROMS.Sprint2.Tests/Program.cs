@@ -24,10 +24,10 @@ async Task Reject(Func<Task> operation, string name)
 }
 var now = ReservationPolicy.Now;
 Check(ReservationPolicy.Areas(1).SequenceEqual(new[] { "Indoor", "Outdoor" }), "1 guest area filter");
-Check(ReservationPolicy.Areas(3).Length == 2 && ReservationPolicy.Areas(4).Length == 3 && ReservationPolicy.Areas(8).Length == 3, "3/4/8 guest boundaries");
+Check(ReservationPolicy.Areas(3).Length == 2 && ReservationPolicy.Areas(4).Length == 2 && ReservationPolicy.Areas(5).Length == 2 && ReservationPolicy.Areas(6).Length == 3 && ReservationPolicy.Areas(8).Length == 3, "3/4/5/6/8 guest boundaries");
 Check(ReservationPolicy.Areas(9).SequenceEqual(new[] { "VIP Room" }) && ReservationPolicy.Areas(12).Length == 1, "9–12 VIP only");
 Check(ReservationPolicy.Areas(0).Length == 0 && ReservationPolicy.Areas(13).Length == 0, "Invalid party sizes");
-Check(ReservationPolicy.MinimumSpend(4, "VIP Room") == 2400 && ReservationPolicy.MinimumSpend(8, "VIP Room") == 2400 && ReservationPolicy.MinimumSpend(9, "VIP Room") == 3600, "VIP minimum spend tiers");
+Check(ReservationPolicy.MinimumSpend(6, "VIP Room") == 2400 && ReservationPolicy.MinimumSpend(8, "VIP Room") == 2400 && ReservationPolicy.MinimumSpend(9, "VIP Room") == 3600, "VIP minimum spend tiers");
 Check(ReservationPolicy.MinimumSpend(3, "Indoor") == 150, "Standard minimum spend");
 var start = now.Date.AddDays(10).AddHours(18);
 Check(ReservationPolicy.End(start, "Indoor", TimeSpan.FromHours(22)) == start.AddHours(2), "Standard duration 2 hours");
@@ -83,6 +83,8 @@ try
     await service.Change(booking.ReservationID, customer.CustomerID, false, "Cancel");
     Check(booking.ReservationStatus == "Cancelled" && booking.DepositStatus == "Forfeited", "Cancellation forfeits deposit");
     await Reject(() => service.Create(customer.CustomerID, 3, "VIP Room", start, null), "VIP denied for 1–3 guests");
+    await Reject(() => service.Create(customer.CustomerID, 4, "VIP Room", start, null), "VIP denied for 4 guests");
+    await Reject(() => service.Create(customer.CustomerID, 5, "VIP Room", start, null), "VIP denied for 5 guests");
     await Reject(() => service.Create(customer.CustomerID, 9, "Outdoor", start, null), "Non-VIP denied for 9–12 guests");
     await Reject(() => service.Create(customer.CustomerID, 2, "Indoor", start.Date.AddHours(21), null), "Standard booking cannot cross closing");
     var vip = await service.Create(customer.CustomerID, 9, "VIP Room", start, null);
@@ -93,7 +95,7 @@ try
     await service.Change(vip.ReservationID, customer.CustomerID, false, "Late");
     Check(vip.LateArrivalNotified, "Late notification persisted");
     await service.Change(vip.ReservationID, customer.CustomerID, false, "Cancel");
-    var expired = await service.Create(customer.CustomerID, 4, "VIP Room", start, null);
+    var expired = await service.Create(customer.CustomerID, 6, "VIP Room", start, null);
     expired.HoldExpiresAt = ReservationPolicy.Now.AddMinutes(-1);
     await db.SaveChangesAsync();
     await service.Expire();
@@ -143,7 +145,7 @@ try
     var race = await Task.WhenAll(ConcurrentBooking(), ConcurrentBooking());
     Check(race.Count(success => success) == 1 && await db.Reservations.CountAsync(r => r.ReservationDate == start.AddDays(40).Date && r.TableID == "VIP02") == 1,
         "Simultaneous requests cannot double-book a VIP room");
-    var emailBooking = await service.Create(customer.CustomerID, 4, "VIP Room", start.AddDays(60), null);
+    var emailBooking = await service.Create(customer.CustomerID, 6, "VIP Room", start.AddDays(60), null);
     await service.Change(emailBooking.ReservationID, customer.CustomerID, false, "Pay");
     var fakeSender = new FakeEmailSender();
     var emailOptions = Microsoft.Extensions.Options.Options.Create(new EmailOptions { Enabled = true, ReminderHours = [24] });
@@ -202,3 +204,4 @@ class FakeEmailSender : IEmailSender
         return Task.CompletedTask;
     }
 }
+

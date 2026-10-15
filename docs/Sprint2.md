@@ -24,9 +24,9 @@ Sprint 1 can provide dining areas/tables through the existing entities and opera
 
 | Guests | Allowed dining area | Dining duration | Minimum spend |
 |---|---|---|---|
-| 1–3 | Indoor, Outdoor | 2 hours | RM50 per guest |
-| 4–8 | Indoor, Outdoor | 2 hours | RM50 per guest |
-| 4–8 | VIP Room | Until closing | RM2,400 per booking |
+| 1–5 | Indoor, Outdoor | 2 hours | RM50 per guest |
+| 6–8 | Indoor, Outdoor | 2 hours | RM50 per guest |
+| 6–8 | VIP Room | Until closing | RM2,400 per booking |
 | 9–12 | VIP Room only | Until closing | RM3,600 per booking |
 
 Reservations outside 1–12 guests are rejected. Customers choose the dining area, never the specific table. Allocation chooses the smallest available table/room of sufficient capacity, with table ID as a deterministic tie-breaker. Availability considers the complete requested interval, not just the physical table's current status. Adjacent bookings are allowed; overlapping bookings are blocked. Serializable SQL Server transactions protect allocation and subsequent changes from concurrent requests. A SQL deadlock is presented as a retry message for booking actions.
@@ -57,7 +57,7 @@ The seed inventory is sample data. Actual area availability also depends on its 
 
 Build: `dotnet build RROMS/RROMS.csproj`
 
-The automated verification project is restored under tests/RROMS.Sprint2.Tests. Run policy checks with `dotnet run --project tests/RROMS.Sprint2.Tests`. Run all 55 checks with `dotnet run --project tests/RROMS.Sprint2.Tests -- --integration`. Integration checks create and remove their own uniquely named temporary LocalDB database and use a fake email sender; application data and real emails are unaffected.
+The automated verification project is restored under tests/RROMS.Sprint2.Tests. Run policy checks with `dotnet run --project tests/RROMS.Sprint2.Tests`. Run all 57 checks with `dotnet run --project tests/RROMS.Sprint2.Tests -- --integration`. Integration checks create and remove their own uniquely named temporary LocalDB database and use a fake email sender; application data and real emails are unaffected.
 
 Reference inspiration: https://firegroup.my/branch/firewood-penang-2/ . The design is original; restaurant policies come from the group's agreed requirements and subsequent VIP clarification.
 
@@ -132,3 +132,7 @@ Formatting: the remaining C# sources, Razor pages and shared stylesheet use cons
 The optional test project is restored. Shared formatter settings remain removed. The solution still references only RROMS/RROMS.csproj; application code, service registration, database migrations and group integration points remain intact.
 
 
+
+VIP policy update (15 October 2026): VIP Room is offered for 6–8 guests at RM2,400 minimum spend and 9–12 guests at RM3,600. Parties of 1–5 choose Indoor/Outdoor only. This changes eligibility for new bookings; the RM50-per-person deposit, grace periods and modification/cancellation rules are unchanged. Existing reservation amounts are not rewritten.
+
+Reservation Policy panel: the Guest Details step displays deposit/minimum spend, cancellation, modification, dining duration and arrival/late-arrival rules together above the Continue to deposit action. The required AcceptPolicy checkbox is validated both by the browser and by the server before a pending reservation is created. The panel uses a single column on mobile and includes the six-guest VIP minimum.
