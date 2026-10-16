@@ -8,7 +8,7 @@ namespace RROMS.Services;
 public class TableAllocationService(ApplicationDbContext context)
 {
     public async Task<List<RestaurantTable>> Available(int size, string area, DateTime start,
-        DateTime end, int? excluding = null)
+        DateTime end, int? excluding = null, bool allowLargerTable = false)
     {
         if (!ReservationPolicy.Areas(size).Contains(area))
             return [];
@@ -20,7 +20,9 @@ public class TableAllocationService(ApplicationDbContext context)
             (r.ReservationStatus == "Confirmed" || r.ReservationStatus == "Seated" ||
              (r.ReservationStatus == "Pending" && r.HoldExpiresAt > ReservationPolicy.Now)))
             .ToListAsync();
-        return tables.Where(t => !bookings.Any(r => r.TableID == t.TableID &&
+        return tables.Where(t => (ReservationPolicy.SuitableCapacity(size, area, t.Capacity) ||
+                allowLargerTable && area != "VIP Room" && t.Capacity > (size <= 2 ? 4 : size <= 4 ? 6 : 8)) &&
+            !bookings.Any(r => r.TableID == t.TableID &&
             ReservationPolicy.Overlaps(start, end, r.ReservationDate.Add(r.StartTime),
                 r.ReservationDate.Add(r.EndTime)))).ToList();
     }

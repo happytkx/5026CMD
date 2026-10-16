@@ -27,6 +27,16 @@ Check(ReservationPolicy.Areas(1).SequenceEqual(new[] { "Indoor", "Outdoor" }), "
 Check(ReservationPolicy.Areas(3).Length == 2 && ReservationPolicy.Areas(4).Length == 2 && ReservationPolicy.Areas(5).Length == 2 && ReservationPolicy.Areas(6).Length == 3 && ReservationPolicy.Areas(8).Length == 3, "3/4/5/6/8 guest boundaries");
 Check(ReservationPolicy.Areas(9).SequenceEqual(new[] { "VIP Room" }) && ReservationPolicy.Areas(12).Length == 1, "9–12 VIP only");
 Check(ReservationPolicy.Areas(0).Length == 0 && ReservationPolicy.Areas(13).Length == 0, "Invalid party sizes");
+Check(ReservationPolicy.SuitableCapacity(1, "Indoor", 2) && ReservationPolicy.SuitableCapacity(2, "Outdoor", 4)
+    && !ReservationPolicy.SuitableCapacity(1, "Indoor", 6), "Small parties restricted to 2–4 seats");
+Check(ReservationPolicy.SuitableCapacity(3, "Indoor", 4) && ReservationPolicy.SuitableCapacity(4, "Indoor", 6)
+    && !ReservationPolicy.SuitableCapacity(3, "Indoor", 8), "3–4 guests restricted to 4–6 seats");
+Check(ReservationPolicy.SuitableCapacity(5, "Outdoor", 6) && ReservationPolicy.SuitableCapacity(6, "Indoor", 8)
+    && !ReservationPolicy.SuitableCapacity(5, "Indoor", 10), "5–6 guests restricted to 6–8 seats");
+Check(ReservationPolicy.SuitableCapacity(7, "Indoor", 8) && ReservationPolicy.SuitableCapacity(8, "Indoor", 8)
+    && !ReservationPolicy.SuitableCapacity(7, "Indoor", 10) && !ReservationPolicy.SuitableCapacity(7, "Indoor", 6), "7–8 guests require 8 seats");
+Check(ReservationPolicy.SuitableCapacity(6, "VIP Room", 12) && ReservationPolicy.SuitableCapacity(12, "VIP Room", 12)
+    && !ReservationPolicy.SuitableCapacity(1, "VIP Room", 12), "VIP eligibility and actual room capacity preserved");
 Check(ReservationPolicy.MinimumSpend(6, "VIP Room") == 2400 && ReservationPolicy.MinimumSpend(8, "VIP Room") == 2400 && ReservationPolicy.MinimumSpend(9, "VIP Room") == 3600, "VIP minimum spend tiers");
 Check(ReservationPolicy.MinimumSpend(3, "Indoor") == 150, "Standard minimum spend");
 var start = now.Date.AddDays(10).AddHours(18);
@@ -176,6 +186,30 @@ try
     sentBefore = fakeSender.Bodies.Count;
     await stopped.Dispatch(ReservationPolicy.Now);
     Check(fakeSender.Bodies.Count == sentBefore, "Disabled SMTP never sends messages");
+    // Capacity limits and explicit staff exceptions use a separate future date.
+    var capacityStart = start.AddDays(80);
+    Check((await allocation.Available(1, "Indoor", capacityStart, capacityStart.AddHours(2)))
+        .Select(t => t.Capacity).SequenceEqual(new[] { 2, 4 }), "Small party availability includes only suitable tables in smallest-first order");
+    Check((await service.Slots(1, "Outdoor", capacityStart.Date)).Count == 0,
+        "No arrival slots when only oversized tables exist in selected area");
+    await Reject(() => service.Create(customer.CustomerID, 1, "Outdoor", capacityStart, null),
+        "Customer cannot automatically book an oversized table");
+    var smallBooking = await service.Create(customer.CustomerID, 1, "Indoor", capacityStart, null);
+    await service.Change(smallBooking.ReservationID, customer.CustomerID, false, "Pay");
+    var indoorArea = await db.DiningAreas.SingleAsync(a => a.AreaType == "Indoor");
+    db.RestaurantTables.Add(new RROMS.Models.RestaurantTable { TableID = "TEST-LARGE", DiningAreaID = indoorArea.DiningAreaID, Capacity = 8, Status = "Available" });
+    await db.SaveChangesAsync();
+    await Reject(() => service.Change(smallBooking.ReservationID, null, true, "Reassign", tableId: "TEST-LARGE"),
+        "Staff cannot silently reassign to oversized table");
+    await Reject(() => service.Change(smallBooking.ReservationID, customer.CustomerID, false, "Reassign", tableId: "TEST-LARGE", allowLargerTable: true, reassignmentReason: "Exception"),
+        "Customer cannot request staff capacity exception");
+    await Reject(() => service.Change(smallBooking.ReservationID, null, true, "Reassign", tableId: "TEST-LARGE", allowLargerTable: true),
+        "Larger table exception requires reason");
+    await service.Change(smallBooking.ReservationID, null, true, "Reassign", tableId: "TEST-LARGE", allowLargerTable: true, reassignmentReason: "Accessible seating requested");
+    Check(smallBooking.TableID == "TEST-LARGE" && await db.Notifications.AnyAsync(n => n.ReservationID == smallBooking.ReservationID && n.Message.Contains("Accessible seating requested")),
+        "Staff exception succeeds and records reason");
+    Check(!(await allocation.Available(1, "Indoor", capacityStart, capacityStart.AddHours(2), allowLargerTable: true)).Any(t => t.TableID == "TEST-LARGE"),
+        "Capacity exception still excludes conflicting tables");
     Console.WriteLine($"All {passed} checks passed against SQL Server.");
 }
 

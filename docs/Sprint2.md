@@ -31,6 +31,8 @@ Sprint 1 can provide dining areas/tables through the existing entities and opera
 
 Reservations outside 1–12 guests are rejected. Customers choose the dining area, never the specific table. Allocation chooses the smallest available table/room of sufficient capacity, with table ID as a deterministic tie-breaker. Availability considers the complete requested interval, not just the physical table's current status. Adjacent bookings are allowed; overlapping bookings are blocked. Serializable SQL Server transactions protect allocation and subsequent changes from concurrent requests. A SQL deadlock is presented as a retry message for booking actions.
 
+Ordinary table capacities are limited to 2–4 seats for 1–2 guests, 4–6 for 3–4, 6–8 for 5–6, and 8 for 7–8. VIP rooms retain their actual capacity limits. These rules apply to searches, new reservations and rescheduling. Staff may explicitly reassign a confirmed booking to a larger table with a reason of up to 200 characters, recorded in the reservation notification history. The exception cannot bypass area, sufficient capacity, table availability or overlap checks. Existing bookings are not automatically reassigned.
+
 Only future half-hour slots inside opening hours are offered. Indoor and Outdoor need two full hours before closing. VIP bookings reserve the room from start until closing. Paid deposit and minimum spend are separate amounts. RM50 per guest is the agreed fixed reservation deposit, and minimum spend is captured at booking time.
 
 Creating a booking starts a Pending payment hold for up to 10 minutes, ending earlier if the reservation starts before that. A recorded dummy payment reference and success/failure selector simulate the payment without processing real funds or collecting card details. Failed attempts are recorded; successful payment changes Pending to Confirmed. Repeated successful payment submissions are rejected. An unpaid expired hold becomes Expired and releases allocation. This is distinct from Cancelled and No-show.
@@ -57,7 +59,7 @@ The seed inventory is sample data. Actual area availability also depends on its 
 
 Build: `dotnet build RROMS/RROMS.csproj`
 
-The automated verification project is restored under tests/RROMS.Sprint2.Tests. Run policy checks with `dotnet run --project tests/RROMS.Sprint2.Tests`. Run all 57 checks with `dotnet run --project tests/RROMS.Sprint2.Tests -- --integration`. Integration checks create and remove their own uniquely named temporary LocalDB database and use a fake email sender; application data and real emails are unaffected.
+The automated verification project is restored under tests/RROMS.Sprint2.Tests. Run policy checks with `dotnet run --project tests/RROMS.Sprint2.Tests`. Run all 70 checks with `dotnet run --project tests/RROMS.Sprint2.Tests -- --integration`. Integration checks create and remove their own uniquely named temporary LocalDB database and use a fake email sender; application data and real emails are unaffected.
 
 Reference inspiration: https://firegroup.my/branch/firewood-penang-2/ . The design is original; restaurant policies come from the group's agreed requirements and subsequent VIP clarification.
 

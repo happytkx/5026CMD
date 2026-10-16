@@ -120,7 +120,11 @@ else if (Model.Stage == "Availability")
                 <h3>@Model.Area Dining</h3>
                 <p>@Model.PartySize guests · @Model.Date.ToString("dddd, dd MMMM yyyy")</p>
                 <hr />
-                <p>Only available times that fit your group in this area are shown.</p>
+                <p>Only times with a suitable table in this area are shown. We assign the smallest available suitable table.</p>
+                @if (Model.Area != "VIP Room")
+                {
+                    <p>Table sizes: 1–2 guests use 2–4 seats; 3–4 use 4–6 seats; 5–6 use 6–8 seats; 7–8 use 8 seats.</p>
+                }
                 <p>Minimum spend: RM @ReservationPolicy.MinimumSpend(Model.PartySize, Model.Area).ToString("N2")</p>
             </div>
         </aside>
