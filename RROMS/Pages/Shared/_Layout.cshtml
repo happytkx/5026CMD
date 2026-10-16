@@ -35,12 +35,16 @@
                 </a>
                 <p class="sidebar-label">RESTAURANT OPERATIONS</p>
                 <nav aria-label="Staff navigation">
-                    <a class="@(currentPage!="/Staff/Seating" ? "active" : "")" asp-page="/Staff/Index">
+                    <a class="@(currentPage!="/Staff/Index" ? "active" : "")" asp-page="/Staff/Index">
                         Daily Reservations
                     </a>
                     <a class="@(currentPage=="/Staff/Seating" ? "active" : "")" asp-page="/Staff/Seating">
                         Seating &amp; Allocation
                     </a>
+                    <a class="@(currentPage == "/Staff/Billing" ? "active" : "")" asp-page="/Staff/Billing">
+                        Dining Billing
+                    </a>
+
                     <a asp-page="/Index">
                         Customer Website
                     </a>
