@@ -62,7 +62,7 @@ public class ReportingService
         // Sum successful reservation deposit payments
         decimal paidDeposits = await _db.Payments
             .AsNoTracking()
-            .Where(p => p.PaymentType == "Simulated deposit"
+            .Where(p => p.PaymentType == "Deposit"
                     && p.PaymentStatus == "Paid"
                     && p.Reservation.ReservationDate >= from
                     && p.Reservation.ReservationDate < endExclusive)

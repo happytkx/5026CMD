@@ -1,0 +1,94 @@
+﻿@page
+@model RROMS.Pages.Staff.ReportsModel
+
+@{
+	ViewData["Title"] = "Reports & Analytics";
+}
+
+<p class="eyebrow">REPORTING & ANALYTICS</p>
+
+<h1>Reservation Reports</h1>
+
+<p>
+	View reservation statistics and deposit information
+	for a selected reporting period.
+</p>
+
+<section class="card">
+	<h2>Select Reporting Period</h2>
+	
+	<form method="get" class="staff-search">
+		<label asp-for="StartDate">Start Date</label>
+		<input asp-for="StartDate" type="date" />
+
+		<label asp-for="EndDate">End Date</label>
+		<input asp-for="EndDate" type="date" />
+
+		<button type="submit">Generate Report</button>
+	</form>
+
+	<div asp-validation-summary="All"
+		class="text-danger"></div>
+</section>
+
+@if (Model.Summary is { } report)
+{
+	<p>
+		Reporting period:
+		@report.StartDate.ToString("dd MMM yyyy")
+		to
+		@report.EndDate.ToString("dd MMM yyyy")
+	</p>
+
+	<section class="staff-stats">
+		<article class="card">
+			<small>TOTAL RESERVATIONS</small>
+			<h2>@report.TotalReservations</h2>
+		</article>
+
+		<article class="card">
+			<small>CONFIRMED</small>
+			<h2>@report.ConfirmedReservations</h2>
+		</article>
+
+		<article class="card">
+			<small>SEATED</small>
+			<h2>@report.SeatedReservations</h2>
+		</article>
+
+		<article class="card">
+			<small>COMPLETED</small>
+			<h2>@report.CompletedReservations</h2>
+		</article>
+
+	</section>
+
+	<section class="staff-stats">
+		<article class="card">
+			<small>CANCELLED</small>
+			<h2>@report.CancelledReservations</h2>
+		</article>
+
+		<article class="card">
+			<small>NO-SHOWS</small>
+			<h2>@report.NoShowReservations</h2>
+		</article>
+
+		<article class="card">
+			<small>PAID DEPOSITS</small>
+			<h2>RM @report.PaidDeposits.ToString("N2")</h2>
+		</article>
+
+		<article class="card">
+			<small>FORFEITED DEPOSITS</small>
+			<h2>RM @report.ForfeitedDeposits.ToString("N2")</h2>
+		</article>
+
+	</section>
+
+	<p class="notice">
+		Deposit amounts are associated with reservations
+		scheduled during the selected period.
+		Forfeited deposits are already included in paid deposits. 
+	</p>
+}

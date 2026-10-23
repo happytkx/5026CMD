@@ -16,6 +16,7 @@ builder.Services.AddAuthorization(options =>
 });
 builder.Services.AddScoped<TableAllocationService>();
 builder.Services.AddScoped<ReservationService>();
+builder.Services.AddScoped<ReportingService>();
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
 builder.Services.AddScoped<IEmailSender, EmailService>();
 builder.Services.AddScoped<ReservationEmailService>();
