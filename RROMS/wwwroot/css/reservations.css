@@ -1,4 +1,5 @@
 /* Shared Céleste presentation: colour/font tokens, customer booking components, staff workspace, mobile breakpoints and print styling. */
+
 :root
 {
     --paper: #F7F4EE;
@@ -2365,4 +2366,43 @@ td small
     {
         grid-template-columns: 1fr;
     }
+}
+
+/* Reporting dashboard: reservation status chart */
+.report-chart {
+    margin-top: 24px;
+}
+
+.report-status-row {
+    margin: 18px 0;
+}
+
+.report-status-label {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+    font-size: 12px;
+}
+
+    .report-status-label strong {
+        font-weight: 500;
+    }
+
+    .report-status-label span {
+        color: var(--muted);
+    }
+
+.report-bar-track {
+    width: 100%;
+    height: 12px;
+    background: var(--beige);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.report-bar-fill {
+    height: 100%;
+    background: var(--olive);
+    border-radius: 999px;
 }

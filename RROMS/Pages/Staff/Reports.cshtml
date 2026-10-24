@@ -33,6 +33,27 @@
 
 @if (Model.Summary is { } report)
 {
+	// Count reservations with statuses not listed separately
+	int otherReservations = Math.Max(
+		0,
+		-report.ConfirmedReservations
+		- report.SeatedReservations
+		- report.SeatedReservations
+		- report.CompletedReservations
+		- report.CancelledReservations
+		- report.NoShowReservations);
+
+	// Prepare data for the status chart
+	var statuses = new[]
+	{
+		new { Label = "Confirmed", Count = report.ConfirmedReservations },
+		new { Label = "Seated", Count = report.SeatedReservations },
+		new { Label = "Completed", Count = report.CompletedReservations },
+		new { Label = "Cancelled", Count = report.CancelledReservations },
+		new { Label = "No-Show", Count = report.NoShowReservations },
+		new { Label = "Other statuses", Count = otherReservations }
+	};
+
 	<p>
 		Reporting period:
 		@report.StartDate.ToString("dd MMM yyyy")
@@ -85,6 +106,52 @@
 		</article>
 
 	</section>
+
+	<!-- Reservation status chart -->
+	<section class="card report-chart">
+		<h2>Reservation Status Breakdown</h2>
+
+		<p>
+			Current reservation status distribution
+			for the selected period.
+		</p>
+
+		@if (report.TotalReservations == 0)
+		{
+			<p>No reservations found for this period.</p>
+		}
+		else
+		{
+			@foreach (var status in statuses)
+			{
+				int percentage = (int)Math.Round(
+					status.Count * 100.0
+					/ report.TotalReservations);
+
+				<div class="report-status-row">
+					<div class="report-status-label">
+						<strong>@status.Label</strong>
+						<span>
+							@status.Count (@percentage%)
+						</span>
+					</div>
+
+					<div class="report-bar-track"
+						role="progressbar"
+						aria-label="@status.Label"
+						aria-valuemin="0"
+						aria-valuemax"@report.TotalReservations"
+						aria-valuenow="@status.Count">
+						
+						<div class="report-bar-fill"
+							style="width: @(percentage)%">
+						</div>
+					</div>
+				</div>
+			}
+		}
+	</section>
+
 
 	<p class="notice">
 		Deposit amounts are associated with reservations
