@@ -2406,3 +2406,10 @@ td small
     background: var(--olive);
     border-radius: 999px;
 }
+
+/* Daily reservation trend chart */
+.report-trend-scroll {
+    max-height: 420px;
+    overflow-y: auto;
+    padding-right: 10px;
+}

@@ -25,6 +25,8 @@ public class ReportsModel : PageModel
 
     public ReservationReportSummary? Summary { get; set; }
 
+    public List<DailyReservationCount> DailyReservations { get; set; } = new();
+
     public async Task OnGetAsync()
     {
         // Reject invalid date ranges
@@ -40,5 +42,9 @@ public class ReportsModel : PageModel
         // Generate the report using ReportingService
         Summary = await _reportingService
                 .GetReservationSummaryAsync(StartDate, EndDate);
+
+        // Generate the daily reservation trend
+        DailyReservations = await _reportingService
+            .GetDailyReservationTrendAsync(StartDate, EndDate);
     }
 }

@@ -45,6 +45,11 @@
 		new { Label = "Expired", Count = report.ExpiredReservations }
 	};
 
+	// Find the highest number of reservations on a single day
+	int maxDailyCount = Model.DailyReservations.Count == 0
+		? 0
+		: Model.DailyReservations.Max(d => d.Count);
+
 	<p>
 		Reporting period:
 		@report.StartDate.ToString("dd MMM yyyy")
@@ -143,8 +148,56 @@
 		}
 	</section>
 
+	<!-- Daily reservation trend chart -->
+	<section class="card report-chart">
+		<h2>Daily Reservation Trend</h2>
+
+		<p>
+			Number of reservations scheduled for each date
+			in the selected reporting period.
+		</p>
+
+		@if (maxDailyCount == 0)
+		{
+			<p>No reservations found for this period.</p>
+		}
+		else
+		{
+			<div class="report-trend-scroll">
+				@foreach (var day in Model.DailyReservations)
+				{
+					int percentage = (int)Math.Round(
+						day.Count * 100.0 / maxDailyCount);
+
+					string dateLabel = day.Date.ToString("dd MMM yyyy");
+
+					<div class="report-status-row">
+						<div class="report-status-label">
+							<strong>@dateLabel</strong>
+							<span>@day.Count reservations</span>
+						</div>
+
+						<div class="report-bar-track"
+							role="progressbar"
+							aria-label="@dateLabel"
+							aria-valuemin="0"
+							aria-valuemax="@maxDailyCount"
+							aria-valuenow="@day.Count">
+
+							<div class="report-bar-fill"
+								style="width: @(percentage)%">
+							</div>
+						</div>
+					</div>
+				}
+			</div>
+		}
+	</section>
 
 	<p class="notice">
+		Reservation counts are based on scheduled dining dates,
+		including reservations that were subsequently cancelled or expired.
+
 		Deposit amounts are associated with reservations
 		scheduled during the selected period.
 		Forfeited deposits are already included in paid deposits. 
