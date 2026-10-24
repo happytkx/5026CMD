@@ -35,7 +35,7 @@
                 </a>
                 <p class="sidebar-label">RESTAURANT OPERATIONS</p>
                 <nav aria-label="Staff navigation">
-                    <a class="@(currentPage!="/Staff/Index" ? "active" : "")" asp-page="/Staff/Index">
+                    <a class="@(currentPage=="/Staff/Index" ? "active" : "")" asp-page="/Staff/Index">
                         Daily Reservations
                     </a>
                     <a class="@(currentPage=="/Staff/Seating" ? "active" : "")" asp-page="/Staff/Seating">
@@ -43,6 +43,10 @@
                     </a>
                     <a class="@(currentPage == "/Staff/Billing" ? "active" : "")" asp-page="/Staff/Billing">
                         Dining Billing
+                    </a>
+
+                    <a class="@(currentPage == "/Staff/Reports" ? "active" : "")" asp-page="/Staff/Reports">
+                        Reports &amp; Analytics
                     </a>
 
                     <a asp-page="/Index">
