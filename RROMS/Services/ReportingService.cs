@@ -8,11 +8,13 @@ public record ReservationReportSummary(
     DateTime StartDate,
     DateTime EndDate,
     int TotalReservations,
+    int PendingReservations,
     int ConfirmedReservations,
     int SeatedReservations,
     int CompletedReservations,
     int CancelledReservations,
     int NoShowReservations,
+    int ExpiredReservations,
     decimal PaidDeposits,
     decimal ForfeitedDeposits);
 
@@ -78,11 +80,13 @@ public class ReportingService
             from,
             to,
             reservations.Count,
+            reservations.Count(r => r.ReservationStatus == "Pending"),
             reservations.Count(r => r.ReservationStatus == "Confirmed"),
             reservations.Count(r => r.ReservationStatus == "Seated"),
             reservations.Count(r => r.ReservationStatus == "Completed"),
             reservations.Count(r => r.ReservationStatus == "Cancelled"),
             reservations.Count(r => r.ReservationStatus == "No-show"),
+            reservations.Count(r => r.ReservationStatus == "Expired"),
             paidDeposits,
             forfeitedDeposits);
     }

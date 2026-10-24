@@ -33,25 +33,16 @@
 
 @if (Model.Summary is { } report)
 {
-	// Count reservations with statuses not listed separately
-	int otherReservations = Math.Max(
-		0,
-		-report.ConfirmedReservations
-		- report.SeatedReservations
-		- report.SeatedReservations
-		- report.CompletedReservations
-		- report.CancelledReservations
-		- report.NoShowReservations);
-
 	// Prepare data for the status chart
 	var statuses = new[]
 	{
+		new { Label = "Pending", Count = report.PendingReservations },
 		new { Label = "Confirmed", Count = report.ConfirmedReservations },
 		new { Label = "Seated", Count = report.SeatedReservations },
 		new { Label = "Completed", Count = report.CompletedReservations },
 		new { Label = "Cancelled", Count = report.CancelledReservations },
 		new { Label = "No-Show", Count = report.NoShowReservations },
-		new { Label = "Other statuses", Count = otherReservations }
+		new { Label = "Expired", Count = report.ExpiredReservations }
 	};
 
 	<p>
@@ -140,7 +131,7 @@
 						role="progressbar"
 						aria-label="@status.Label"
 						aria-valuemin="0"
-						aria-valuemax"@report.TotalReservations"
+						aria-valuemax="@report.TotalReservations"
 						aria-valuenow="@status.Count">
 						
 						<div class="report-bar-fill"
