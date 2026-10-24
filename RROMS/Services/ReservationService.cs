@@ -102,8 +102,8 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
                 db.Payments.Add(new Payment
                 {
                     ReservationID = id,
-                    PaymentType = "Simulated deposit",
-                    PaymentMethod = "Simulation",
+                    PaymentType = "Deposit",
+                    PaymentMethod = "Card",
                     PaymentReference = paymentReference ?? "SIM-" + Guid.NewGuid().ToString("N"),
                     Amount = r.DepositAmount,
                     PaymentStatus = paymentSuccess ? "Paid" : "Failed",
