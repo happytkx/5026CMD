@@ -18,6 +18,12 @@ public record ReservationReportSummary(
     decimal PaidDeposits,
     decimal ForfeitedDeposits);
 
+// Stores the reservation count for one date
+public record DailyReservationCount(
+    DateTime Date,
+    int Count);
+
+
 public class ReportingService
 {
     private readonly ApplicationDbContext _db;
@@ -51,14 +57,12 @@ public class ReportingService
             .AsNoTracking()
             .Where(r => r.ReservationDate >= from
                     && r.ReservationDate < endExclusive)
-
             .Select(r => new
             {
                 r.ReservationStatus,
                 r.DepositStatus,
                 r.DepositAmount
             })
-
             .ToListAsync();
 
         // Sum successful reservation deposit payments
@@ -89,5 +93,54 @@ public class ReportingService
             reservations.Count(r => r.ReservationStatus == "Expired"),
             paidDeposits,
             forfeitedDeposits);
+    }
+
+    // Get the number of reservations schedule for each date
+    public async Task<List<DailyReservationCount>> GetDailyReservationTrendAsync(
+        DateTime startDate,
+        DateTime endDate)
+    {
+        DateTime from = startDate.Date;
+        DateTime to = endDate.Date;
+
+        if (from > to)
+        {
+            throw new ArgumentException(
+                "End date cannot be earlier then start date.",
+                nameof(endDate));
+        }
+
+        DateTime endExclusive = to.AddDays(1);
+
+        // Group reservations by their scheduled dining date
+        var dailyCounts = await _db.Reservations
+            .AsNoTracking()
+            .Where(r => r.ReservationDate >= from
+                    && r.ReservationDate < endExclusive)
+            .GroupBy(r => r.ReservationDate.Date)
+            .Select(Group => new
+            {
+                Date = Group.Key,
+                Count = Group.Count()
+            })
+            .ToListAsync();
+
+        // Look up reservation counts by date
+        var countsByDate = dailyCounts.ToDictionary(
+            d => d.Date,
+            d => d.Count);
+
+        var dailyTrend = new List<DailyReservationCount>();
+
+        // Include dates with zero reservations
+        for (DateTime date = from; date <= to; date = date.AddDays(1))
+        {
+            int count = countsByDate.GetValueOrDefault(date);
+        
+            dailyTrend.Add(new DailyReservationCount(date, count));
+        }
+
+        return dailyTrend;
+
     }
 }
