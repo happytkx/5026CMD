@@ -41,7 +41,7 @@ public class DetailsModel(ApplicationDbContext db, ReservationService service, T
             ModifySlots = await service.Slots(Booking.PartySize, Booking.PreferredDiningOption, NewDate, id);
             if (IsStaff)
                 AvailableTables = await allocation.Available(Booking.PartySize, Booking.PreferredDiningOption,
-                Booking.ReservationDate.Add(Booking.StartTime), Booking.ReservationDate.Add(Booking.EndTime), id);
+                Booking.ReservationDate.Add(Booking.StartTime), Booking.ReservationDate.Add(Booking.EndTime), id, allowLargerTable: true);
         }
         if (IsStaff)
             CustomerHistory = await db.Reservations.Where(r => r.CustomerID == Booking.CustomerID).OrderByDescending(r => r.ReservationDate).ToListAsync();
@@ -59,7 +59,8 @@ public class DetailsModel(ApplicationDbContext db, ReservationService service, T
             View = "Details";
         return Page();
     }
-    public async Task<IActionResult> OnPostActionAsync(int id, string action, string? tableId, string? dummyReference, bool paymentSuccess = true)
+    public async Task<IActionResult> OnPostActionAsync(int id, string action, string? tableId, string? dummyReference,
+        bool paymentSuccess = true, bool allowLargerTable = false, string? reassignmentReason = null)
     {
         if (!await Load(id))
             return NotFound();
@@ -74,7 +75,8 @@ public class DetailsModel(ApplicationDbContext db, ReservationService service, T
             }
             if (action == "Pay" && (string.IsNullOrWhiteSpace(dummyReference) || dummyReference.Length > 40))
                 throw new InvalidOperationException("Enter a dummy payment reference, up to 40 characters.");
-            await service.Change(id, ReservationIdentity.CustomerId(User), IsStaff, action, newStart, tableId, paymentSuccess, dummyReference);
+            await service.Change(id, ReservationIdentity.CustomerId(User), IsStaff, action, newStart, tableId, paymentSuccess, dummyReference,
+                allowLargerTable, reassignmentReason);
             TempData["Message"] = action == "Pay" && !paymentSuccess ? "Payment failed. Your booking remains pending; you can retry before the hold expires." : "Reservation updated.";
             return RedirectToPage(new
             {

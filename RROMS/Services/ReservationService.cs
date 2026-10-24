@@ -81,7 +81,8 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
     }
 
     public async Task Change(int id, int? customerId, bool staff, string action,
-        DateTime? newStart = null, string? tableId = null, bool paymentSuccess = true, string? paymentReference = null)
+        DateTime? newStart = null, string? tableId = null, bool paymentSuccess = true, string? paymentReference = null,
+        bool allowLargerTable = false, string? reassignmentReason = null)
     {
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         await ExpireCore();
@@ -101,8 +102,8 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
                 db.Payments.Add(new Payment
                 {
                     ReservationID = id,
-                    PaymentType = "Simulated deposit",
-                    PaymentMethod = "Simulation",
+                    PaymentType = "Deposit",
+                    PaymentMethod = "Card",
                     PaymentReference = paymentReference ?? "SIM-" + Guid.NewGuid().ToString("N"),
                     Amount = r.DepositAmount,
                     PaymentStatus = paymentSuccess ? "Paid" : "Failed",
@@ -173,11 +174,18 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
             case "Reassign":
                 if (!staff || r.ReservationStatus != "Confirmed")
                     throw new InvalidOperationException("Only confirmed reservations can be reassigned.");
-                var available = await allocation.Available(r.PartySize, r.PreferredDiningOption, start, r.ReservationDate.Add(r.EndTime), id);
+                var available = await allocation.Available(r.PartySize, r.PreferredDiningOption, start, r.ReservationDate.Add(r.EndTime), id,
+                    allowLargerTable: allowLargerTable);
                 if (!available.Any(t => t.TableID == tableId))
-                    throw new InvalidOperationException("Select an available table in the same area with sufficient capacity.");
+                    throw new InvalidOperationException("Select an available suitable table in the same area. Larger tables require an explicit staff exception.");
+                var replacementTable = available.Single(t => t.TableID == tableId);
+                var largerException = !ReservationPolicy.SuitableCapacity(r.PartySize, r.PreferredDiningOption, replacementTable.Capacity);
+                if (largerException && (string.IsNullOrWhiteSpace(reassignmentReason) || reassignmentReason.Trim().Length > 200))
+                    throw new InvalidOperationException("Enter a reason for the larger table exception, up to 200 characters.");
                 r.TableID = tableId!;
-                message = "Assigned table updated within your selected dining area.";
+                message = largerException
+                    ? $"Staff assigned larger table {tableId} within your selected dining area. Reason: {reassignmentReason!.Trim()}"
+                    : "Assigned table updated within your selected dining area.";
                 break;
             case "Complete":
                 if (!staff || r.ReservationStatus != "Seated")

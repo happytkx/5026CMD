@@ -311,7 +311,7 @@ else
                 {
                     <section class="card">
                         <h3>Assigned Seating</h3>
-                        <p>Reassign only within @r.PreferredDiningOption, with sufficient capacity and no conflicting bookings.</p>
+                        <p>Reassign only within @r.PreferredDiningOption, with sufficient capacity and no conflicting bookings. Larger tables require the exception option and a reason.</p>
                         <form method="post" asp-page-handler="Action">
                             <div class="seating-options">
                                 @foreach (var t in Model.AvailableTables)
@@ -321,10 +321,20 @@ else
                                         <span>
                                             <strong>@t.TableID</strong>
                                             <small>Up to @t.Capacity guests</small>
+                                            @if (!ReservationPolicy.SuitableCapacity(r.PartySize, r.PreferredDiningOption, t.Capacity))
+                                            {
+                                                <small>Larger table exception required</small>
+                                            }
                                         </span>
                                     </label>
                                 }
                             </div>
+                            @if (r.PreferredDiningOption != "VIP Room")
+                            {
+                                <label><input type="checkbox" name="allowLargerTable" value="true" /> Allow a larger table as a staff exception</label>
+                                <label for="reassignmentReason">Reason for larger table exception</label>
+                                <input id="reassignmentReason" name="reassignmentReason" maxlength="200" placeholder="Required only for a larger table" />
+                            }
                             <button name="action" value="Reassign">Save assignment</button>
                         </form>
                     </section>

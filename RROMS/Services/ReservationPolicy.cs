@@ -13,6 +13,15 @@ public static class ReservationPolicy
         >= 9 and <= 12 => ["VIP Room"],
         _ => []
     };
+    // Keep larger ordinary tables for larger groups. VIP rooms use their actual room capacity.
+    public static bool SuitableCapacity(int size, string area, int capacity) =>
+        Areas(size).Contains(area) && capacity >= size && (area == "VIP Room" ||
+        capacity >= ((size + 1) / 2) * 2 && capacity <= (size switch
+        {
+            <= 2 => 4,
+            <= 4 => 6,
+            _ => 8
+        }));
     // Minimum dining spend is separate from the RM50-per-person reservation deposit.
     public static decimal MinimumSpend(int size, string area) =>
         area == "VIP Room" ? (size <= 8 ? 2400m : 3600m) : size * 50m;
