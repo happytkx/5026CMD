@@ -11,7 +11,6 @@ namespace RROMS.Data
             DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
-
         }
 
         public DbSet<Customer> Customers
@@ -53,7 +52,13 @@ namespace RROMS.Data
         {
             get; set;
         }
+
         public DbSet<ReservationEmail> ReservationEmails
+        {
+            get; set;
+        }
+
+        public DbSet<Bill> Bills
         {
             get; set;
         }
@@ -65,7 +70,18 @@ namespace RROMS.Data
             modelBuilder.Entity<Reservation>().Property(r => r.BookingReference).HasMaxLength(40);
             modelBuilder.Entity<Reservation>().HasIndex(r => r.BookingReference).IsUnique();
             modelBuilder.Entity<Reservation>().HasIndex(r => new { r.TableID, r.ReservationDate, r.StartTime });
-        }
 
+            // Each bill belongs to an existing reservation
+            modelBuilder.Entity<Bill>()
+                .HasOne<Reservation>()
+                .WithMany()
+                .HasForeignKey(b => b.ReservationID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Allow only one bill per reservation
+            modelBuilder.Entity<Bill>()
+                .HasIndex(b => b.ReservationID)
+                .IsUnique();
+        }
     }
 }

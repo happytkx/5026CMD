@@ -22,6 +22,44 @@ namespace RROMS.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("RROMS.Models.Bill", b =>
+                {
+                    b.Property<int>("BillID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BillID"));
+
+                    b.Property<decimal>("BalanceToPay")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("BillStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("DepositApplied")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MinSpend")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("ReservationID")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalBill")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("BillID");
+
+                    b.HasIndex("ReservationID")
+                        .IsUnique();
+
+                    b.ToTable("Bills");
+                });
+
             modelBuilder.Entity("RROMS.Models.Customer", b =>
                 {
                     b.Property<int>("CustomerID")
@@ -365,6 +403,15 @@ namespace RROMS.Migrations
                     b.HasIndex("DiningAreaID");
 
                     b.ToTable("RestaurantTables");
+                });
+
+            modelBuilder.Entity("RROMS.Models.Bill", b =>
+                {
+                    b.HasOne("RROMS.Models.Reservation", null)
+                        .WithMany()
+                        .HasForeignKey("ReservationID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RROMS.Models.Notification", b =>
