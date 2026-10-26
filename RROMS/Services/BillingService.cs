@@ -1,4 +1,5 @@
 ﻿
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using RROMS.Data;
 using RROMS.Models;
@@ -130,7 +131,6 @@ public class BillingService
                 nameof(reservationId));
         }
 
-        // Retrieve the reservation
         Reservation? reservation = await _db.Reservations
             .AsNoTracking()
             .SingleOrDefaultAsync(
@@ -142,7 +142,6 @@ public class BillingService
                 false, "Reservation not found.", 0m, 0m);
         }
 
-        // Retrieve the saved bill
         Bill? bill = await GetBillAsync(reservationId);
 
         if (bill == null)
@@ -151,7 +150,6 @@ public class BillingService
                 false, "No saved bill found.", 0m, 0m);
         }
 
-        // Check the bill status
         if (bill.BillStatus != "Draft")
         {
             return new BillSettlementCheck(
@@ -159,7 +157,6 @@ public class BillingService
                 0m, bill.BalanceToPay);
         }
 
-        // Check that the customer is seated
         if (reservation.ReservationStatus != "Seated")
         {
             return new BillSettlementCheck(
@@ -167,7 +164,6 @@ public class BillingService
                 0m, bill.BalanceToPay);
         }
 
-        // Check the reservation deposit status
         if (reservation.DepositStatus != "Paid")
         {
             return new BillSettlementCheck(
@@ -175,7 +171,6 @@ public class BillingService
                 0m, bill.BalanceToPay);
         }
 
-        // Verify that a successful deposit transaction exists
         bool depositRecorded = await _db.Payments
             .AsNoTracking()
             .AnyAsync(p =>
@@ -191,7 +186,6 @@ public class BillingService
                 0m, bill.BalanceToPay);
         }
 
-        // Prevent settling a previously paid dining bill
         bool finalPaymentRecorded = await _db.Payments
             .AsNoTracking()
             .AnyAsync(p =>
@@ -206,7 +200,6 @@ public class BillingService
                 0m, bill.BalanceToPay);
         }
 
-        // Reject invalid saved amounts
         if (bill.TotalBill < 0m ||
             bill.MinSpend < 0m ||
             bill.DepositApplied < 0m ||
@@ -217,7 +210,6 @@ public class BillingService
                 0m, 0m);
         }
 
-        // Recalculate amounts using the reservation data
         BillingCalculation calculation =
             BillingCalculator.Calculate(
                 bill.TotalBill,
@@ -225,7 +217,6 @@ public class BillingService
                 reservation.DepositAmount,
                 true);
 
-        // Check that the saved figures are consistent
         if (bill.MinSpend != reservation.MinimumSpend ||
             bill.DepositApplied != calculation.DepositApplied ||
             bill.BalanceToPay != calculation.BalanceToPay)
@@ -236,7 +227,6 @@ public class BillingService
                 calculation.BalanceToPay);
         }
 
-        // Prevent settlement below minimum spending
         if (!calculation.MeetMinSpend)
         {
             return new BillSettlementCheck(
@@ -246,11 +236,88 @@ public class BillingService
                 calculation.BalanceToPay);
         }
 
-        // All settlement checks passed
         return new BillSettlementCheck(
             true,
             "The bill is ready for final payment.",
             0m,
             calculation.BalanceToPay);
+    }
+
+    // Record a confirmed final payment and mark the bill as Paid
+    public async Task<Bill> RecordFinalPaymentAsync(
+        int reservationId,
+        string paymentMethod,
+        string? paymentReference = null)
+    {
+        if (reservationId <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(reservationId));
+        }
+
+        // Only supported offline payment methods are accepted
+        if (paymentMethod is not ("Cash" or "Card" or "EWallet"))
+        {
+            throw new ArgumentException(
+                "Choose Cash, Card or EWallet.",
+                nameof(paymentMethod));
+        }
+
+        // Use the provided receipt reference or create an internal one
+        string reference = string.IsNullOrWhiteSpace(paymentReference)
+            ? "FINAL-" + Guid.NewGuid().ToString("N")
+            : paymentReference.Trim();
+
+        if (reference.Length > 40)
+        {
+            throw new ArgumentException(
+                "Payment reference cannot exceed 40 characters.",
+                nameof(paymentReference));
+        }
+
+        // Keep validation, payment recording and bill update together
+        await using var transaction =
+            await _db.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable);
+
+        // Recheck the actual database state before settlement
+        BillSettlementCheck check =
+            await CheckSettlementAsync(reservationId);
+
+        if (!check.CanSettle)
+        {
+            throw new InvalidOperationException(check.Message);
+        }
+
+        // Load the bill for updating
+        Bill bill = await _db.Bills
+            .SingleAsync(b => b.ReservationID == reservationId);
+
+        // Record only a positive remaining payment
+        if (bill.BalanceToPay > 0m)
+        {
+            Payment payment = new Payment
+            {
+                ReservationID = reservationId,
+                PaymentType = "DiningBill",
+                PaymentMethod = paymentMethod,
+                PaymentReference = reference,
+                Amount = bill.BalanceToPay,
+                PaymentStatus = "Paid",
+                PaymentDate = ReservationPolicy.Now
+            };
+
+            _db.Payments.Add(payment);
+        }
+
+        // The entire bill is now settled
+        bill.BillStatus = "Paid";
+
+        // Save both changes within the same transaction
+        await _db.SaveChangesAsync();
+
+        await transaction.CommitAsync();
+
+        return bill;
     }
 }
