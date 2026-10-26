@@ -23,6 +23,12 @@ public record DailyReservationCount(
     DateTime Date,
     int Count);
 
+// Stores successful deposit collections for one date
+public record DailyDepositCollection(
+    DateTime Date,
+    decimal TotalAmount,
+    int PaymentCount);
+
 
 public class ReportingService
 {
@@ -142,5 +148,67 @@ public class ReportingService
 
         return dailyTrend;
 
+    }
+
+    // Get successful deposit collections by actual payment date
+    public async Task<List<DailyDepositCollection>> GetDailyDepositCollectionAsync(
+        DateTime startDate,
+        DateTime endDate)
+
+    {
+        DateTime from = startDate.Date;
+        DateTime to = endDate.Date;
+
+        if (from > to)
+        {
+            throw new ArgumentException(
+                "End date cannot be earlier than start date.",
+                nameof(endDate));
+        }
+
+        DateTime endExclusive = to.AddDays(1);
+
+        // Group successful deposit payments by payment date
+        var dailyPayments = await _db.Payments
+            .AsNoTracking()
+            .Where(p => p.PaymentType == "Deposit"
+                    && p.PaymentStatus == "Paid"
+                    && p.PaymentDate >= from
+                    && p.PaymentDate < endExclusive)
+            .GroupBy(p => p.PaymentDate.Date)
+            .Select(group => new
+            {
+                Date = group.Key,
+                TotalAmount = group.Sum(p => p.Amount),
+                PaymentCount = group.Count()
+            })
+            .ToListAsync();
+
+        // Create a lookup using payment date as the key
+        var paymentsByDate = dailyPayments.ToDictionary(
+            p => p.Date);
+
+        var dailyCollections = new List<DailyDepositCollection>();
+
+        // Include dates without successful deposit payments
+        for (DateTime date = from; date <= to; date = date.AddDays(1))
+        {
+            if (paymentsByDate.TryGetValue(date, out var payment))
+            {
+                dailyCollections.Add(new DailyDepositCollection(
+                    date,
+                    payment.TotalAmount,
+                    payment.PaymentCount));
+            }
+            else
+            {
+                dailyCollections.Add(new DailyDepositCollection(
+                    date,
+                    0m,
+                    0));
+            }
+        }
+
+        return dailyCollections;
     }
 }

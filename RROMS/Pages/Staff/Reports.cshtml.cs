@@ -27,6 +27,8 @@ public class ReportsModel : PageModel
 
     public List<DailyReservationCount> DailyReservations { get; set; } = new();
 
+    public List<DailyDepositCollection> DailyDeposits { get; set; } = new();
+
     public async Task OnGetAsync()
     {
         // Reject invalid date ranges
@@ -46,5 +48,9 @@ public class ReportsModel : PageModel
         // Generate the daily reservation trend
         DailyReservations = await _reportingService
             .GetDailyReservationTrendAsync(StartDate, EndDate);
+
+        // Generate the daily deposit collection report
+        DailyDeposits = await _reportingService
+            .GetDailyDepositCollectionAsync(StartDate, EndDate);
     }
 }

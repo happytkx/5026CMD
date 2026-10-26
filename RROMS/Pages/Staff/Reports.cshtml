@@ -194,6 +194,84 @@
 		}
 	</section>
 
+	
+	<!-- Daily deposit collection chart -->
+	<section class="card report-chart">
+		<h2>Daily Deposit Collections</h2>
+
+		<p>
+			Successful reservation deposits grouped by
+			the date the payment was recorded.
+		</p>
+
+		@{
+			decimal totalCollected = Model.DailyDeposits
+				.Sum(d => d.TotalAmount);
+
+			int totalPayments = Model.DailyDeposits
+				.Sum(d => d.PaymentCount);
+
+			decimal maxDailyAmount = Model.DailyDeposits.Count == 0
+				? 0m
+				: Model.DailyDeposits.Max(d => d.TotalAmount);
+		}
+
+		<div class="staff-stats">
+			<article class="card">
+				<small>DEPOSITS COLLECTED</small>
+				<h2>RM @totalCollected.ToString("N2")</h2>
+			</article>
+
+			<article class="card">
+				<small>SUCCESSFUL TRANSACTIONS</small>
+				<h2>@totalPayments</h2>
+			</article>
+		</div>
+
+		@if (maxDailyAmount == 0m)
+		{
+			<p>
+				No successful deposit payments were recorded
+				during this period.
+			</p>
+		}
+		else
+		{
+			<div class="report-trend-scroll">
+				@foreach (var day in Model.DailyDeposits)
+				{
+					int percentage = (int)Math.Round(
+						day.TotalAmount * 100m / maxDailyAmount);
+
+					string dateLabel = day.Date.ToString("dd MMM yyyy");
+
+					<div class="report-status-row">
+						<div class="report-status-label">
+							<strong>@dateLabel</strong>
+							<span>
+								RM @day.TotalAmount.ToString("N2")
+								(@day.PaymentCount paid)
+							</span>
+						</div>
+
+						<div class="report-bar-track"
+							 role="progressbar"
+							 aria-label="@dateLabel deposit collections"
+							 aria-valuemin="0"
+							 aria-valuemax="@maxDailyAmount"
+							 aria-valuenow="@day.TotalAmount">
+
+							<div class="report-bar-fill"
+								 style="width: @(percentage)%">
+							</div>
+						</div>
+					</div>
+				}
+			</div>
+		}
+	</section>
+
+
 	<p class="notice">
 		Reservation counts are based on scheduled dining dates,
 		including reservations that were subsequently cancelled or expired.
@@ -201,5 +279,8 @@
 		Deposit amounts are associated with reservations
 		scheduled during the selected period.
 		Forfeited deposits are already included in paid deposits. 
+
+		Daily deposit collections are grouped by payment date,
+		which may differ from the scheduled reservation date.
 	</p>
 }

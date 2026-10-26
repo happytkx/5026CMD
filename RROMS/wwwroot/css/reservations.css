@@ -2385,13 +2385,13 @@ td small
     font-size: 12px;
 }
 
-    .report-status-label strong {
+.report-status-label strong {
         font-weight: 500;
-    }
+}
 
-    .report-status-label span {
+.report-status-label span {
         color: var(--muted);
-    }
+}
 
 .report-bar-track {
     width: 100%;
