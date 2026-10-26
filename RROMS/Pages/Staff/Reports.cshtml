@@ -68,10 +68,21 @@
 			<h2>@report.ConfirmedReservations</h2>
 		</article>
 
+		
 		<article class="card">
-			<small>SEATED</small>
-			<h2>@report.SeatedReservations</h2>
+			<a class="text-reset text-decoration-none"
+			   asp-page="/Staff/ReportReservations"
+			   asp-route-StartDate="@Model.StartDate.ToString("yyyy-MM-dd")"
+			   asp-route-EndDate="@Model.EndDate.ToString("yyyy-MM-dd")"
+			   asp-route-Status="Seated">
+
+				<small>SEATED / CHECKED IN</small>
+				<h2>@report.SeatedReservations</h2>
+				<p>Click to view reservations</p>
+
+			</a>
 		</article>
+
 
 		<article class="card">
 			<small>COMPLETED</small>
