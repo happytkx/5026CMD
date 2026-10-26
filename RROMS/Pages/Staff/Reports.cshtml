@@ -57,6 +57,18 @@
 		@report.EndDate.ToString("dd MMM yyyy")
 	</p>
 
+	
+	<p>
+		<a class="button secondary"
+		   asp-page="/Staff/Reports"
+		   asp-page-handler="Export"
+		   asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+		   asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")">
+			Export Report (CSV)
+		</a>
+	</p>
+
+
 	<section class="staff-stats">
 		<article class="card">
 			<small>TOTAL RESERVATIONS</small>
