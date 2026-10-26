@@ -16,7 +16,7 @@
 
 <p>
     <a asp-page="/Staff/Billing">
-        Back to Dining Billing
+        Back to Billing
     </a>
 </p>
 
@@ -234,11 +234,25 @@
                                     RM @payment.Amount.ToString("N2")
                                 </td>
 
-                                <td>
-                                    <span class="badge">
-                                        @payment.PaymentStatus
-                                    </span>
-                                </td>
+                                
+<td>
+    <span class="badge">
+        @payment.PaymentStatus
+    </span>
+
+    @if (payment.PaymentStatus == "Paid" &&
+         (payment.PaymentType == "Deposit" ||
+          payment.PaymentType == "DiningBill"))
+    {
+        <br />
+
+        <a asp-page="/Staff/PaymentReceipt"
+           asp-route-id="@payment.PaymentID">
+            View / Print Receipt
+        </a>
+    }
+</td>
+
                             </tr>
                         }
                     </tbody>
