@@ -1,0 +1,249 @@
+﻿@page
+@model RROMS.Pages.Staff.BillDetailsModel
+
+@{
+    ViewData["Title"] = "Bill Details";
+}
+
+<p class="eyebrow">BILLING & PAYMENTS</p>
+
+<h1>Bill Details & Payment History</h1>
+
+<p>
+    View reservation information, saved bill details,
+    and recorded payment transactions.
+</p>
+
+<p>
+    <a asp-page="/Staff/Billing">
+        Back to Dining Billing
+    </a>
+</p>
+
+@if (Model.Booking is { } booking)
+{
+    <!-- Reservation details -->
+    <section class="card">
+        <h2>Reservation Information</h2>
+
+        <div class="staff-stats">
+            <article class="card">
+                <small>BOOKING REFERENCE</small>
+                <h2>@booking.BookingReference</h2>
+            </article>
+
+            <article class="card">
+                <small>CUSTOMER</small>
+                <h2>@booking.Customer.CustomerName</h2>
+            </article>
+
+            <article class="card">
+                <small>RESERVATION STATUS</small>
+                <h2>@booking.ReservationStatus</h2>
+            </article>
+
+            <article class="card">
+                <small>GUESTS</small>
+                <h2>@booking.PartySize</h2>
+            </article>
+        </div>
+
+        <p>
+            <strong>Dining Date:</strong>
+            @booking.ReservationDate.ToString("dd MMM yyyy")
+        </p>
+
+        <p>
+            <strong>Arrival Time:</strong>
+            @booking.StartTime.ToString(@"hh\:mm")
+        </p>
+
+        <p>
+            <strong>Dining Area:</strong>
+            @booking.PreferredDiningOption
+        </p>
+
+        <p>
+            <strong>Assigned Table:</strong>
+            @booking.TableID
+        </p>
+
+        <p>
+            <strong>Deposit Status:</strong>
+            @booking.DepositStatus
+        </p>
+
+        <a asp-page="/Reservations/Details"
+           asp-route-id="@booking.ReservationID">
+            View Full Reservation
+        </a>
+    </section>
+
+    <!-- Saved bill details -->
+    <section class="card">
+        <h2>Dining Bill</h2>
+
+        @if (Model.Bill is { } bill)
+        {
+            <p>
+                <strong>Bill Number:</strong>
+                @bill.BillID
+            </p>
+
+            <p>
+                <strong>Created:</strong>
+                @bill.CreatedAt.ToString("dd MMM yyyy, h:mm tt")
+            </p>
+
+            <p>
+                <strong>Bill Status:</strong>
+                <span class="badge">@bill.BillStatus</span>
+            </p>
+
+            <div class="staff-stats">
+                <article class="card">
+                    <small>FOOD & BEVERAGE TOTAL</small>
+                    <h2>RM @bill.TotalBill.ToString("N2")</h2>
+                </article>
+
+                <article class="card">
+                    <small>MINIMUM SPENDING</small>
+                    <h2>RM @bill.MinSpend.ToString("N2")</h2>
+                </article>
+
+                <article class="card">
+                    <small>DEPOSIT APPLIED</small>
+                    <h2>RM @bill.DepositApplied.ToString("N2")</h2>
+                </article>
+
+                <article class="card">
+                    <small>
+                        @(bill.BillStatus == "Paid"
+                            ? "AMOUNT SETTLED AT CHECKOUT"
+                            : "BALANCE TO PAY")
+                    </small>
+                    <h2>RM @bill.BalanceToPay.ToString("N2")</h2>
+                </article>
+            </div>
+
+            @if (Model.MinimumSpendShortfall > 0m)
+            {
+                <p class="notice">
+                    Minimum spending has not been met.
+                    Shortfall:
+                    RM @Model.MinimumSpendShortfall.ToString("N2")
+                </p>
+            }
+
+            @if (bill.BillStatus == "Paid")
+            {
+                <p class="notice">
+                    This bill has been marked as paid.
+                    The balance above represents the amount
+                    due at final settlement, not an
+                    outstanding amount.
+                </p>
+            }
+        }
+        else
+        {
+            <p>
+                No saved dining bill is available
+                for this reservation yet.
+            </p>
+
+            <p class="notice">
+                Bill information will appear after
+                actual food and beverage orders have
+                been integrated and a bill is saved.
+            </p>
+        }
+    </section>
+
+    <!-- Successful payment totals -->
+    <section class="card">
+        <h2>Payment Summary</h2>
+
+        <div class="staff-stats">
+            <article class="card">
+                <small>PAID DEPOSITS</small>
+                <h2>RM @Model.PaidDeposits.ToString("N2")</h2>
+            </article>
+
+            <article class="card">
+                <small>FINAL PAYMENTS</small>
+                <h2>RM @Model.PaidDiningPayments.ToString("N2")</h2>
+            </article>
+
+            <article class="card">
+                <small>TOTAL COLLECTED</small>
+                <h2>RM @Model.TotalCollected.ToString("N2")</h2>
+            </article>
+        </div>
+
+        <p class="notice">
+            Only successful payments are included
+            in these totals. Failed attempts are
+            excluded. Forfeited deposits remain
+            recorded as collected deposits.
+        </p>
+    </section>
+
+    <!-- Payment transaction history -->
+    <section class="card">
+        <h2>Payment History</h2>
+
+        @if (Model.Payments.Count == 0)
+        {
+            <p>No payment transactions found.</p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Payment ID</th>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Method</th>
+                            <th>Reference</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var payment in Model.Payments)
+                        {
+                            <tr>
+                                <td>@payment.PaymentID</td>
+
+                                <td>
+                                    @payment.PaymentDate.ToString(
+                                        "dd MMM yyyy, h:mm tt")
+                                </td>
+
+                                <td>@payment.PaymentType</td>
+
+                                <td>@payment.PaymentMethod</td>
+
+                                <td>@payment.PaymentReference</td>
+
+                                <td>
+                                    RM @payment.Amount.ToString("N2")
+                                </td>
+
+                                <td>
+                                    <span class="badge">
+                                        @payment.PaymentStatus
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+}

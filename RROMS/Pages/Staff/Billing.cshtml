@@ -87,12 +87,19 @@
                                 <td>@bill.BillStatus</td>
                             }
 
+                            
                             <td>
+                                <a asp-page="/Staff/BillDetails"
+                                   asp-route-id="@reservation.ReservationID">
+                                    View Bill & Payments
+                                </a>
+
                                 <a asp-page="/Reservations/Details"
                                    asp-route-id="@reservation.ReservationID">
                                     View Reservation
                                 </a>
                             </td>
+
                         </tr>
                     }
                 </tbody>
