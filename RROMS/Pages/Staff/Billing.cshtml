@@ -1,7 +1,8 @@
 ﻿@page
 @model RROMS.Pages.Staff.BillingModel
+
 @{
-	ViewData["Title"] = "Billing";
+    ViewData["Title"] = "Billing";
 }
 
 <p class="eyebrow">BILLING & PAYMENTS</p>
@@ -9,24 +10,23 @@
 <h1>Dining Billing</h1>
 
 <p>
-	View seated reservations and 
-	their minimum dining spending requirements.
+    View seated reservations, minimum spending,
+    deposits and saved dining bills.
 </p>
 
 <section class="card">
-	<h2>Seated Reservations</h2>
+    <h2>Seated Reservations</h2>
 
-	@if (Model.SeatedReservations.Count == 0)
-	{
-		<p>
-		</p>
+    @if (Model.SeatedReservations.Count == 0)
+    {
+        <p>No seated reservations found.</p>
 
-		<a asp-page="/Staff/Index">
-			View Daily Reservations
-		</a>
-	}
-	else
-	{
+        <a asp-page="/Staff/Index">
+            View Daily Reservations
+        </a>
+    }
+    else
+    {
         <div class="table-wrap">
             <table>
                 <thead>
@@ -37,6 +37,9 @@
                         <th>Guests</th>
                         <th>Minimum Spend</th>
                         <th>Deposit Paid</th>
+                        <th>Bill Total</th>
+                        <th>Balance to Pay</th>
+                        <th>Bill Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -44,6 +47,10 @@
                 <tbody>
                     @foreach (var reservation in Model.SeatedReservations)
                     {
+                        Model.BillsByReservationId.TryGetValue(
+                            reservation.ReservationID,
+                            out var bill);
+
                         <tr>
                             <td>@reservation.BookingReference</td>
 
@@ -61,6 +68,25 @@
                                 RM @reservation.DepositAmount.ToString("N2")
                             </td>
 
+                            @if (bill == null)
+                            {
+                                <td>Not available</td>
+                                <td>Not available</td>
+                                <td>Awaiting orders</td>
+                            }
+                            else
+                            {
+                                <td>
+                                    RM @bill.TotalBill.ToString("N2")
+                                </td>
+
+                                <td>
+                                    RM @bill.BalanceToPay.ToString("N2")
+                                </td>
+
+                                <td>@bill.BillStatus</td>
+                            }
+
                             <td>
                                 <a asp-page="/Reservations/Details"
                                    asp-route-id="@reservation.ReservationID">
@@ -74,8 +100,12 @@
         </div>
 
         <p class="notice">
-            Food and beverage totals will be available
-            after integration with the ordering module.
+            Bill totals will be generated from actual
+            food and beverage orders after integration
+            with the ordering module.
+
+            A saved draft bill can be displayed here,
+            but this page does not process payments.
         </p>
     }
 </section>

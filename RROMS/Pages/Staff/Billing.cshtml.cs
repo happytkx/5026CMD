@@ -1,3 +1,4 @@
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -16,8 +17,13 @@ public class BillingModel : PageModel
         _db = db;
     }
 
+    // Stores seated reservations
     public List<Reservation> SeatedReservations
-        { get; set; } = new();
+    { get; set; } = new();
+
+    // Stores saved bills using ReservationID as the key
+    public Dictionary<int, Bill> BillsByReservationId
+    { get; set; } = new();
 
     public async Task OnGetAsync()
     {
@@ -29,5 +35,22 @@ public class BillingModel : PageModel
             .OrderBy(r => r.ReservationDate)
             .ThenBy(r => r.StartTime)
             .ToListAsync();
+
+        // Stop if there are no seated reservations
+        if (SeatedReservations.Count == 0)
+        {
+            return;
+        }
+
+        // Collect the reservation IDs
+        var reservationIds = SeatedReservations
+            .Select(r => r.ReservationID)
+            .ToList();
+
+        // Retrieve any saved bills for these reservations
+        BillsByReservationId = await _db.Bills
+            .AsNoTracking()
+            .Where(b => reservationIds.Contains(b.ReservationID))
+            .ToDictionaryAsync(b => b.ReservationID);
     }
 }
