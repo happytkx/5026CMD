@@ -1,0 +1,192 @@
+﻿
+@page
+@model RROMS.Pages.Staff.PaymentCollectionsModel
+
+@{
+    ViewData["Title"] = "Payment Collections";
+}
+
+<p class="eyebrow">REPORTING & ANALYTICS</p>
+
+<h1>Payment Collections</h1>
+
+<p>
+    Review successful reservation deposits and final
+    dining payments recorded during the selected period.
+</p>
+
+<section class="card">
+    <h2>Select Reporting Period</h2>
+
+    <form method="get" class="staff-search">
+        <label asp-for="StartDate">Start Date</label>
+        <input asp-for="StartDate" type="date" />
+
+        <label asp-for="EndDate">End Date</label>
+        <input asp-for="EndDate" type="date" />
+
+        <button type="submit">Generate Report</button>
+    </form>
+
+    <div asp-validation-summary="All"
+         class="text-danger"></div>
+</section>
+
+@if (Model.Report is { } report)
+{
+    <p>
+        Reporting period:
+        @Model.StartDate.ToString("dd MMM yyyy")
+        to
+        @Model.EndDate.ToString("dd MMM yyyy")
+    </p>
+
+    <section class="staff-stats">
+        <article class="card">
+            <small>PAID DEPOSITS</small>
+            <h2>RM @report.Deposits.ToString("N2")</h2>
+        </article>
+
+        <article class="card">
+            <small>FINAL DINING PAYMENTS</small>
+            <h2>RM @report.DiningPayments.ToString("N2")</h2>
+        </article>
+
+        <article class="card">
+            <small>TOTAL RECORDED COLLECTIONS</small>
+            <h2>RM @report.TotalCollected.ToString("N2")</h2>
+        </article>
+
+        <article class="card">
+            <small>SUCCESSFUL TRANSACTIONS</small>
+            <h2>@report.TransactionCount</h2>
+        </article>
+    </section>
+
+    <section class="card">
+        <h2>Daily Payment Collections</h2>
+
+        @if (report.Daily.Count == 0)
+        {
+            <p>
+                No successful payment transactions were
+                recorded during this period.
+            </p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Payment Date</th>
+                            <th>Deposits</th>
+                            <th>Final Payments</th>
+                            <th>Total</th>
+                            <th>Transactions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var day in report.Daily)
+                        {
+                            <tr>
+                                <td>
+                                    @day.Date.ToString("dd MMM yyyy")
+                                </td>
+                                <td>
+                                    RM @day.Deposits.ToString("N2")
+                                </td>
+                                <td>
+                                    RM @day.DiningPayments.ToString("N2")
+                                </td>
+                                <td>
+                                    RM @day.Total.ToString("N2")
+                                </td>
+                                <td>
+                                    @day.TransactionCount
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    <section class="card">
+        <h2>Successful Payment Transactions</h2>
+
+        @if (report.Transactions.Count == 0)
+        {
+            <p>No transactions found.</p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Booking Reference</th>
+                            <th>Customer</th>
+                            <th>Payment Type</th>
+                            <th>Method</th>
+                            <th>Amount</th>
+                            <th>Receipt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var payment in report.Transactions)
+                        {
+                            <tr>
+                                <td>
+                                    @payment.PaymentDate.ToString(
+                                        "dd MMM yyyy, h:mm tt")
+                                </td>
+
+                                <td>
+                                    @payment.BookingReference
+                                </td>
+
+                                <td>
+                                    @payment.CustomerName
+                                </td>
+
+                                <td>
+                                    @payment.PaymentType
+                                </td>
+
+                                <td>
+                                    @payment.PaymentMethod
+                                </td>
+
+                                <td>
+                                    RM @payment.Amount.ToString("N2")
+                                </td>
+
+                                <td>
+                                    <a asp-page="/Staff/PaymentReceipt"
+                                       asp-route-id="@payment.PaymentID">
+                                        View Receipt
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    <p class="notice">
+        Figures are based on successful payment records
+        and actual payment dates, not reservation dates.
+
+        Reservation deposits may be applied to final
+        bills or forfeited according to the booking policy.
+
+        These figures represent recorded payment activity,
+        not independently verified bank settlements or
+        recognised accounting revenue.
+    </p>
+}

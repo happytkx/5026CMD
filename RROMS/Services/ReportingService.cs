@@ -211,4 +211,105 @@ public class ReportingService
 
         return dailyCollections;
     }
+
+    // Retrieve successful payment collections by payment date.
+    public async Task<PaymentCollectionsResult>
+        GetPaymentCollectionsAsync(
+            DateTime startDate,
+            DateTime endDate)
+    {
+        DateTime from = startDate.Date;
+        DateTime to = endDate.Date;
+
+        if (from > to || to == DateTime.MaxValue.Date)
+        {
+            throw new ArgumentException(
+                "Invalid reporting date range.");
+        }
+
+        DateTime endExclusive = to.AddDays(1);
+
+        // Only count successful deposit and final dining payments.
+        var payments = await _db.Payments
+            .AsNoTracking()
+            .Where(p =>
+                p.PaymentStatus == "Paid" &&
+                (p.PaymentType == "Deposit" ||
+                 p.PaymentType == "DiningBill") &&
+                p.PaymentDate >= from &&
+                p.PaymentDate < endExclusive)
+            .Select(p => new PaymentCollectionRow(
+                p.PaymentID,
+                p.ReservationID,
+                p.Reservation.BookingReference,
+                p.Reservation.Customer.CustomerName,
+                p.PaymentDate,
+                p.PaymentType,
+                p.PaymentMethod,
+                p.Amount))
+            .OrderByDescending(p => p.PaymentDate)
+            .ThenByDescending(p => p.PaymentID)
+            .ToListAsync();
+
+        decimal deposits = payments
+            .Where(p => p.PaymentType == "Deposit")
+            .Sum(p => p.Amount);
+
+        decimal finalPayments = payments
+            .Where(p => p.PaymentType == "DiningBill")
+            .Sum(p => p.Amount);
+
+        // Group collections by the actual payment date.
+        var daily = payments
+            .GroupBy(p => p.PaymentDate.Date)
+            .OrderBy(g => g.Key)
+            .Select(g => new DailyPaymentSummary(
+                g.Key,
+                g.Where(p => p.PaymentType == "Deposit")
+                    .Sum(p => p.Amount),
+                g.Where(p => p.PaymentType == "DiningBill")
+                    .Sum(p => p.Amount),
+                g.Count()))
+            .ToList();
+
+        return new PaymentCollectionsResult(
+            payments,
+            daily,
+            deposits,
+            finalPayments);
+    }
+
+}
+
+
+public record PaymentCollectionRow(
+    int PaymentID,
+    int ReservationID,
+    string BookingReference,
+    string CustomerName,
+    DateTime PaymentDate,
+    string PaymentType,
+    string PaymentMethod,
+    decimal Amount);
+
+public record DailyPaymentSummary(
+    DateTime Date,
+    decimal Deposits,
+    decimal DiningPayments,
+    int TransactionCount)
+{
+    public decimal Total => Deposits + DiningPayments;
+}
+
+public record PaymentCollectionsResult(
+    List<PaymentCollectionRow> Transactions,
+    List<DailyPaymentSummary> Daily,
+    decimal Deposits,
+    decimal DiningPayments)
+{
+    public decimal TotalCollected =>
+        Deposits + DiningPayments;
+
+    public int TransactionCount =>
+        Transactions.Count;
 }
