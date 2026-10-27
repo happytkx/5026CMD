@@ -2497,22 +2497,22 @@ td small
     z-index: 1500;
 }
 
-    .staff-workspace .ts-dropdown .option {
-        padding: 11px 13px;
-        border-radius: 4px;
-        font-size: 13px;
-        color: #34372C;
-    }
+.staff-workspace .ts-dropdown .option {
+    padding: 11px 13px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #34372C;
+}
 
-        .staff-workspace .ts-dropdown .option.active {
-            background: #E9ECDD;
-            color: #34372C;
-        }
+.staff-workspace .ts-dropdown .option.active {
+    background: #E9ECDD;
+    color: #34372C;
+}
 
-        .staff-workspace .ts-dropdown .option.selected {
-            background: #737957;
-            color: white;
-        }
+.staff-workspace .ts-dropdown .option.selected {
+    background: #737957;
+    color: white;
+}
 
 /* Shared reporting period layout */
 
@@ -2540,16 +2540,16 @@ td small
     width: 100%;
 }
 
-    .report-date-field label {
-        margin: 0;
-    }
+.report-date-field label {
+    margin: 0;
+}
 
-    .report-date-field input {
-        width: 100%;
-        max-width: 100%;
-        min-width: 0;
-        box-sizing: border-box;
-    }
+.report-date-field input {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
 
 /* Left and right aligned action buttons */
 
@@ -2562,19 +2562,19 @@ td small
     width: 100%;
 }
 
-    .report-actions .report-action-button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 210px;
-        max-width: 100%;
-        min-height: 48px;
-        margin: 0;
-        padding: 12px 16px;
-        box-sizing: border-box;
-        text-align: center;
-        white-space: nowrap;
-    }
+.report-actions .report-action-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 210px;
+    max-width: 100%;
+    min-height: 48px;
+    margin: 0;
+    padding: 12px 16px;
+    box-sizing: border-box;
+    text-align: center;
+    white-space: nowrap;
+}
 
 /* Responsive buttons */
 
@@ -2639,21 +2639,21 @@ td small
     margin: 20px 0;
 }
 
-    .billing-history-grid > div {
-        min-width: 0;
-    }
+.billing-history-grid > div {
+    min-width: 0;
+}
 
-    .billing-history-grid label {
-        margin: 0 0 8px;
-    }
+.billing-history-grid label {
+    margin: 0 0 8px;
+}
 
-    .billing-history-grid input,
-    .billing-history-grid select {
-        width: 100%;
-        min-width: 0;
-        max-width: 100%;
-        box-sizing: border-box;
-    }
+.billing-history-grid input,
+.billing-history-grid select {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
 
 .billing-history-form > button {
     margin-top: 8px;

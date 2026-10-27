@@ -160,6 +160,73 @@
         }
     </section>
 
+    <!-- Checkout readiness -->
+    <section class="card">
+        <h2>Checkout Readiness</h2>
+
+        @if (Model.Bill == null)
+        {
+            <p class="notice">
+                No dining bill has been saved yet.
+                Checkout is unavailable until actual
+                food and beverage orders are integrated.
+            </p>
+        }
+        else if (Model.Bill.BillStatus == "Paid")
+        {
+            <p class="notice">
+                This bill has already been settled.
+                Review the Payment History section
+                for recorded transactions and receipts.
+            </p>
+        }
+        else if (Model.SettlementCheck is { } check)
+        {
+            @if (!check.CanSettle)
+            {
+                <p class="notice">
+                    <strong>Checkout blocked:</strong>
+                    @check.Message
+                </p>
+
+                @if (check.MinimumSpendShortfall > 0m)
+                {
+                    <p>
+                        <strong>Minimum spending shortfall:</strong>
+                        RM @check.MinimumSpendShortfall.ToString("N2")
+                    </p>
+                }
+            }
+            else
+            {
+                <p>
+                    The saved bill passes the current
+                    financial settlement checks.
+                </p>
+
+                <p>
+                    <strong>Calculated checkout amount:</strong>
+                    RM @check.BalanceToPay.ToString("N2")
+                </p>
+
+                <p class="notice">
+                    Final payment recording is not yet enabled.
+                    The food and beverage total must first
+                    be verified against actual orders from
+                    the ordering module.
+                </p>
+            }
+        }
+
+        <p>
+            <small>
+                This panel checks settlement readiness only.
+                It does not collect or record payments.
+            </small>
+        </p>
+    </section>
+
+
     <!-- Successful payment totals -->
     <section class="card">
         <h2>Payment Summary</h2>
