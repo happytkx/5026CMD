@@ -2714,3 +2714,36 @@ td small
         grid-template-columns: 1fr;
     }
 }
+
+
+/* Match staff dropdowns with date and search inputs */
+
+.staff-workspace .staff-search .ts-wrapper.single .ts-control,
+.staff-workspace .billing-history-grid .ts-wrapper.single .ts-control {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 52px;
+    min-height: 52px;
+    padding: 12px 14px;
+    background: #FFFFFF !important;
+    background-image: none !important;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    box-shadow: none;
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+/* Keep the same field appearance when opened */
+
+.staff-workspace .staff-search .ts-wrapper.single.focus .ts-control,
+.staff-workspace .billing-history-grid .ts-wrapper.single.focus .ts-control {
+    background: #FFFFFF !important;
+    background-image: none !important;
+    border-color: #737957;
+    box-shadow: 0 0 0 2px rgba(115, 121, 87, 0.13);
+}
+
