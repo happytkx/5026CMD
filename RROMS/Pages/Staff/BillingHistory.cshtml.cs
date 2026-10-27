@@ -57,10 +57,10 @@ public class BillingHistoryModel : PageModel
 
     public async Task<IActionResult> OnGetAsync()
     {
-        DateTime from = StartDate.Date;
-        DateTime to = EndDate.Date;
+        DateTime startDate = StartDate.Date;
+        DateTime endDate = EndDate.Date;
 
-        if (from > to || to == DateTime.MaxValue.Date)
+        if (startDate > endDate || endDate == DateTime.MaxValue.Date)
         {
             ModelState.AddModelError(
                 "",
@@ -87,7 +87,7 @@ public class BillingHistoryModel : PageModel
             return Page();
         }
 
-        DateTime endExclusive = to.AddDays(1);
+        DateTime endExclusive = endDate.AddDays(1);
 
         // Join saved bills to their reservations and customers.
         var query =
@@ -96,7 +96,7 @@ public class BillingHistoryModel : PageModel
                 on bill.ReservationID equals reservation.ReservationID
             join customer in _db.Customers.AsNoTracking()
                 on reservation.CustomerID equals customer.CustomerID
-            where reservation.ReservationDate >= from &&
+            where reservation.ReservationDate >= startDate &&
                   reservation.ReservationDate < endExclusive
             select new
             {
