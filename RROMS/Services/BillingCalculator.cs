@@ -1,6 +1,7 @@
-﻿namespace RROMS.Services;
+﻿
+namespace RROMS.Services;
 
-// Stores the result of the billing calculation
+// Stores the result of a billing calculation.
 public record BillingCalculation(
     decimal TotalBill,
     decimal DepositApplied,
@@ -13,37 +14,58 @@ public record BillingCalculation(
 
 public static class BillingCalculator
 {
+    // Maximum amount supported by SQL decimal(18,2).
+    private const decimal MaxMoney =
+        9_999_999_999_999_999.99m;
+
+    // Validate currency amounts before calculation.
+    private static void ValidateMoney(
+        decimal amount,
+        string parameterName)
+    {
+        if (amount < 0m)
+        {
+            throw new ArgumentOutOfRangeException(
+                parameterName,
+                "Amount cannot be negative.");
+        }
+
+        if (amount > MaxMoney)
+        {
+            throw new ArgumentOutOfRangeException(
+                parameterName,
+                "Amount exceeds the supported limit.");
+        }
+
+        if (amount != decimal.Round(amount, 2))
+        {
+            throw new ArgumentOutOfRangeException(
+                parameterName,
+                "Amount cannot exceed two decimal places.");
+        }
+    }
+
     public static BillingCalculation Calculate(
         decimal totalBill,
         decimal minSpend,
         decimal deposit,
         bool depositPaid)
-
     {
-        // Reject invalid amounts
-        if (totalBill < 0)
-            throw new ArgumentOutOfRangeException(
-                nameof(totalBill));
+        ValidateMoney(totalBill, nameof(totalBill));
+        ValidateMoney(minSpend, nameof(minSpend));
+        ValidateMoney(deposit, nameof(deposit));
 
-        if (minSpend < 0)
-            throw new ArgumentOutOfRangeException(
-                nameof(minSpend));
-
-        if (deposit < 0)
-            throw new ArgumentOutOfRangeException(
-                nameof(deposit));
-
-        // Calculate how much more the customer must spend to meet min spend
+        // Determine whether minimum spending is met.
         decimal shortfall = Math.Max(
             0m, minSpend - totalBill);
 
-        // Only deduct successfully paid deposit
+        // Deduct only the successfully paid deposit.
         decimal depositApplied = depositPaid
             ? Math.Min(deposit, totalBill)
             : 0m;
 
-        // Calculate the remaining payment
-        decimal balanceToPay = 
+        // Calculate the remaining checkout amount.
+        decimal balanceToPay =
             totalBill - depositApplied;
 
         return new BillingCalculation(
