@@ -15,22 +15,40 @@
     and reservation arrival patterns.
 </p>
 
-<section class="card">
-    <h2>Select Reporting Period</h2>
+<form method="get" class="report-period-form">
+    <section class="card report-period-card">
+        <h2>Select Reporting Period</h2>
 
-    <form method="get" class="staff-search">
-        <label asp-for="StartDate">Start Date</label>
-        <input asp-for="StartDate" type="date" />
+        <div class="report-date-fields">
 
-        <label asp-for="EndDate">End Date</label>
-        <input asp-for="EndDate" type="date" />
+            <div class="report-date-field">
+                <label asp-for="StartDate">Start Date</label>
+                <input asp-for="StartDate" type="date" />
+            </div>
 
-        <button type="submit">Generate Report</button>
-    </form>
+            <div class="report-date-field">
+                <label asp-for="EndDate">End Date</label>
+                <input asp-for="EndDate" type="date" />
+            </div>
 
-    <div asp-validation-summary="All"
-         class="text-danger"></div>
-</section>
+        </div>
+
+        <div asp-validation-summary="All" class="text-danger"></div>
+
+        <div class="report-actions">
+            <button type="submit" class="report-action-button">
+                Generate Report
+            </button>
+
+            <button type="submit"
+                    name="handler"
+                    value="Export"
+                    class="secondary report-action-button">
+                Export Report (CSV)
+            </button>
+        </div>
+    </section>
+</form>
 
 @if (Model.Report is { } report)
 {

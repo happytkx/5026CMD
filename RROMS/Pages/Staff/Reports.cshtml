@@ -14,22 +14,50 @@
 	for a selected reporting period.
 </p>
 
-<section class="card">
-	<h2>Select Reporting Period</h2>
-	
-	<form method="get" class="staff-search">
-		<label asp-for="StartDate">Start Date</label>
-		<input asp-for="StartDate" type="date" />
 
-		<label asp-for="EndDate">End Date</label>
-		<input asp-for="EndDate" type="date" />
 
-		<button type="submit">Generate Report</button>
-	</form>
+<form method="get" class="report-period-form">
 
-	<div asp-validation-summary="All"
-		class="text-danger"></div>
-</section>
+    <section class="card report-period-card">
+
+        <h2>Select Reporting Period</h2>
+
+		<div class="report-date-fields">
+
+			<div class="report-date-field">
+				<label asp-for="StartDate">Start Date</label>
+				<input asp-for="StartDate" type="date" />
+			</div>
+
+			<div class="report-date-field">
+				<label asp-for="EndDate">End Date</label>
+				<input asp-for="EndDate" type="date" />
+			</div>
+
+		</div>
+
+        <div asp-validation-summary="All"
+             class="text-danger"></div>
+
+        <div class="report-actions">
+
+            <button type="submit"
+                    class="report-action-button">
+                Generate Report
+            </button>
+
+            <button type="submit"
+                    name="handler"
+                    value="Export"
+                    class="secondary report-action-button">
+                Export Report (CSV)
+            </button>
+
+        </div>
+
+    </section>
+
+</form>
 
 @if (Model.Summary is { } report)
 {
@@ -41,7 +69,7 @@
 		new { Label = "Seated", Count = report.SeatedReservations },
 		new { Label = "Completed", Count = report.CompletedReservations },
 		new { Label = "Cancelled", Count = report.CancelledReservations },
-		new { Label = "No-Show", Count = report.NoShowReservations },
+		new { Label = "No-show", Count = report.NoShowReservations },
 		new { Label = "Expired", Count = report.ExpiredReservations }
 	};
 
@@ -56,75 +84,96 @@
 		to
 		@report.EndDate.ToString("dd MMM yyyy")
 	</p>
-
 	
-	<p>
-		<a class="button secondary"
-		   asp-page="/Staff/Reports"
-		   asp-page-handler="Export"
-		   asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
-		   asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")">
-			Export Report (CSV)
-		</a>
-	</p>
+<section class="staff-stats">
 
+    <article class="card">
+        <a class="text-reset text-decoration-none"
+           asp-page="/Staff/ReportReservations"
+           asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+           asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")">
+            <small>TOTAL RESERVATIONS</small>
+            <h2>@report.TotalReservations</h2>
+            <p>View all reservations</p>
+        </a>
+    </article>
 
-	<section class="staff-stats">
-		<article class="card">
-			<small>TOTAL RESERVATIONS</small>
-			<h2>@report.TotalReservations</h2>
-		</article>
+    <article class="card">
+        <a class="text-reset text-decoration-none"
+           asp-page="/Staff/ReportReservations"
+           asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+           asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
+           asp-route-Status="Confirmed">
+            <small>CONFIRMED</small>
+            <h2>@report.ConfirmedReservations</h2>
+            <p>View confirmed reservations</p>
+        </a>
+    </article>
 
-		<article class="card">
-			<small>CONFIRMED</small>
-			<h2>@report.ConfirmedReservations</h2>
-		</article>
+    <article class="card">
+        <a class="text-reset text-decoration-none"
+           asp-page="/Staff/ReportReservations"
+           asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+           asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
+           asp-route-Status="Seated">
+            <small>SEATED / CHECKED IN</small>
+            <h2>@report.SeatedReservations</h2>
+            <p>View checked-in reservations</p>
+        </a>
+    </article>
 
-		
-		<article class="card">
-			<a class="text-reset text-decoration-none"
-			   asp-page="/Staff/ReportReservations"
-			   asp-route-StartDate="@Model.StartDate.ToString("yyyy-MM-dd")"
-			   asp-route-EndDate="@Model.EndDate.ToString("yyyy-MM-dd")"
-			   asp-route-Status="Seated">
+    <article class="card">
+        <a class="text-reset text-decoration-none"
+           asp-page="/Staff/ReportReservations"
+           asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+           asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
+           asp-route-Status="Completed">
+            <small>COMPLETED</small>
+            <h2>@report.CompletedReservations</h2>
+            <p>View completed reservations</p>
+        </a>
+    </article>
 
-				<small>SEATED / CHECKED IN</small>
-				<h2>@report.SeatedReservations</h2>
-				<p>Click to view reservations</p>
+</section>
 
-			</a>
-		</article>
+<section class="staff-stats">
 
+    <article class="card">
+        <a class="text-reset text-decoration-none"
+           asp-page="/Staff/ReportReservations"
+           asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+           asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
+           asp-route-Status="Cancelled">
+            <small>CANCELLED</small>
+            <h2>@report.CancelledReservations</h2>
+            <p>View cancelled reservations</p>
+        </a>
+    </article>
 
-		<article class="card">
-			<small>COMPLETED</small>
-			<h2>@report.CompletedReservations</h2>
-		</article>
+    <article class="card">
+        <a class="text-reset text-decoration-none"
+           asp-page="/Staff/ReportReservations"
+           asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+           asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
+           asp-route-Status="No-show">
+            <small>NO-SHOWS</small>
+            <h2>@report.NoShowReservations</h2>
+            <p>View no-show reservations</p>
+        </a>
+    </article>
 
-	</section>
+    <article class="card">
+        <small>PAID DEPOSITS</small>
+        <h2>RM @report.PaidDeposits.ToString("N2")</h2>
+    </article>
 
-	<section class="staff-stats">
-		<article class="card">
-			<small>CANCELLED</small>
-			<h2>@report.CancelledReservations</h2>
-		</article>
+    <article class="card">
+        <small>FORFEITED DEPOSITS</small>
+        <h2>RM @report.ForfeitedDeposits.ToString("N2")</h2>
+    </article>
 
-		<article class="card">
-			<small>NO-SHOWS</small>
-			<h2>@report.NoShowReservations</h2>
-		</article>
+</section>
 
-		<article class="card">
-			<small>PAID DEPOSITS</small>
-			<h2>RM @report.PaidDeposits.ToString("N2")</h2>
-		</article>
-
-		<article class="card">
-			<small>FORFEITED DEPOSITS</small>
-			<h2>RM @report.ForfeitedDeposits.ToString("N2")</h2>
-		</article>
-
-	</section>
 
 	<!-- Reservation status chart -->
 	<section class="card report-chart">
@@ -148,12 +197,25 @@
 					/ report.TotalReservations);
 
 				<div class="report-status-row">
+					
 					<div class="report-status-label">
-						<strong>@status.Label</strong>
-						<span>
-							@status.Count (@percentage%)
-						</span>
+
+						<a class="text-reset text-decoration-none"
+						   asp-page="/Staff/ReportReservations"
+						   asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+						   asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
+						   asp-route-Status="@status.Label">
+
+							<strong>@status.Label</strong>
+
+							<span>
+								@status.Count (@percentage%)
+							</span>
+
+						</a>
+
 					</div>
+
 
 					<div class="report-bar-track"
 						role="progressbar"
@@ -195,10 +257,24 @@
 					string dateLabel = day.Date.ToString("dd MMM yyyy");
 
 					<div class="report-status-row">
+						
 						<div class="report-status-label">
-							<strong>@dateLabel</strong>
-							<span>@day.Count reservations</span>
+
+							<a class="text-reset text-decoration-none"
+							   asp-page="/Staff/ReportReservations"
+							   asp-route-StartDate="@day.Date.ToString("yyyy-MM-dd")"
+							   asp-route-EndDate="@day.Date.ToString("yyyy-MM-dd")">
+
+								<strong>@dateLabel</strong>
+
+								<span>
+									@day.Count reservations
+								</span>
+
+							</a>
+
 						</div>
+
 
 						<div class="report-bar-track"
 							role="progressbar"
