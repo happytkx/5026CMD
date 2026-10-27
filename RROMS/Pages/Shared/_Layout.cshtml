@@ -172,20 +172,25 @@
             <script src="https://cdn.jsdelivr.net/npm/tom-select@@2.6.2/dist/js/tom-select.complete.min.js"></script>
 
             <script>
-                // Style status dropdowns in staff filter forms.
-                if (window.TomSelect) {
-                    document.querySelectorAll(
-                        '.staff-search select'
-                    ).forEach(function (select) {
-                        new TomSelect(select, {
-                            create: false,
-                            maxItems: 1,
-                            allowEmptyOption: true,
-                            controlInput: null
+                    // Style staff filter dropdowns consistently.
+                    if (window.TomSelect) {
+                        document.querySelectorAll(
+                            '.staff-search select, .billing-history-form select'
+                        ).forEach(function (select) {
+
+                            if (!select.tomselect) {
+                                new TomSelect(select, {
+                                    create: false,
+                                    maxItems: 1,
+                                    allowEmptyOption: true,
+                                    controlInput: null
+                                });
+                            }
+
                         });
-                    });
-                }
+                    }
             </script>
+
         }
 
         @await RenderSectionAsync("Scripts", required: false)

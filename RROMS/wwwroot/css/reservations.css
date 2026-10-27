@@ -2526,11 +2526,12 @@ td small
 }
 
 .report-date-fields {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 20px;
     width: 100%;
-    max-width: 420px;
+    max-width: none;
+    align-items: end;
 }
 
 .report-date-field {
@@ -2666,3 +2667,50 @@ td small
 }
 
 
+/* Consistent staff filter inputs and dropdowns */
+
+.staff-workspace .ts-control {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 52px;
+    min-height: 52px;
+    padding: 12px 14px;
+    background: #FFFFFF;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 13px;
+    box-shadow: none;
+    box-sizing: border-box;
+}
+
+.staff-workspace .staff-search input[type="date"],
+.staff-workspace .billing-history-grid input[type="date"] {
+    height: 52px;
+    min-height: 52px;
+    box-sizing: border-box;
+}
+
+.staff-workspace .billing-history-grid .ts-wrapper {
+    width: 100%;
+    min-width: 0;
+}
+
+/* Keep status and date fields equally wide
+   in the Daily Reservations filters. */
+
+@media (min-width: 1101px) {
+    .staff-workspace .staff-search:has(select) {
+        grid-template-columns: minmax(180px, 1fr) 160px 160px auto;
+    }
+}
+
+/* Stack report dates on smaller screens */
+
+@media (max-width: 700px) {
+    .report-date-fields {
+        grid-template-columns: 1fr;
+    }
+}

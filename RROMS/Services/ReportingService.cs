@@ -230,7 +230,7 @@ public class ReportingService
         DateTime endExclusive = to.AddDays(1);
 
         // Only count successful deposit and final dining payments.
-        var payments = await _db.Payments
+        var paymentRecords = await _db.Payments
             .AsNoTracking()
             .Where(p =>
                 p.PaymentStatus == "Paid" &&
@@ -238,18 +238,35 @@ public class ReportingService
                  p.PaymentType == "DiningBill") &&
                 p.PaymentDate >= from &&
                 p.PaymentDate < endExclusive)
+            .OrderByDescending(p => p.PaymentDate)
+            .ThenByDescending(p => p.PaymentID)
+            .Select(p => new
+            {
+                p.PaymentID,
+                p.ReservationID,
+                BookingReference = p.Reservation.BookingReference,
+                CustomerName = p.Reservation.Customer.CustomerName,
+                p.PaymentDate,
+                p.PaymentType,
+                p.PaymentMethod,
+                p.Amount
+            })
+            .ToListAsync();
+
+        // Convert the retrieved database results into
+        // payment collection records.
+        var payments = paymentRecords
             .Select(p => new PaymentCollectionRow(
                 p.PaymentID,
                 p.ReservationID,
-                p.Reservation.BookingReference,
-                p.Reservation.Customer.CustomerName,
+                p.BookingReference,
+                p.CustomerName,
                 p.PaymentDate,
                 p.PaymentType,
                 p.PaymentMethod,
                 p.Amount))
-            .OrderByDescending(p => p.PaymentDate)
-            .ThenByDescending(p => p.PaymentID)
-            .ToListAsync();
+            .ToList();
+
 
         decimal deposits = payments
             .Where(p => p.PaymentType == "Deposit")
@@ -280,7 +297,6 @@ public class ReportingService
     }
 
 }
-
 
 public record PaymentCollectionRow(
     int PaymentID,
