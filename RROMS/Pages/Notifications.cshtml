@@ -1,0 +1,50 @@
+@page
+@* Customer notification inbox for dining-order updates. *@
+@model RROMS.Pages.NotificationsModel
+@{
+    ViewData["Title"] = "Notifications";
+}
+<section class="account-heading">
+    <p class="eyebrow">YOUR CÉLESTE UPDATES</p>
+    <h1>Notifications</h1>
+    <p>Dining-order updates from the restaurant. Reservation updates appear on each booking's details page.</p>
+</section>
+@if (Model.UnreadCount > 0)
+{
+    <div class="section-heading">
+        <span></span>
+        <form method="post" asp-page-handler="MarkAllRead">
+            <button type="submit" class="secondary">Mark all as read</button>
+        </form>
+    </div>
+}
+@if (Model.Items.Any())
+{
+    <section class="card">
+        @foreach (var n in Model.Items)
+        {
+            <div class="notification-row">
+                <div>
+                    <p><strong>@n.Title</strong> @if (!n.IsRead) { <span class="badge">New</span> }</p>
+                    <p>@n.Message</p>
+                    <small>@n.CreatedAt.ToString("dd MMM yyyy, h:mm tt")</small>
+                    @if (n.RelatedOrderID.HasValue)
+                    {
+                        <a asp-page="/Orders/Index">View my orders →</a>
+                    }
+                </div>
+                @if (!n.IsRead)
+                {
+                    <form method="post" asp-page-handler="MarkRead">
+                        <input type="hidden" name="id" value="@n.CustomerNotificationID" />
+                        <button type="submit" class="secondary quiet">Mark read</button>
+                    </form>
+                }
+            </div>
+        }
+    </section>
+}
+else
+{
+    <section class="card empty-state">You have no notifications yet. Order updates will appear here.</section>
+}

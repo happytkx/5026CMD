@@ -14,13 +14,16 @@ public class BillDetailsModel : PageModel
 {
     private readonly ApplicationDbContext _db;
     private readonly BillingService _billingService;
+    private readonly OrderBillingIntegrationService _orderBilling;
 
     public BillDetailsModel(
         ApplicationDbContext db,
-        BillingService billingService)
+        BillingService billingService,
+        OrderBillingIntegrationService orderBilling)
     {
         _db = db;
         _billingService = billingService;
+        _orderBilling = orderBilling;
     }
 
     public Reservation? Booking { get; set; }
@@ -44,6 +47,24 @@ public class BillDetailsModel : PageModel
         Bill == null
             ? 0m
             : Math.Max(0m, Bill.MinSpend - Bill.TotalBill);
+
+    // Build or refresh the draft bill from the reservation's
+    // served dining orders. Blocked until every order is served.
+    public async Task<IActionResult> OnPostGenerateDraftAsync(int id)
+    {
+        try
+        {
+            await _orderBilling.SaveDraftFromOrdersAsync(id);
+            TempData["BillMessage"] =
+                "The draft bill was updated from the dining orders.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["BillError"] = ex.Message;
+        }
+
+        return RedirectToPage(new { id });
+    }
 
     public async Task<IActionResult> OnGetAsync(int id)
     {

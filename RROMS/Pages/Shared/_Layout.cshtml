@@ -1,8 +1,9 @@
 @* Shared page shell: Céleste header/footer for customer pages and sidebar navigation for staff reservation pages; loads fonts and the common stylesheet. *@
 @{
     var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
-    var staff = User.IsInRole("Restaurant Staff") || User.IsInRole("Staff");
-    var workspace = staff && (currentPage.StartsWith("/Staff") || currentPage == "/Reservations/Details");
+    var admin = User.IsInRole("Administrator");
+    var staff = User.IsInRole("Restaurant Staff") || User.IsInRole("Staff") || admin;
+    var workspace = staff && (currentPage.StartsWith("/Staff") || currentPage.StartsWith("/Admin") || currentPage == "/Reservations/Details");
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -25,6 +26,7 @@
         }
 
         <link rel="stylesheet" href="~/css/reservations.css" asp-append-version="true" />
+        <link rel="stylesheet" href="~/css/ordering.css" asp-append-version="true" />
     </head>
     <body class="@(workspace ? "staff-workspace" : "guest-view")">
         <a class="skip-link" href="#main-content">
@@ -48,6 +50,9 @@
                     <a class="@(currentPage=="/Staff/Seating" ? "active" : "")" asp-page="/Staff/Seating">
                         Seating &amp; Allocation
                     </a>
+                    <a class="@(currentPage == "/Staff/Orders" ? "active" : "")" asp-page="/Staff/Orders">
+                        Dining Orders
+                    </a>
                     <a class="@(currentPage == "/Staff/Billing" ? "active" : "")" asp-page="/Staff/Billing">
                         Billing
                     </a>
@@ -67,6 +72,12 @@
                     </a>
 
 
+                    @if (admin)
+                    {
+                        <a class="@(currentPage == "/Admin/Index" ? "active" : "")" asp-page="/Admin/Index">
+                            Admin Dashboard
+                        </a>
+                    }
                     <a asp-page="/Index">
                         Customer Website
                     </a>
@@ -77,7 +88,7 @@
                 <div class="staff-account">
                     <strong>STAFF ACCOUNT</strong>
                     <p>@(User.Identity?.Name ?? "Restaurant Staff")</p>
-                    <form method="post" asp-page="/Access" asp-page-handler="Logout">
+                    <form method="post" asp-page="/Account/Logout">
                         <button class="quiet">Sign out</button>
                     </form>
                 </div>
@@ -115,23 +126,41 @@
                     <a asp-page="/Reservations/Create" class="@(currentPage == "/Reservations/Create" ? "active" : "")">
                         Reservation
                     </a>
+                    <a asp-page="/Menu" class="@(currentPage == "/Menu" ? "active" : "")">
+                        Menu
+                    </a>
                     @if (User.IsInRole("Customer"))
                     {
                         <a asp-page="/Reservations/Index" class="@(currentPage == "/Reservations/Index" ? "active" : "")">
                             My reservations
                         </a>
                     }
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <a asp-page="/Orders/Index" class="@(currentPage.StartsWith("/Orders") ? "active" : "")">
+                            My orders
+                        </a>
+                        <a asp-page="/Notifications" class="@(currentPage == "/Notifications" ? "active" : "")">
+                            Notifications
+                        </a>
+                        <a asp-page="/Account/Profile" class="@(currentPage == "/Account/Profile" ? "active" : "")">
+                            Profile
+                        </a>
+                    }
                 }
                 @if (User.Identity?.IsAuthenticated == true)
                 {
-                    <form method="post" asp-page="/Access" asp-page-handler="Logout">
+                    <form method="post" asp-page="/Account/Logout">
                         <button class="quiet">Sign out</button>
                     </form>
                 }
                 else
                 {
-                    <a asp-page="/Access">
-                        Account
+                    <a asp-page="/Account/Login" class="@(currentPage == "/Account/Login" ? "active" : "")">
+                        Sign in
+                    </a>
+                    <a asp-page="/Account/Register" class="@(currentPage == "/Account/Register" ? "active" : "")">
+                        Join us
                     </a>
                 }
                 @if (!staff)
@@ -157,7 +186,10 @@
                 <a asp-page="@(staff ? "/Staff/Index" : "/Reservations/Create")">
                     Reservations
                 </a>
-                <a asp-page="/Access">
+                <a asp-page="/Menu">
+                    Menu
+                </a>
+                <a asp-page="@(User.Identity?.IsAuthenticated == true ? "/Account/Profile" : "/Account/Login")">
                     Account
                 </a>
             </nav>

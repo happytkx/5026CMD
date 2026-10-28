@@ -20,6 +20,16 @@
     </a>
 </p>
 
+@if (TempData["BillMessage"] is string billMessage)
+{
+    <p class="success">@billMessage</p>
+}
+
+@if (TempData["BillError"] is string billError)
+{
+    <p class="error">@billError</p>
+}
+
 @if (Model.Booking is { } booking)
 {
     <!-- Reservation details -->
@@ -155,8 +165,21 @@
             <p class="notice">
                 Bill information will appear after
                 actual food and beverage orders have
-                been integrated and a bill is saved.
+                been served and a bill is generated from them.
             </p>
+        }
+
+        @if (Model.Booking is { ReservationStatus: "Seated" } &&
+             (Model.Bill == null || Model.Bill.BillStatus == "Draft"))
+        {
+            <form method="post" asp-page-handler="GenerateDraft"
+                  asp-route-id="@Model.Booking.ReservationID">
+                <button type="submit">
+                    @(Model.Bill == null
+                        ? "Generate Draft Bill from Orders"
+                        : "Refresh Draft Bill from Orders")
+                </button>
+            </form>
         }
     </section>
 

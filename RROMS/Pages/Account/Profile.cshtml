@@ -1,0 +1,30 @@
+@page
+@* Profile form for the signed-in account. *@
+@model RROMS.Pages.Account.ProfileModel
+@{
+    ViewData["Title"] = "My profile";
+}
+<section class="account-heading">
+    <p class="eyebrow">YOUR CÉLESTE ACCOUNT</p>
+    <h1>My profile</h1>
+    <p>Keep your contact details current so we can reach you about your reservations.</p>
+</section>
+@if (TempData["Success"] is string ok)
+{
+    <p class="success">@ok</p>
+}
+<section class="card auth-card">
+    <form method="post">
+        <div asp-validation-summary="All" class="error"></div>
+        <label asp-for="Input.FullName">Full name</label>
+        <input asp-for="Input.FullName" maxlength="100" required />
+        <label>Email address</label>
+        <input value="@Model.Email" readonly />
+        <p class="fine-print">Your email address is used to sign in and cannot be changed here.</p>
+        <label asp-for="Input.PhoneNo">Phone number</label>
+        <input asp-for="Input.PhoneNo" type="tel" maxlength="20" />
+        <label asp-for="Input.Address">Address <span class="optional">(optional)</span></label>
+        <textarea asp-for="Input.Address" rows="2" maxlength="250"></textarea>
+        <button type="submit">Save profile</button>
+    </form>
+</section>
