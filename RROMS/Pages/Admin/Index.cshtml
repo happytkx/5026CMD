@@ -1,0 +1,124 @@
+@page
+@* Administrator dashboard: period figures, popular dishes, menu availability and announcements. *@
+@model RROMS.Pages.Admin.IndexModel
+@{
+    ViewData["Title"] = "Admin dashboard";
+}
+<p class="eyebrow">ADMINISTRATOR WORKSPACE</p>
+<h1>Overview &amp; Analytics</h1>
+<p>A snapshot of reservations, dining orders and menu performance for the selected period.</p>
+@if (TempData["Success"] is string ok)
+{
+    <p class="success">@ok</p>
+}
+@if (TempData["Error"] is string err)
+{
+    <p class="error">@err</p>
+}
+<form method="get" class="filters">
+    <label for="from">From</label>
+    <input id="from" type="date" name="from" value="@Model.From.ToString("yyyy-MM-dd")" />
+    <label for="to">To</label>
+    <input id="to" type="date" name="to" value="@Model.To.ToString("yyyy-MM-dd")" />
+    <button type="submit">Apply dates</button>
+    <a class="button secondary" asp-page="Index">Reset</a>
+    <a class="button secondary" asp-page-handler="Export" asp-route-from="@Model.From.ToString("yyyy-MM-dd")" asp-route-to="@Model.To.ToString("yyyy-MM-dd")">Export CSV</a>
+</form>
+<div class="staff-stats">
+    <section class="card">
+        <small>ORDER SALES</small>
+        <h2>RM @Model.OrderSales.ToString("N2")</h2>
+        <p>Placed orders including tax, excluding cancelled</p>
+    </section>
+    <section class="card">
+        <small>ORDERS</small>
+        <h2>@Model.OrderCount</h2>
+        <p>Dine-in orders in the period</p>
+    </section>
+    <section class="card">
+        <small>RESERVATIONS</small>
+        <h2>@Model.ReservationCount</h2>
+        <p>Bookings dated in the period</p>
+    </section>
+    <section class="card">
+        <small>REGISTERED CUSTOMERS</small>
+        <h2>@Model.CustomerCount</h2>
+        <p>All customer accounts</p>
+    </section>
+</div>
+<div class="grid">
+    <section class="card">
+        <h2>Popular menu items</h2>
+        <p class="muted">Quantity ordered within the selected period.</p>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Dish</th>
+                        <th>Quantity</th>
+                        <th>Gross sales</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var x in Model.Popular)
+                    {
+                        <tr>
+                            <td>@x.Name</td>
+                            <td>@x.Quantity</td>
+                            <td>RM @x.Sales.ToString("0.00")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            @if (!Model.Popular.Any())
+            {
+                <p class="empty-state">No orders in this period.</p>
+            }
+        </div>
+    </section>
+    <section class="card">
+        <h2>Manage menu availability</h2>
+        <p class="muted">Turn dishes on or off without deleting historical order records.</p>
+        @foreach (var m in Model.Menu)
+        {
+            <div class="menu-toggle-row">
+                <div>
+                    <strong>@m.Name</strong>
+                    <small>@m.Category · RM @m.Price.ToString("0.00")</small>
+                </div>
+                <form method="post" asp-page-handler="ToggleMenu">
+                    <input type="hidden" name="itemId" value="@m.MenuItemID" />
+                    <button type="submit" class="quiet @(m.IsAvailable ? "danger" : "secondary")">@(m.IsAvailable ? "Disable" : "Enable")</button>
+                </form>
+            </div>
+        }
+    </section>
+</div>
+<section class="card">
+    <h2>Announcements</h2>
+    @foreach (var a in Model.Announcements)
+    {
+        <div class="menu-toggle-row">
+            <div>
+                <strong>@a.Title</strong>
+                <small>@a.Message</small>
+            </div>
+            <form method="post" asp-page-handler="RetireAnnouncement">
+                <input type="hidden" name="id" value="@a.AnnouncementID" />
+                <button type="submit" class="quiet secondary">Remove</button>
+            </form>
+        </div>
+    }
+    @if (!Model.Announcements.Any())
+    {
+        <p class="muted">No announcements are showing on the home page.</p>
+    }
+    <h2>Publish announcement</h2>
+    <form method="post" asp-page-handler="Announcement">
+        <label for="title">Title</label>
+        <input id="title" name="title" maxlength="120" required />
+        <label for="message">Message</label>
+        <textarea id="message" name="message" rows="3" maxlength="1000" required></textarea>
+        <button type="submit">Publish</button>
+    </form>
+</section>

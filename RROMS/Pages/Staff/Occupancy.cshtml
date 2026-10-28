@@ -1,0 +1,204 @@
+﻿
+@page
+@model RROMS.Pages.Staff.OccupancyModel
+
+@{
+    ViewData["Title"] = "Table Utilisation Analytics";
+}
+
+<p class="eyebrow">REPORTING & ANALYTICS</p>
+
+<h1>Table Utilisation & Peak Hours</h1>
+
+<p>
+    Analyse scheduled table use, dining-area demand,
+    and reservation arrival patterns.
+</p>
+
+<form method="get" class="report-period-form">
+    <section class="card report-period-card">
+        <h2>Select Reporting Period</h2>
+
+        <div class="report-date-fields">
+
+            <div class="report-date-field">
+                <label asp-for="StartDate">Start Date</label>
+                <input asp-for="StartDate" type="date" />
+            </div>
+
+            <div class="report-date-field">
+                <label asp-for="EndDate">End Date</label>
+                <input asp-for="EndDate" type="date" />
+            </div>
+
+        </div>
+
+        <div asp-validation-summary="All" class="text-danger"></div>
+
+        <div class="report-actions">
+            <button type="submit" class="report-action-button">
+                Generate Report
+            </button>
+
+            <button type="submit"
+                    name="handler"
+                    value="Export"
+                    class="secondary report-action-button">
+                Export Report (CSV)
+            </button>
+        </div>
+    </section>
+</form>
+
+@if (Model.Report is { } report)
+{
+    <p>
+        Reporting period:
+        @report.StartDate.ToString("dd MMM yyyy")
+        to
+        @report.EndDate.ToString("dd MMM yyyy")
+    </p>
+
+    <section class="staff-stats">
+        <article class="card">
+            <small>SCHEDULED RESERVATIONS</small>
+            <h2>@report.ReservationCount</h2>
+        </article>
+
+        <article class="card">
+            <small>RESERVED GUESTS</small>
+            <h2>@report.GuestCount</h2>
+        </article>
+
+        <article class="card">
+            <small>BOOKED TABLE-HOURS</small>
+            <h2>@report.BookedHours.ToString("N2")</h2>
+        </article>
+
+        <article class="card">
+            <small>SCHEDULED UTILISATION</small>
+            <h2>@report.UtilisationPercent.ToString("N1")%</h2>
+        </article>
+    </section>
+
+    <section class="card">
+        <h2>Dining Area Performance</h2>
+
+        <p>
+            Compare scheduled reservations and table-hour
+            utilisation across dining areas.
+        </p>
+
+        @if (report.Areas.Count == 0)
+        {
+            <p>No restaurant tables are configured.</p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Dining Area</th>
+                            <th>Tables / Rooms</th>
+                            <th>Reservations</th>
+                            <th>Guests</th>
+                            <th>Booked Hours</th>
+                            <th>Available Hours</th>
+                            <th>Utilisation</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var area in report.Areas)
+                        {
+                            <tr>
+                                <td>@area.Area</td>
+                                <td>@area.TableCount</td>
+                                <td>@area.ReservationCount</td>
+                                <td>@area.GuestCount</td>
+                                <td>@area.BookedHours.ToString("N2")</td>
+                                <td>@area.AvailableHours.ToString("N2")</td>
+                                <td>
+                                    @area.UtilisationPercent.ToString("N1")%
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    <section class="card report-chart">
+        <h2>Peak Reservation Arrival Hours</h2>
+
+        <p>
+            Number of scheduled reservations beginning
+            during each hour of operation.
+        </p>
+
+        @{
+            int maxCount = report.ArrivalHours.Count == 0
+                ? 0
+                : report.ArrivalHours.Max(h => h.ReservationCount);
+        }
+
+        @if (maxCount == 0)
+        {
+            <p>
+                No scheduled reservation arrivals
+                were found for this period.
+            </p>
+        }
+        else
+        {
+            @foreach (var hour in report.ArrivalHours)
+            {
+                int percentage = (int)Math.Round(
+                    hour.ReservationCount * 100.0 / maxCount);
+
+                string hourLabel =
+                    new DateTime(2000, 1, 1, hour.Hour, 0, 0)
+                        .ToString("h:mm tt");
+
+                <div class="report-status-row">
+                    <div class="report-status-label">
+                        <strong>@hourLabel</strong>
+                        <span>
+                            @hour.ReservationCount reservations
+                        </span>
+                    </div>
+
+                    <div class="report-bar-track"
+                         role="progressbar"
+                         aria-label="@hourLabel"
+                         aria-valuemin="0"
+                         aria-valuemax="@maxCount"
+                         aria-valuenow="@hour.ReservationCount">
+
+                        <div class="report-bar-fill"
+                             style="width: @(percentage)%">
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </section>
+
+    <p class="notice">
+        This report estimates scheduled table utilisation
+        from Confirmed, Seated and Completed reservations.
+
+        It excludes Pending, Cancelled, No-show and
+        Expired reservations.
+
+        Utilisation is calculated as booked table-hours
+        divided by available table-hours, using the
+        currently configured table inventory and
+        restaurant opening hours.
+
+        These figures represent planned table use,
+        not verified physical occupancy.
+    </p>
+}

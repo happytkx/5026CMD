@@ -1,7 +1,15 @@
 @page
 @* Public landing page: introduces the dining spaces and links to the Sprint 2 booking flow. *@
+@model RROMS.Pages.IndexModel
 @{
     ViewData["Title"] = "Fine dining and reservations";
+}
+@foreach (var announcement in Model.Announcements)
+{
+    <aside class="notice announcement">
+        <strong>@announcement.Title</strong>
+        <p>@announcement.Message</p>
+    </aside>
 }
 <section class="home-hero">
     <div class="hero-copy">
@@ -86,6 +94,43 @@
         </article>
     </div>
 </section>
+@if (Model.Popular.Count > 0)
+{
+    <section class="dining-spaces">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">FROM OUR KITCHEN</p>
+                <h2>Guest favourites</h2>
+            </div>
+            <a class="button secondary" asp-page="/Menu">View full menu →</a>
+        </div>
+        <div class="dish-grid">
+            @foreach (var item in Model.Popular)
+            {
+                <article class="dish">
+                    <div class="dish-art">
+                        @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                        {
+                            <img src="@item.ImageUrl" alt="@item.Name" loading="lazy" />
+                        }
+                        else
+                        {
+                            <span aria-hidden="true">✳</span>
+                        }
+                    </div>
+                    <div class="dish-body">
+                        <h3>@item.Name</h3>
+                        <p>@item.Description</p>
+                        <div class="dish-bottom">
+                            <span class="price">RM @item.Price.ToString("0.00")</span>
+                            <a asp-page="/Menu" asp-route-q="@item.Name">Order →</a>
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+    </section>
+}
 <section class="home-reserve">
     <p class="eyebrow">YOUR NEXT OCCASION</p>
     <h2>

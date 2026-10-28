@@ -1,0 +1,30 @@
+@page
+@* Account registration form for new customers. *@
+@model RROMS.Pages.Account.RegisterModel
+@{
+    ViewData["Title"] = "Create account";
+}
+<section class="account-heading">
+    <p class="eyebrow">JOIN CÉLESTE</p>
+    <h1>Create your account</h1>
+    <p>Book tables, order from the menu once you are seated, and keep every reservation in one place.</p>
+</section>
+<section class="card auth-card">
+    <form method="post">
+        <input type="hidden" asp-for="ReturnUrl" />
+        <div asp-validation-summary="All" class="error"></div>
+        <label asp-for="FullName">Full name</label>
+        <input asp-for="FullName" autocomplete="name" maxlength="100" required />
+        <label asp-for="Email">Email address</label>
+        <input asp-for="Email" type="email" autocomplete="username" maxlength="100" required />
+        <label asp-for="PhoneNo">Phone number <span class="optional">(optional)</span></label>
+        <input asp-for="PhoneNo" type="tel" autocomplete="tel" maxlength="20" />
+        <label asp-for="Password">Password</label>
+        <input asp-for="Password" type="password" autocomplete="new-password" required />
+        <p class="fine-print">At least 8 characters, with an upper-case letter, a lower-case letter and a digit.</p>
+        <label asp-for="ConfirmPassword">Confirm password</label>
+        <input asp-for="ConfirmPassword" type="password" autocomplete="new-password" required />
+        <button type="submit" class="wide-button">Create account</button>
+    </form>
+    <p class="muted">Already registered? <a asp-page="Login" asp-route-ReturnUrl="@Model.ReturnUrl">Sign in</a></p>
+</section>

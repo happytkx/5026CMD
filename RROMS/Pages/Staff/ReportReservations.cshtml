@@ -1,0 +1,160 @@
+﻿@page
+@model RROMS.Pages.Staff.ReportReservationsModel
+
+@{
+    ViewData["Title"] = "Reservation Report Details";
+}
+
+<p class="eyebrow">REPORTING & ANALYTICS</p>
+
+<h1>Reservation Report Details</h1>
+
+<p>
+    View individual reservations included in
+    the selected reporting period.
+</p>
+
+<p>
+    <a asp-page="/Staff/Reports"
+       asp-route-StartDate="@Model.StartDate.ToString("yyyy-MM-dd")"
+       asp-route-EndDate="@Model.EndDate.ToString("yyyy-MM-dd")">
+        Back to Reports & Analytics
+    </a>
+</p>
+
+<section class="card">
+    <h2>Filter Reservations</h2>
+
+    <form method="get" class="staff-search">
+        <label asp-for="StartDate">Start Date</label>
+        <input asp-for="StartDate" type="date" />
+
+        <label asp-for="EndDate">End Date</label>
+        <input asp-for="EndDate" type="date" />
+
+        <label asp-for="Status">Status</label>
+        <select asp-for="Status">
+            <option value="">All statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="Confirmed">Confirmed</option>
+            <option value="Seated">Seated</option>
+            <option value="Completed">Completed</option>
+            <option value="Cancelled">Cancelled</option>
+            <option value="No-show">No-show</option>
+            <option value="Expired">Expired</option>
+        </select>
+
+        <label asp-for="Search">Search</label>
+        <input asp-for="Search"
+               placeholder="Guest name or booking reference" />
+
+        <button type="submit">Apply Filters</button>
+    </form>
+
+    <div asp-validation-summary="All"
+         class="text-danger"></div>
+</section>
+
+@if (Model.ModelState.IsValid)
+{
+    <section class="staff-stats">
+        <article class="card">
+            <small>SELECTED STATUS</small>
+            <h2>@Model.StatusLabel</h2>
+        </article>
+
+        <article class="card">
+            <small>MATCHING RESERVATIONS</small>
+            <h2>@Model.Reservations.Count</h2>
+        </article>
+    </section>
+
+    <section class="card">
+        <h2>Reservation List</h2>
+
+        <p>
+            @Model.StartDate.ToString("dd MMM yyyy")
+            to
+            @Model.EndDate.ToString("dd MMM yyyy")
+        </p>
+
+        @if (Model.Reservations.Count == 0)
+        {
+            <p>No reservations match these filters.</p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Booking Reference</th>
+                            <th>Customer</th>
+                            <th>Date / Time</th>
+                            <th>Dining Area</th>
+                            <th>Table</th>
+                            <th>Guests</th>
+                            <th>Status</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var reservation in Model.Reservations)
+                        {
+                            <tr>
+                                <td>
+                                    @reservation.BookingReference
+                                </td>
+
+                                <td>
+                                    @reservation.Customer.CustomerName
+                                </td>
+
+                                <td>
+                                    @reservation.ReservationDate.ToString(
+                                        "dd MMM yyyy")
+                                    <br />
+                                    @reservation.StartTime.ToString(
+                                        @"hh\:mm")
+                                </td>
+
+                                <td>
+                                    @reservation.PreferredDiningOption
+                                </td>
+
+                                <td>
+                                    @reservation.TableID
+                                </td>
+
+                                <td>
+                                    @reservation.PartySize
+                                </td>
+
+                                <td>
+                                    <span class="badge">
+                                        @reservation.ReservationStatus
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <a asp-page="/Reservations/Details"
+                                       asp-route-id="@reservation.ReservationID">
+                                        View Reservation
+                                    </a>
+
+                                    <br />
+
+                                    <a asp-page="/Staff/BillDetails"
+                                       asp-route-id="@reservation.ReservationID">
+                                        View Bill & Payments
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+}

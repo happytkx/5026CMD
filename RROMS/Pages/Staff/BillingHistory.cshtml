@@ -1,0 +1,203 @@
+﻿
+@page
+@model RROMS.Pages.Staff.BillingHistoryModel
+
+@{
+    ViewData["Title"] = "Billing History";
+}
+
+<p class="eyebrow">BILLING & PAYMENTS</p>
+
+<h1>Billing History</h1>
+
+<p>
+    Search saved dining bills and review their payment status.
+</p>
+
+<p>
+    <a asp-page="/Staff/Billing">
+        Back to Billing
+    </a>
+</p>
+
+<form method="get" class="card billing-history-form">
+
+    <h2>Find Saved Bills</h2>
+
+    <div class="billing-history-grid">
+
+        <div>
+            <label asp-for="StartDate">Start Date</label>
+            <input asp-for="StartDate" type="date" />
+        </div>
+
+        <div>
+            <label asp-for="EndDate">End Date</label>
+            <input asp-for="EndDate" type="date" />
+        </div>
+
+        <div>
+            <label asp-for="Status">Bill Status</label>
+            <select asp-for="Status">
+                <option value="">All bill statuses</option>
+                <option value="Draft">Draft</option>
+                <option value="Paid">Paid</option>
+            </select>
+        </div>
+
+        <div>
+            <label asp-for="Search">
+                Customer / Booking Reference
+            </label>
+
+            <input asp-for="Search"
+                   maxlength="100"
+                   placeholder="Search customer or booking" />
+        </div>
+
+    </div>
+
+    <div asp-validation-summary="All"
+         class="text-danger"></div>
+
+    <button type="submit">
+        Search Bills
+    </button>
+
+</form>
+
+@if (Model.ModelState.IsValid)
+{
+    <section class="staff-stats">
+
+        <article class="card">
+            <small>MATCHING BILLS</small>
+            <h2>@Model.Bills.Count</h2>
+        </article>
+
+        <article class="card">
+            <small>DRAFT BILLS</small>
+            <h2>@Model.DraftCount</h2>
+        </article>
+
+        <article class="card">
+            <small>PAID BILLS</small>
+            <h2>@Model.PaidCount</h2>
+        </article>
+
+    </section>
+
+    <section class="card">
+
+        <h2>Saved Dining Bills</h2>
+
+        <p>
+            Dining dates:
+            @Model.StartDate.ToString("dd MMM yyyy")
+            to
+            @Model.EndDate.ToString("dd MMM yyyy")
+        </p>
+
+        @if (Model.Bills.Count == 0)
+        {
+            <p>
+                No saved bills match your filters.
+            </p>
+
+            <p class="notice">
+                Bills will appear here when they are
+                saved from actual food and beverage orders.
+                You can still review deposit transactions
+                through the Payment Collections page.
+            </p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Bill ID</th>
+                            <th>Booking Reference</th>
+                            <th>Customer</th>
+                            <th>Dining Date</th>
+                            <th>Reservation Status</th>
+                            <th>Bill Total</th>
+                            <th>Deposit Applied</th>
+                            <th>Checkout Amount</th>
+                            <th>Bill Status</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var bill in Model.Bills)
+                        {
+                            <tr>
+                                <td>@bill.BillID</td>
+
+                                <td>
+                                    @bill.BookingReference
+                                </td>
+
+                                <td>
+                                    @bill.CustomerName
+                                </td>
+
+                                <td>
+                                    @bill.ReservationDate.ToString(
+                                        "dd MMM yyyy")
+
+                                    <br />
+
+                                    @bill.StartTime.ToString(
+                                        @"hh\:mm")
+                                </td>
+
+                                <td>
+                                    @bill.ReservationStatus
+                                </td>
+
+                                <td>
+                                    RM @bill.TotalBill.ToString("N2")
+                                </td>
+
+                                <td>
+                                    RM @bill.DepositApplied.ToString("N2")
+                                </td>
+
+                                <td>
+                                    RM @bill.BalanceToPay.ToString("N2")
+                                </td>
+
+                                <td>
+                                    <span class="badge">
+                                        @bill.BillStatus
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <a asp-page="/Staff/BillDetails"
+                                       asp-route-id="@bill.ReservationID">
+                                        View Bill & Payments
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+    </section>
+
+    <p class="notice">
+        This page lists saved bills by their scheduled
+        dining dates.
+
+        Draft bills are not confirmed payments.
+        For Paid bills, the checkout amount represents
+        the amount settled at final payment, not an
+        outstanding balance.
+    </p>
+}
