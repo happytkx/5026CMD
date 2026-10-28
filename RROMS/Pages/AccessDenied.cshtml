@@ -1,0 +1,10 @@
+@page
+@* Shown when a signed-in user opens a page their role cannot use. *@
+@{
+    ViewData["Title"] = "Access denied";
+}
+<section class="card empty-state">
+    <h1>Access denied</h1>
+    <p>Your account does not have permission to view this page.</p>
+    <a class="button" asp-page="/Index">Return home</a>
+</section>

@@ -19,10 +19,23 @@
         <p>Confirmed and awaiting check-in</p>
     </article>
     <article class="card">
-        <small>CHECKED IN</small>
-        <h2>@Model.DailyBookings.Count(r=>r.ReservationStatus=="Seated")</h2>
-        <p>Parties currently seated</p>
+        <a class="text-reset text-decoration-none"
+           asp-page="/Staff/Index"
+           asp-route-Date="@Model.Date.ToString("yyyy-MM-dd")"
+           asp-route-Status="Seated">
+
+            <small>CHECKED IN</small>
+
+            <h2>
+                @Model.DailyBookings.Count(
+                    r => r.ReservationStatus == "Seated")
+            </h2>
+
+            <p>Click to view checked-in reservations</p>
+
+        </a>
     </article>
+
     <article class="card">
         <small>ATTENTION NEEDED</small>
         <h2>@Model.DailyBookings.Count(r=>r.ReservationStatus=="No-show" || (r.ReservationStatus=="Confirmed" && r.LateArrivalNotified))</h2>

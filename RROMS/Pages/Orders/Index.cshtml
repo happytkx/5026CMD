@@ -1,0 +1,81 @@
+@page
+@* Customer order history with live status (refreshes every 30 seconds) and a review form for completed orders. *@
+@model RROMS.Pages.Orders.IndexModel
+@{
+    ViewData["Title"] = "My orders";
+}
+<section class="account-heading">
+    <p class="eyebrow">YOUR CÉLESTE ORDERS</p>
+    <h1>My orders</h1>
+    <p>Order status refreshes automatically while this page is open. Orders are settled with your final bill.</p>
+</section>
+<div class="section-heading">
+    <span></span>
+    <a class="button" asp-page="/Menu">Order something</a>
+</div>
+@if (TempData["Success"] is string ok)
+{
+    <p class="success">@ok</p>
+}
+@if (TempData["Error"] is string err)
+{
+    <p class="error">@err</p>
+}
+@foreach (var o in Model.Items)
+{
+    <article class="card order-card">
+        <div class="order-head">
+            <div>
+                <p class="reference">ORDER REF · @o.Reference</p>
+                <h2>@o.CreatedAt.ToString("dd MMM yyyy, h:mm tt")</h2>
+                <small>@string.Join(", ", o.Lines.Select(x => $"{x.ItemName} × {x.Quantity}"))</small>
+                <small>Reservation @o.Reservation.BookingReference · Table @o.Reservation.TableID</small>
+                @if (!string.IsNullOrWhiteSpace(o.Notes))
+                {
+                    <small>Preparation request: @o.Notes</small>
+                }
+            </div>
+            <div class="order-side">
+                <span class="badge">@o.Status</span>
+                <p class="price">RM @o.Total.ToString("0.00")</p>
+            </div>
+        </div>
+        @if (o.Status == "Completed" && !Model.ReviewedOrderIds.Contains(o.OrderID))
+        {
+            <form method="post" asp-page-handler="Review" class="review-form">
+                <input type="hidden" name="orderId" value="@o.OrderID" />
+                <div>
+                    <label for="rating-@o.OrderID">Rating</label>
+                    <select id="rating-@o.OrderID" name="rating">
+                        <option value="5">5 - Excellent</option>
+                        <option value="4">4 - Good</option>
+                        <option value="3">3 - Okay</option>
+                        <option value="2">2 - Poor</option>
+                        <option value="1">1 - Bad</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="comment-@o.OrderID">Feedback</label>
+                    <textarea id="comment-@o.OrderID" name="comment" rows="2" maxlength="800" placeholder="Tell us about your experience" required></textarea>
+                </div>
+                <button type="submit" class="secondary">Submit review</button>
+            </form>
+        }
+        else if (Model.ReviewedOrderIds.Contains(o.OrderID))
+        {
+            <small>Review submitted — thank you for dining with us.</small>
+        }
+    </article>
+}
+@if (!Model.Items.Any())
+{
+    <section class="card empty-state">You haven't placed an order yet.</section>
+}
+@section Scripts {
+    <script>
+        // Refresh order progress, but not while the customer is typing a review.
+        setTimeout(function () {
+            if (!document.hidden && !document.querySelector('.review-form :focus')) window.location.reload();
+        }, 30000);
+    </script>
+}

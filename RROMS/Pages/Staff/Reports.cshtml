@@ -1,0 +1,385 @@
+﻿@page
+@model RROMS.Pages.Staff.ReportsModel
+
+@{
+	ViewData["Title"] = "Reports & Analytics";
+}
+
+<p class="eyebrow">REPORTING & ANALYTICS</p>
+
+<h1>Reservation Reports</h1>
+
+<p>
+	View reservation statistics and deposit information
+	for a selected reporting period.
+</p>
+
+
+
+<form method="get" class="report-period-form">
+
+    <section class="card report-period-card">
+
+        <h2>Select Reporting Period</h2>
+
+		<div class="report-date-fields">
+
+			<div class="report-date-field">
+				<label asp-for="StartDate">Start Date</label>
+				<input asp-for="StartDate" type="date" />
+			</div>
+
+			<div class="report-date-field">
+				<label asp-for="EndDate">End Date</label>
+				<input asp-for="EndDate" type="date" />
+			</div>
+
+		</div>
+
+        <div asp-validation-summary="All"
+             class="text-danger"></div>
+
+        <div class="report-actions">
+
+            <button type="submit"
+                    class="report-action-button">
+                Generate Report
+            </button>
+
+            <button type="submit"
+                    name="handler"
+                    value="Export"
+                    class="secondary report-action-button">
+                Export Report (CSV)
+            </button>
+
+        </div>
+
+    </section>
+
+</form>
+
+@if (Model.Summary is { } report)
+{
+	// Prepare data for the status chart
+	var statuses = new[]
+	{
+		new { Label = "Pending", Count = report.PendingReservations },
+		new { Label = "Confirmed", Count = report.ConfirmedReservations },
+		new { Label = "Seated", Count = report.SeatedReservations },
+		new { Label = "Completed", Count = report.CompletedReservations },
+		new { Label = "Cancelled", Count = report.CancelledReservations },
+		new { Label = "No-show", Count = report.NoShowReservations },
+		new { Label = "Expired", Count = report.ExpiredReservations }
+	};
+
+	// Find the highest number of reservations on a single day
+	int maxDailyCount = Model.DailyReservations.Count == 0
+		? 0
+		: Model.DailyReservations.Max(d => d.Count);
+
+	<p>
+		Reporting period:
+		@report.StartDate.ToString("dd MMM yyyy")
+		to
+		@report.EndDate.ToString("dd MMM yyyy")
+	</p>
+	
+<section class="staff-stats">
+
+    <article class="card">
+        <a class="text-reset text-decoration-none"
+           asp-page="/Staff/ReportReservations"
+           asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+           asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")">
+            <small>TOTAL RESERVATIONS</small>
+            <h2>@report.TotalReservations</h2>
+            <p>View all reservations</p>
+        </a>
+    </article>
+
+    <article class="card">
+        <a class="text-reset text-decoration-none"
+           asp-page="/Staff/ReportReservations"
+           asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+           asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
+           asp-route-Status="Confirmed">
+            <small>CONFIRMED</small>
+            <h2>@report.ConfirmedReservations</h2>
+            <p>View confirmed reservations</p>
+        </a>
+    </article>
+
+    <article class="card">
+        <a class="text-reset text-decoration-none"
+           asp-page="/Staff/ReportReservations"
+           asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+           asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
+           asp-route-Status="Seated">
+            <small>SEATED / CHECKED IN</small>
+            <h2>@report.SeatedReservations</h2>
+            <p>View checked-in reservations</p>
+        </a>
+    </article>
+
+    <article class="card">
+        <a class="text-reset text-decoration-none"
+           asp-page="/Staff/ReportReservations"
+           asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+           asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
+           asp-route-Status="Completed">
+            <small>COMPLETED</small>
+            <h2>@report.CompletedReservations</h2>
+            <p>View completed reservations</p>
+        </a>
+    </article>
+
+</section>
+
+<section class="staff-stats">
+
+    <article class="card">
+        <a class="text-reset text-decoration-none"
+           asp-page="/Staff/ReportReservations"
+           asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+           asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
+           asp-route-Status="Cancelled">
+            <small>CANCELLED</small>
+            <h2>@report.CancelledReservations</h2>
+            <p>View cancelled reservations</p>
+        </a>
+    </article>
+
+    <article class="card">
+        <a class="text-reset text-decoration-none"
+           asp-page="/Staff/ReportReservations"
+           asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+           asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
+           asp-route-Status="No-show">
+            <small>NO-SHOWS</small>
+            <h2>@report.NoShowReservations</h2>
+            <p>View no-show reservations</p>
+        </a>
+    </article>
+
+    <article class="card">
+        <small>PAID DEPOSITS</small>
+        <h2>RM @report.PaidDeposits.ToString("N2")</h2>
+    </article>
+
+    <article class="card">
+        <small>FORFEITED DEPOSITS</small>
+        <h2>RM @report.ForfeitedDeposits.ToString("N2")</h2>
+    </article>
+
+</section>
+
+
+	<!-- Reservation status chart -->
+	<section class="card report-chart">
+		<h2>Reservation Status Breakdown</h2>
+
+		<p>
+			Current reservation status distribution
+			for the selected period.
+		</p>
+
+		@if (report.TotalReservations == 0)
+		{
+			<p>No reservations found for this period.</p>
+		}
+		else
+		{
+			@foreach (var status in statuses)
+			{
+				int percentage = (int)Math.Round(
+					status.Count * 100.0
+					/ report.TotalReservations);
+
+				<div class="report-status-row">
+					
+					<div class="report-status-label">
+
+						<a class="text-reset text-decoration-none"
+						   asp-page="/Staff/ReportReservations"
+						   asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+						   asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
+						   asp-route-Status="@status.Label">
+
+							<strong>@status.Label</strong>
+
+							<span>
+								@status.Count (@percentage%)
+							</span>
+
+						</a>
+
+					</div>
+
+
+					<div class="report-bar-track"
+						role="progressbar"
+						aria-label="@status.Label"
+						aria-valuemin="0"
+						aria-valuemax="@report.TotalReservations"
+						aria-valuenow="@status.Count">
+						
+						<div class="report-bar-fill"
+							style="width: @(percentage)%">
+						</div>
+					</div>
+				</div>
+			}
+		}
+	</section>
+
+	<!-- Daily reservation trend chart -->
+	<section class="card report-chart">
+		<h2>Daily Reservation Trend</h2>
+
+		<p>
+			Number of reservations scheduled for each date
+			in the selected reporting period.
+		</p>
+
+		@if (maxDailyCount == 0)
+		{
+			<p>No reservations found for this period.</p>
+		}
+		else
+		{
+			<div class="report-trend-scroll">
+				@foreach (var day in Model.DailyReservations)
+				{
+					int percentage = (int)Math.Round(
+						day.Count * 100.0 / maxDailyCount);
+
+					string dateLabel = day.Date.ToString("dd MMM yyyy");
+
+					<div class="report-status-row">
+						
+						<div class="report-status-label">
+
+							<a class="text-reset text-decoration-none"
+							   asp-page="/Staff/ReportReservations"
+							   asp-route-StartDate="@day.Date.ToString("yyyy-MM-dd")"
+							   asp-route-EndDate="@day.Date.ToString("yyyy-MM-dd")">
+
+								<strong>@dateLabel</strong>
+
+								<span>
+									@day.Count reservations
+								</span>
+
+							</a>
+
+						</div>
+
+
+						<div class="report-bar-track"
+							role="progressbar"
+							aria-label="@dateLabel"
+							aria-valuemin="0"
+							aria-valuemax="@maxDailyCount"
+							aria-valuenow="@day.Count">
+
+							<div class="report-bar-fill"
+								style="width: @(percentage)%">
+							</div>
+						</div>
+					</div>
+				}
+			</div>
+		}
+	</section>
+
+	
+	<!-- Daily deposit collection chart -->
+	<section class="card report-chart">
+		<h2>Daily Deposit Collections</h2>
+
+		<p>
+			Successful reservation deposits grouped by
+			the date the payment was recorded.
+		</p>
+
+		@{
+			decimal totalCollected = Model.DailyDeposits
+				.Sum(d => d.TotalAmount);
+
+			int totalPayments = Model.DailyDeposits
+				.Sum(d => d.PaymentCount);
+
+			decimal maxDailyAmount = Model.DailyDeposits.Count == 0
+				? 0m
+				: Model.DailyDeposits.Max(d => d.TotalAmount);
+		}
+
+		<div class="staff-stats">
+			<article class="card">
+				<small>DEPOSITS COLLECTED</small>
+				<h2>RM @totalCollected.ToString("N2")</h2>
+			</article>
+
+			<article class="card">
+				<small>SUCCESSFUL TRANSACTIONS</small>
+				<h2>@totalPayments</h2>
+			</article>
+		</div>
+
+		@if (maxDailyAmount == 0m)
+		{
+			<p>
+				No successful deposit payments were recorded
+				during this period.
+			</p>
+		}
+		else
+		{
+			<div class="report-trend-scroll">
+				@foreach (var day in Model.DailyDeposits)
+				{
+					int percentage = (int)Math.Round(
+						day.TotalAmount * 100m / maxDailyAmount);
+
+					string dateLabel = day.Date.ToString("dd MMM yyyy");
+
+					<div class="report-status-row">
+						<div class="report-status-label">
+							<strong>@dateLabel</strong>
+							<span>
+								RM @day.TotalAmount.ToString("N2")
+								(@day.PaymentCount paid)
+							</span>
+						</div>
+
+						<div class="report-bar-track"
+							 role="progressbar"
+							 aria-label="@dateLabel deposit collections"
+							 aria-valuemin="0"
+							 aria-valuemax="@maxDailyAmount"
+							 aria-valuenow="@day.TotalAmount">
+
+							<div class="report-bar-fill"
+								 style="width: @(percentage)%">
+							</div>
+						</div>
+					</div>
+				}
+			</div>
+		}
+	</section>
+
+
+	<p class="notice">
+		Reservation counts are based on scheduled dining dates,
+		including reservations that were subsequently cancelled or expired.
+
+		Deposit amounts are associated with reservations
+		scheduled during the selected period.
+		Forfeited deposits are already included in paid deposits. 
+
+		Daily deposit collections are grouped by payment date,
+		which may differ from the scheduled reservation date.
+	</p>
+}

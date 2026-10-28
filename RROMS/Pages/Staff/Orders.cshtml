@@ -1,0 +1,103 @@
+@page
+@* Staff dining-order queue with status updates. *@
+@model RROMS.Pages.Staff.OrdersModel
+@{
+    ViewData["Title"] = "Dining orders";
+}
+<p class="eyebrow">RESTAURANT OPERATIONS</p>
+<h1>Dining Orders</h1>
+<p>Only orders placed through a checked-in, Seated reservation are accepted. Status changes notify the customer. Served and completed orders flow into the reservation's bill.</p>
+@if (TempData["Success"] is string ok)
+{
+    <p class="success">@ok</p>
+}
+@if (TempData["Error"] is string err)
+{
+    <p class="error">@err</p>
+}
+<div class="staff-stats">
+    <section class="card">
+        <small>IN PROGRESS</small>
+        <h2>@Model.Orders.Count(o => OrdersModel.NextStatuses(o.Status).Length > 0)</h2>
+        <p>Orders still moving through the kitchen</p>
+    </section>
+    <section class="card">
+        <small>RECEIVED</small>
+        <h2>@Model.Orders.Count(o => o.Status == "Received")</h2>
+        <p>Waiting to be prepared</p>
+    </section>
+    <section class="card">
+        <small>READY TO SERVE</small>
+        <h2>@Model.Orders.Count(o => o.Status == "Ready to Serve")</h2>
+        <p>Waiting at the pass</p>
+    </section>
+    <section class="card">
+        <small>COMPLETED</small>
+        <h2>@Model.Orders.Count(o => o.Status == "Completed")</h2>
+        <p>Among the latest 100 orders</p>
+    </section>
+</div>
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Reference / customer</th>
+                <th>Reservation / table</th>
+                <th>Items &amp; requests</th>
+                <th>Placed</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Update</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var o in Model.Orders)
+            {
+                <tr>
+                    <td>
+                        <strong>@o.Reference</strong><br />
+                        <small>@o.Customer.CustomerName · @o.Customer.Email</small>
+                    </td>
+                    <td>
+                        <a asp-page="/Staff/BillDetails" asp-route-id="@o.ReservationID">@o.Reservation.BookingReference</a><br />
+                        <small>Table @o.Reservation.TableID</small>
+                    </td>
+                    <td>
+                        @string.Join(", ", o.Lines.Select(l => $"{l.ItemName} ×{l.Quantity}"))
+                        @if (!string.IsNullOrWhiteSpace(o.Notes))
+                        {
+                            <br /><small>Request: @o.Notes</small>
+                        }
+                    </td>
+                    <td>@o.CreatedAt.ToString("h:mm tt, dd MMM")</td>
+                    <td>RM @o.Total.ToString("0.00")</td>
+                    <td><span class="badge">@o.Status</span></td>
+                    <td>
+                        @{ var next = OrdersModel.NextStatuses(o.Status); }
+                        @if (next.Length == 0)
+                        {
+                            <small>Final</small>
+                        }
+                        else
+                        {
+                            <form method="post" asp-page-handler="UpdateOrder" class="order-update">
+                                <input type="hidden" name="orderId" value="@o.OrderID" />
+                                <select name="status" aria-label="New status for order @o.Reference">
+                                    @foreach (var s in next)
+                                    {
+                                        <option value="@s">@s</option>
+                                    }
+                                </select>
+                                <button type="submit" class="quiet">Save</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (!Model.Orders.Any())
+    {
+        <p class="empty-state">No orders yet.</p>
+    }
+</div>
