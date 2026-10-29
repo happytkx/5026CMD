@@ -204,10 +204,12 @@
             <script src="https://cdn.jsdelivr.net/npm/tom-select@@2.6.2/dist/js/tom-select.complete.min.js"></script>
 
             <script>
-                    // Style staff filter dropdowns consistently.
+                    // Apply consistent styling to staff dropdowns.
                     if (window.TomSelect) {
                         document.querySelectorAll(
-                            '.staff-search select, .billing-history-form select'
+                            '.staff-search select, ' +
+                            '.billing-history-form select, ' +
+                            '.order-update select'
                         ).forEach(function (select) {
 
                             if (!select.tomselect) {
