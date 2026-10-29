@@ -229,7 +229,7 @@ namespace RROMS.Data
                 Dish(
                     "Escargots de Bourgogne",
                     "Burgundy-style escargots in garlic and parsley butter.",
-                    52m, "Appetizers", "Other", "Milk, Molluscs"),
+                    52m, "Appetizers", "Molluscs", "Milk, Molluscs"),
 
                 Dish(
                     "Saint-Jacques",
@@ -366,6 +366,7 @@ namespace RROMS.Data
                 {
                     existing.Description = dish.Description;
                     existing.Allergens = dish.Allergens;
+                    existing.ProteinType = dish.ProteinType;
                 }
             }
 
