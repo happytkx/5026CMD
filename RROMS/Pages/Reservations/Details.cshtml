@@ -43,7 +43,7 @@
                     <div class="notice">
                         <p class="eyebrow">PLEASE REVIEW BEFORE PAYMENT</p>
                         <p>The deposit is credited to your final dining bill. Minimum spend: RM @r.MinimumSpend.ToString("N2").</p>
-                        <p>All cancellations forfeit the full paid deposit. One date/time change is allowed at least 168 hours before the original booking.</p>
+                        <p>All cancellations forfeit the full paid deposit. One date/time change is allowed more than 168 hours before the original booking.</p>
                     </div>
                     <label class="check">
                         <input type="checkbox" required/>
@@ -177,7 +177,7 @@ else
                                         </option>
                                     }
                                 </select>
-                                <p class="notice">Your party size, dining area and deposit remain unchanged. One date/time change is allowed, at least 168 hours before the original booking.</p>
+                                <p class="notice">Your party size, dining area and deposit remain unchanged. One date/time change is allowed, more than 168 hours before the original booking.</p>
                                 <div class="form-actions">
                                     <a class="button secondary" asp-page="Details" asp-route-id="@r.ReservationID">
                                         ← Back
@@ -193,7 +193,7 @@ else
                     }
                     else
                     {
-                        <p class="notice">Rescheduling is unavailable. It is allowed once and at least 168 hours before the original booking.</p>
+                        <p class="notice">Rescheduling is unavailable. It is allowed once and more than 168 hours before the original booking.</p>
                     }
                 </section>
             }
@@ -293,7 +293,7 @@ else
                             }
                             else
                             {
-                                <p>Rescheduling unavailable: one change is allowed at least 168 hours before the original booking.</p>
+                                <p>Rescheduling unavailable: one change is allowed more than 168 hours before the original booking.</p>
                             }
                             @if (!r.LateArrivalNotified && ReservationPolicy.Now < r.ReservationDate.Add(r.StartTime).AddMinutes(10))
                             {
@@ -361,7 +361,7 @@ else
         </div>
         <div>
             <partial name="_ReservationSummary" model="r"/>
-            <p class="notice">Cancellation forfeits your full paid deposit. Rescheduling is allowed once, at least 168 hours before the original time.</p>
+            <p class="notice">Cancellation forfeits your full paid deposit. Rescheduling is allowed once, more than 168 hours before the original time.</p>
         </div>
     </div>
     <section class="card">

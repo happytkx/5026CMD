@@ -45,7 +45,9 @@ Check(ReservationPolicy.End(start, "Indoor", TimeSpan.FromHours(22)) == start.Ad
 Check(ReservationPolicy.End(start, "VIP Room", TimeSpan.FromHours(22)) == start.Date.AddHours(22), "VIP ends at closing");
 Check(!ReservationPolicy.Overlaps(start, start.AddHours(2), start.AddHours(2), start.AddHours(4)), "Adjacent bookings allowed");
 Check(ReservationPolicy.Overlaps(start, start.AddHours(2), start.AddMinutes(119), start.AddHours(4)), "Partial overlap rejected");
-Check(ReservationPolicy.CanModify(now.AddHours(168), 0, now) && !ReservationPolicy.CanModify(now.AddHours(168).AddTicks(-1), 0, now), "Exact 168-hour boundary");
+Check(ReservationPolicy.CanModify(now.AddHours(168).AddTicks(1), 0, now), "Modification allowed outside the final 168 hours");
+Check(!ReservationPolicy.CanModify(now.AddHours(168), 0, now), "Modification blocked at exactly 168 hours");
+Check(!ReservationPolicy.CanModify(now.AddHours(168).AddTicks(-1), 0, now), "Modification blocked inside the final 168 hours");
 Check(!ReservationPolicy.CanModify(now.AddDays(20), 1, now), "Second modification rejected");
 Check(ReservationPolicy.IsExpired(now.AddMinutes(-10), false, now) && !ReservationPolicy.IsExpired(now.AddMinutes(-10), true, now), "Normal 10-minute expiry");
 Check(ReservationPolicy.IsExpired(now.AddMinutes(-30), true, now), "Notified 30-minute expiry");
@@ -408,6 +410,32 @@ try
             ["__RequestVerificationToken"] = Antiforgery(ownHtml) }));
         Check(logout.StatusCode == System.Net.HttpStatusCode.Redirect && (await http.GetAsync("/Reservations/Index")).StatusCode == System.Net.HttpStatusCode.Redirect,
             "Logout clears the customer authentication cookie");
+
+        var staffAccount = new StaffAccount { StaffName = "Shared Login Staff", Email = "shared-staff@example.test",
+            NormalizedEmail = "SHARED-STAFF@EXAMPLE.TEST", IsActive = true };
+        staffAccount.PasswordHash = new Microsoft.AspNetCore.Identity.PasswordHasher<StaffAccount>().HashPassword(staffAccount, accountPassword);
+        db.StaffAccounts.Add(staffAccount);
+        await db.SaveChangesAsync();
+        var legacyLogin = await http.GetAsync("/Account/StaffLogin?ReturnUrl=%2FStaff");
+        Check(legacyLogin.StatusCode == System.Net.HttpStatusCode.Redirect &&
+            legacyLogin.Headers.Location!.ToString().Contains("/Account/Login") &&
+            legacyLogin.Headers.Location.ToString().Contains("ReturnUrl="), "Old staff sign-in redirects to shared login preserving return URL");
+        loginHtml = await (await http.GetAsync("/Account/Login")).Content.ReadAsStringAsync();
+        var invalidStaffLogin = await http.PostAsync("/Account/Login", new FormUrlEncodedContent(new Dictionary<string, string> {
+            ["Email"] = staffAccount.Email, ["Password"] = "Wrong-password",
+            ["__RequestVerificationToken"] = Antiforgery(loginHtml) }));
+        Check(invalidStaffLogin.IsSuccessStatusCode && (await invalidStaffLogin.Content.ReadAsStringAsync()).Contains("Invalid email or password."),
+            "Shared login rejects invalid staff credentials");
+        var sharedStaffLogin = await http.PostAsync("/Account/Login", new FormUrlEncodedContent(new Dictionary<string, string> {
+            ["Email"] = staffAccount.Email, ["Password"] = accountPassword, ["RememberMe"] = "true",
+            ["ReturnUrl"] = "https://example.test/untrusted", ["__RequestVerificationToken"] = Antiforgery(loginHtml) }));
+        Check(sharedStaffLogin.StatusCode == System.Net.HttpStatusCode.Redirect && sharedStaffLogin.Headers.Location!.ToString() == "/Staff",
+            "Shared login sends staff to dashboard and rejects external return URL");
+        Check(sharedStaffLogin.Headers.GetValues("Set-Cookie").Any(value => value.Contains("expires=", StringComparison.OrdinalIgnoreCase)),
+            "Shared login honors remember me for staff");
+        Check((await http.GetAsync("/Staff")).IsSuccessStatusCode, "Shared login issues a valid staff session");
+        Check((await http.GetAsync("/Admin")).StatusCode == System.Net.HttpStatusCode.Redirect,
+            "Staff sign-in does not grant administrator access");
     }
     finally { if (!webServer.HasExited) { webServer.Kill(entireProcessTree: true); await webServer.WaitForExitAsync(); } }
     db.ChangeTracker.Clear();
@@ -416,6 +444,14 @@ try
     var demoBookings = await db.Reservations.CountAsync(r => r.BookingReference.StartsWith("DEMO-RES-"));
     Check(demoCustomers == 4 && demoBookings > 0 && await db.StaffAccounts.AnyAsync(s => s.IsDemo),
         "Development seed creates fictional staff, customers and bookings");
+    var annualBookings = await db.Reservations.Include(r => r.Customer)
+        .Where(r => r.BookingReference.StartsWith("DEMO-RES-YEAR-")).ToListAsync();
+    Check(annualBookings.Select(r => r.ReservationDate.Month).Distinct().Count() == 12 &&
+        annualBookings.All(r => r.ReservationDate.Year == ReservationPolicy.Now.Year && r.Customer.IsDemo),
+        "Annual reservation samples cover every month and only demo customers");
+    Check(annualBookings.All(r => r.CreatedDate <= ReservationPolicy.Now) &&
+        annualBookings.Where(r => r.ReservationDate.Add(r.StartTime) > ReservationPolicy.Now).All(r => r.ReservationStatus == "Confirmed"),
+        "Annual bookings have valid creation dates and confirmed future visits");
     await DevelopmentDataSeeder.Seed(db, new ConfigurationBuilder().Build());
     Check(await db.Customers.CountAsync(c => c.IsDemo) == demoCustomers &&
         await db.Reservations.CountAsync(r => r.BookingReference.StartsWith("DEMO-RES-")) == demoBookings,

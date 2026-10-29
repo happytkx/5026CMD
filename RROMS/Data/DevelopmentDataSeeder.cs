@@ -11,8 +11,31 @@ public static class DevelopmentDataSeeder
     public const string StaffEmail = "staff@celeste.example.test";
     public const string StaffPassword = "CelesteStaff@2026!";
     public const string CustomerPassword = "CelesteGuest@2026!";
+    public static async Task SeedTables(ApplicationDbContext db)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var areas = await db.DiningAreas.ToListAsync();
+        var existingIds = (await db.RestaurantTables.Select(t => t.TableID).ToListAsync())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        (string Id, string Area, int Capacity)[] additions = [
+            ("T04", "Indoor", 2), ("T05", "Indoor", 4), ("T06", "Indoor", 6), ("T07", "Indoor", 8),
+            ("T08", "Outdoor", 2), ("T09", "Outdoor", 4), ("T10", "Outdoor", 8),
+            ("VIP03", "VIP Room", 8), ("VIP04", "VIP Room", 12)];
+        foreach (var table in additions)
+        {
+            // Preserve any existing table's area, capacity and availability.
+            if (existingIds.Contains(table.Id)) continue;
+            var area = areas.Single(a => a.AreaType == table.Area);
+            db.RestaurantTables.Add(new RestaurantTable { TableID = table.Id, DiningAreaID = area.DiningAreaID,
+                Capacity = table.Capacity, Status = "Available" });
+        }
+        await db.SaveChangesAsync();
+        await transaction.CommitAsync();
+    }
+
     public static async Task Seed(ApplicationDbContext db, IConfiguration config)
     {
+        await SeedTables(db);
         await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         if (!await db.StaffAccounts.AnyAsync(s => s.NormalizedEmail == CustomerAccountService.Normalize(StaffEmail)))
         {
@@ -58,6 +81,30 @@ public static class DevelopmentDataSeeder
             ("12", "Confirmed", 6, "VIP Room", open.AddDays(14)) };
         if (now >= open && now.AddHours(2) < now.Date.Add(settings.ClosingTime))
             samples.Insert(0, ("13", "Seated", 2, "Indoor", new DateTime(now.Ticks / (TimeSpan.TicksPerMinute * 30) * (TimeSpan.TicksPerMinute * 30))));
+        // Stable date-based references make the full calendar year safe to seed repeatedly.
+        var yearStart = new DateTime(now.Year, 1, 1);
+        (int Size, string Area)[] parties = [(2, "Indoor"), (4, "Outdoor"), (6, "Indoor"),
+            (8, "Outdoor"), (6, "VIP Room"), (9, "VIP Room")];
+        for (var date = yearStart; date < yearStart.AddYears(1); date = date.AddDays(1))
+        {
+            for (var slot = 0; slot < 2; slot++)
+            {
+                var sequence = (date.DayOfYear - 1) * 2 + slot;
+                var party = parties[sequence % parties.Length];
+                var visit = date.Add(settings.OpeningTime).AddHours(slot * 3);
+                var visitEnd = ReservationPolicy.End(visit, party.Area, settings.ClosingTime);
+                // Do not invent an in-progress visit when seeding during opening hours.
+                if (visit < now && visitEnd > now) continue;
+                var status = visit >= now ? "Confirmed" : (sequence % 10) switch
+                {
+                    7 => "Cancelled",
+                    8 => "No-show",
+                    9 => "Expired",
+                    _ => "Completed"
+                };
+                samples.Add(($"YEAR-{date:yyyyMMdd}-{slot + 1}", status, party.Size, party.Area, visit));
+            }
+        }
         var inventory = await db.RestaurantTables.Include(t => t.DiningArea).OrderBy(t => t.Capacity).ThenBy(t => t.TableID).ToListAsync();
         var index = 0;
         foreach (var item in samples)
@@ -67,7 +114,7 @@ public static class DevelopmentDataSeeder
             var end = ReservationPolicy.End(item.Start, item.Area, settings.ClosingTime);
             if (item.Start.TimeOfDay < settings.OpeningTime || end.TimeOfDay > settings.ClosingTime || end <= item.Start) continue;
             var occupied = await db.Reservations.Where(r => r.ReservationDate == item.Start.Date &&
-                (r.ReservationStatus == "Confirmed" || r.ReservationStatus == "Seated" ||
+                (r.ReservationStatus == "Confirmed" || r.ReservationStatus == "Seated" || r.ReservationStatus == "Completed" ||
                 (r.ReservationStatus == "Pending" && r.HoldExpiresAt > now))).ToListAsync();
             var table = inventory.FirstOrDefault(t => t.Status == "Available" && t.DiningArea.AreaType == item.Area &&
                 ReservationPolicy.SuitableCapacity(item.Size, item.Area, t.Capacity) &&
@@ -79,7 +126,7 @@ public static class DevelopmentDataSeeder
             var booking = new Reservation { CustomerID = customer.CustomerID, TableID = table.TableID,
                 BookingReference = reference, PartySize = item.Size, PreferredDiningOption = item.Area,
                 ReservationDate = item.Start.Date, StartTime = item.Start.TimeOfDay, EndTime = end.TimeOfDay,
-                OriginalStart = item.Start, CreatedDate = item.Start.AddDays(-10), DepositAmount = item.Size * 50m,
+                OriginalStart = item.Start, CreatedDate = item.Start.AddDays(-10) < now ? item.Start.AddDays(-10) : now, DepositAmount = item.Size * 50m,
                 MinimumSpend = ReservationPolicy.MinimumSpend(item.Size, item.Area), ReservationStatus = item.Status,
                 DepositStatus = item.Status is "Cancelled" or "No-show" ? "Forfeited" : paid ? "Paid" : "Unpaid",
                 HoldExpiresAt = item.Status == "Pending" ? (now.AddMinutes(10) < item.Start ? now.AddMinutes(10) : item.Start) : null,

@@ -52,10 +52,9 @@ builder.Services.AddScoped<ReservationEmailService>();
 builder.Services.AddHostedService<ReservationEmailWorker>();
 builder.Services.AddHostedService<ReservationExpiryWorker>();
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-    ));
+var databaseConnection = await DevelopmentLocalDb.Resolve(
+    builder.Configuration.GetConnectionString("DefaultConnection"), builder.Environment.IsDevelopment());
+builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(databaseConnection));
 
 // Session holds each signed-in customer's menu basket until the order is placed.
 builder.Services.AddDistributedMemoryCache();

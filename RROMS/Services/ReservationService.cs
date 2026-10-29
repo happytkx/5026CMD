@@ -122,7 +122,7 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
             // Preserve party size, area, paid deposit and original deadline; allocate a table for the new time.
             case "Modify":
                 if (r.ReservationStatus != "Confirmed" || !ReservationPolicy.CanModify(r.OriginalStart, r.ModificationCount, now))
-                    throw new InvalidOperationException("Only one modification is allowed, at least 168 hours before the original booking.");
+                    throw new InvalidOperationException("Only one modification is allowed, more than 168 hours before the original booking.");
                 var replacement = newStart ?? throw new InvalidOperationException("Choose a new date and time.");
                 if (replacement == start)
                     throw new InvalidOperationException("Choose a different date or time.");

@@ -31,9 +31,9 @@ public static class ReservationPolicy
     // A booking ending exactly when another begins is allowed, so the boundaries use strict comparisons.
     public static bool Overlaps(DateTime start, DateTime end, DateTime otherStart, DateTime otherEnd) =>
         start < otherEnd && end > otherStart;
-    // Always compare against the ORIGINAL booking time, even after a reschedule. Exactly 168 hours is allowed.
+    // Always compare against the ORIGINAL booking time. The final 168 hours are closed to modifications.
     public static bool CanModify(DateTime originalStart, int count, DateTime now) =>
-        count == 0 && originalStart - now >= TimeSpan.FromHours(168);
+        count == 0 && originalStart - now > TimeSpan.FromHours(168);
     // Both grace periods start at the booked arrival time, not at the late-notification time.
     public static bool IsExpired(DateTime start, bool late, DateTime now) =>
         now >= start.AddMinutes(late ? 30 : 10);

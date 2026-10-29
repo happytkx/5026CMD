@@ -6,14 +6,25 @@ public class ReservationExpiryWorker(IServiceScopeFactory scopes, ILogger<Reserv
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
-        while (await timer.WaitForNextTickAsync(stoppingToken))
+        try
         {
-            try
+            while (await timer.WaitForNextTickAsync(stoppingToken))
             {
-                using var scope = scopes.CreateScope();
-                await scope.ServiceProvider.GetRequiredService<ReservationService>().Expire();
+                try
+                {
+                    using var scope = scopes.CreateScope();
+                    await scope.ServiceProvider.GetRequiredService<ReservationService>().Expire();
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    return;
+                }
+                catch (Exception ex) { logger.LogError(ex, "Reservation expiry processing failed; will retry."); }
             }
-            catch (Exception ex) { logger.LogError(ex, "Reservation expiry processing failed; will retry."); }
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            // Cancellation while waiting for the next tick is normal during shutdown.
         }
     }
 }
