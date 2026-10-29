@@ -1,5 +1,5 @@
 ﻿@page
-@model RROMS.Pages.Staff.ReportsModel
+@model RROMS.Pages.Admin.ReportsModel
 
 @{
 	ViewData["Title"] = "Reports & Analytics";
@@ -89,7 +89,7 @@
 
     <article class="card">
         <a class="text-reset text-decoration-none"
-           asp-page="/Staff/ReportReservations"
+           asp-page="/Admin/ReportReservations"
            asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
            asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")">
             <small>TOTAL RESERVATIONS</small>
@@ -100,7 +100,7 @@
 
     <article class="card">
         <a class="text-reset text-decoration-none"
-           asp-page="/Staff/ReportReservations"
+           asp-page="/Admin/ReportReservations"
            asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
            asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
            asp-route-Status="Confirmed">
@@ -112,7 +112,7 @@
 
     <article class="card">
         <a class="text-reset text-decoration-none"
-           asp-page="/Staff/ReportReservations"
+           asp-page="/Admin/ReportReservations"
            asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
            asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
            asp-route-Status="Seated">
@@ -124,7 +124,7 @@
 
     <article class="card">
         <a class="text-reset text-decoration-none"
-           asp-page="/Staff/ReportReservations"
+           asp-page="/Admin/ReportReservations"
            asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
            asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
            asp-route-Status="Completed">
@@ -140,7 +140,7 @@
 
     <article class="card">
         <a class="text-reset text-decoration-none"
-           asp-page="/Staff/ReportReservations"
+           asp-page="/Admin/ReportReservations"
            asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
            asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
            asp-route-Status="Cancelled">
@@ -152,7 +152,7 @@
 
     <article class="card">
         <a class="text-reset text-decoration-none"
-           asp-page="/Staff/ReportReservations"
+           asp-page="/Admin/ReportReservations"
            asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
            asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
            asp-route-Status="No-show">
@@ -201,7 +201,7 @@
 					<div class="report-status-label">
 
 						<a class="text-reset text-decoration-none"
-						   asp-page="/Staff/ReportReservations"
+						   asp-page="/Admin/ReportReservations"
 						   asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
 						   asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
 						   asp-route-Status="@status.Label">
@@ -261,7 +261,7 @@
 						<div class="report-status-label">
 
 							<a class="text-reset text-decoration-none"
-							   asp-page="/Staff/ReportReservations"
+							   asp-page="/Admin/ReportReservations"
 							   asp-route-StartDate="@day.Date.ToString("yyyy-MM-dd")"
 							   asp-route-EndDate="@day.Date.ToString("yyyy-MM-dd")">
 

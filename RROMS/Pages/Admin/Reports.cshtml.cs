@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using RROMS.Services;
 
-namespace RROMS.Pages.Staff;
+namespace RROMS.Pages.Admin;
 
-[Authorize(Policy = "Staff")]
+[Authorize(Policy = "Admin")]
 public class ReportsModel : PageModel
 {
     private readonly ReportingService _reportingService;

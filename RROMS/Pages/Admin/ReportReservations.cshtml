@@ -1,5 +1,5 @@
 ﻿@page
-@model RROMS.Pages.Staff.ReportReservationsModel
+@model RROMS.Pages.Admin.ReportReservationsModel
 
 @{
     ViewData["Title"] = "Reservation Report Details";
@@ -15,7 +15,7 @@
 </p>
 
 <p>
-    <a asp-page="/Staff/Reports"
+    <a asp-page="/Admin/Reports"
        asp-route-StartDate="@Model.StartDate.ToString("yyyy-MM-dd")"
        asp-route-EndDate="@Model.EndDate.ToString("yyyy-MM-dd")">
         Back to Reports & Analytics

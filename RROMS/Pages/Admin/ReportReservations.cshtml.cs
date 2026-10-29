@@ -7,9 +7,9 @@ using RROMS.Data;
 using RROMS.Models;
 using RROMS.Services;
 
-namespace RROMS.Pages.Staff;
+namespace RROMS.Pages.Admin;
 
-[Authorize(Policy = "Staff")]
+[Authorize(Policy = "Admin")]
 public class ReportReservationsModel : PageModel
 {
     private readonly ApplicationDbContext _db;

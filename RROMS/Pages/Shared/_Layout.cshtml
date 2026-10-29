@@ -57,27 +57,29 @@
                         Billing
                     </a>
 
-                    <a class="@(currentPage == "/Staff/Reports" ? "active" : "")" asp-page="/Staff/Reports">
-                        Reports &amp; Analytics
-                    </a>
-
-                    <a class="@(currentPage == "/Staff/PaymentCollections" ? "active" : "")"
-                       asp-page="/Staff/PaymentCollections">
-                        Payment Collections
-                    </a>
-
-                    <a class="@(currentPage == "/Staff/Occupancy" ? "active" : "")"
-                       asp-page="/Staff/Occupancy">
-                        Table Utilisation
-                    </a>
-
-
                     @if (admin)
                     {
-                        <a class="@(currentPage == "/Admin/Index" ? "active" : "")" asp-page="/Admin/Index">
+                        <a class="@(currentPage == "/Admin/Index" ? "active" : "")"
+                           asp-page="/Admin/Index">
                             Admin Dashboard
                         </a>
+
+                        <a class="@(currentPage == "/Admin/Reports" ? "active" : "")"
+                           asp-page="/Admin/Reports">
+                            Reports &amp; Analytics
+                        </a>
+
+                        <a class="@(currentPage == "/Admin/PaymentCollections" ? "active" : "")"
+                           asp-page="/Admin/PaymentCollections">
+                            Payment Collections
+                        </a>
+
+                        <a class="@(currentPage == "/Admin/Occupancy" ? "active" : "")"
+                           asp-page="/Admin/Occupancy">
+                            Table Utilisation
+                        </a>
                     }
+
                     <a asp-page="/Index">
                         Customer Website
                     </a>
@@ -86,7 +88,7 @@
                     </a>
                 </nav>
                 <div class="staff-account">
-                    <strong>STAFF ACCOUNT</strong>
+                    <strong>@(admin ? "ADMIN ACCOUNT" : "STAFF ACCOUNT")</strong>
                     <p>@(User.Identity?.Name ?? "Restaurant Staff")</p>
                     <form method="post" asp-page="/Account/Logout">
                         <button class="quiet">Sign out</button>
@@ -95,7 +97,7 @@
             </aside>
             <div class="workspace-bar">
                 CÉLESTE / RESERVATION MANAGEMENT
-                <span>Restaurant Staff</span>
+                <span>@(admin ? "Administrator" : "Restaurant Staff")</span>
             </div>
         }
         <div class="welcome-bar">
