@@ -122,41 +122,74 @@
     margin: 0;
 }
 
-.menu-filters
+/* Menu toolbar: keep all filter fields and actions in one desktop row. */
+.menu-toolbar
 {
-    flex: 1;
+    align-items: center;
+}
+
+.menu-toolbar .menu-filters
+{
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) max-content max-content;
+    align-items: center;
+    flex: 1 1 auto;
     min-width: 0;
-    flex-wrap: nowrap;
     gap: 10px;
 }
 
-.menu-filters input,
-.menu-filters select
+.menu-toolbar .menu-filters input,
+.menu-toolbar .menu-filters select
 {
+    width: 100%;
     min-width: 0;
-    flex: 1 1 0;
+    box-sizing: border-box;
 }
 
-.menu-filters button,
-.menu-filters .button
+.menu-toolbar .menu-filters button,
+.menu-toolbar .menu-filters .button
 {
     margin: 0;
+    white-space: nowrap;
+}
+
+.menu-toolbar > .button
+{
     flex: 0 0 auto;
     white-space: nowrap;
 }
 
-@media (max-width: 1150px)
+/* A narrow browser window (including docked DevTools) uses two columns. */
+@media (max-width: 1250px)
 {
-    .menu-filters
+    .menu-toolbar
     {
         flex-wrap: wrap;
     }
 
-    .menu-filters input,
-    .menu-filters select
+    .menu-toolbar .menu-filters
     {
-        width: auto;
-        flex: 1 1 160px;
+        flex-basis: 100%;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .menu-toolbar .menu-filters button,
+    .menu-toolbar .menu-filters .button
+    {
+        width: 100%;
+    }
+
+    .menu-toolbar > .button
+    {
+        margin-left: auto;
+    }
+}
+
+@media (max-width: 620px)
+{
+    .menu-toolbar .menu-filters
+    {
+        grid-template-columns: 1fr;
     }
 }
 
