@@ -28,7 +28,7 @@
         </select>
         <select name="protein" aria-label="Protein">
             <option value="">Any protein</option>
-            @foreach (var p in new[] { "Chicken", "Beef", "Lamb", "Duck", "Seafood", "Vegetarian" })
+            @foreach (var p in new[] { "Chicken", "Beef", "Lamb", "Duck", "Seafood", "Vegetarian", "Other" })
             {
                 <option value="@p" selected="@(Model.Protein == p)">@p</option>
             }
