@@ -123,22 +123,83 @@
     margin: 0;
 }
 
-.menu-filters
+/* Menu toolbar: keep all filter fields and actions in one desktop row. */
+.menu-toolbar
 {
-    flex: 1;
+    align-items: center;
 }
 
-.menu-filters input,
-.menu-filters select
+.menu-toolbar .menu-filters
 {
-    min-width: 150px;
-    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) max-content max-content;
+    align-items: center;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 10px;
 }
 
-.menu-filters button,
-.menu-filters .button
+.menu-toolbar .menu-filters input,
+.menu-toolbar .menu-filters select
+{
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.menu-toolbar .menu-filters button,
+.menu-toolbar .menu-filters .button
 {
     margin: 0;
+    white-space: nowrap;
+}
+
+.menu-toolbar > .button
+{
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+/* A narrow browser window (including docked DevTools) uses two columns. */
+@media (max-width: 1250px)
+{
+    .menu-toolbar
+    {
+        flex-wrap: wrap;
+    }
+
+    .menu-toolbar .menu-filters
+    {
+        flex-basis: 100%;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .menu-toolbar .menu-filters button,
+    .menu-toolbar .menu-filters .button
+    {
+        width: 100%;
+    }
+
+    .menu-toolbar > .button
+    {
+        margin-left: auto;
+    }
+}
+
+@media (max-width: 800px)
+{
+    .menu-toolbar .menu-filters
+    {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 520px)
+{
+    .menu-toolbar .menu-filters
+    {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Checkout */
