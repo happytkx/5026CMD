@@ -1,5 +1,5 @@
 @page
-@* Digital menu with dietary, protein and spice filters; signed-in customers add dishes to their basket. *@
+@* Digital menu with dietary and protein filters; signed-in customers add dishes to their basket. *@
 @model RROMS.Pages.MenuModel
 @{
     ViewData["Title"] = "Menu";
@@ -28,16 +28,9 @@
         </select>
         <select name="protein" aria-label="Protein">
             <option value="">Any protein</option>
-            @foreach (var p in new[] { "Chicken", "Beef", "Lamb", "Duck", "Seafood", "Vegetarian" })
+            @foreach (var p in new[] { "Chicken", "Beef", "Lamb", "Duck", "Seafood", "Molluscs", "Vegetarian" })
             {
                 <option value="@p" selected="@(Model.Protein == p)">@p</option>
-            }
-        </select>
-        <select name="spice" aria-label="Maximum spice level">
-            <option value="">Any spice level</option>
-            @for (var i = 0; i <= 5; i++)
-            {
-                <option value="@i" selected="@(Model.Spice == i)">Up to @i / 5</option>
             }
         </select>
         <button type="submit">Apply</button>
@@ -76,7 +69,7 @@
                     }
                 </div>
                 <p>@item.Description</p>
-                <small>@item.Category · Protein: @item.ProteinType · Spice: @item.SpiceLevel/5</small>
+                <small>@item.Category · Protein: @item.ProteinType</small>
                 <small>Dietary: @(string.IsNullOrWhiteSpace(item.DietaryTags) ? "Not specified" : item.DietaryTags)</small>
                 <small>Allergens: @(string.IsNullOrWhiteSpace(item.Allergens) ? "Not specified" : item.Allergens)</small>
                 <div class="dish-bottom">
