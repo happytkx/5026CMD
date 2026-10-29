@@ -125,19 +125,39 @@
 .menu-filters
 {
     flex: 1;
+    min-width: 0;
+    flex-wrap: nowrap;
+    gap: 10px;
 }
 
 .menu-filters input,
 .menu-filters select
 {
-    min-width: 150px;
-    flex: 1;
+    min-width: 0;
+    flex: 1 1 0;
 }
 
 .menu-filters button,
 .menu-filters .button
 {
     margin: 0;
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+@media (max-width: 1150px)
+{
+    .menu-filters
+    {
+        flex-wrap: wrap;
+    }
+
+    .menu-filters input,
+    .menu-filters select
+    {
+        width: auto;
+        flex: 1 1 160px;
+    }
 }
 
 /* Checkout */
