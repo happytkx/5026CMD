@@ -10,23 +10,23 @@
     <p>A little something for every appetite. Dine-in orders open once you are seated at your table.</p>
 </section>
 <div class="section-heading menu-toolbar">
-    <form method="get" class="filters menu-filters">
+    <form method="get" asp-page="/Menu" class="filters menu-filters">
         <input name="q" value="@Model.Q" placeholder="Search dishes" aria-label="Search dishes" />
-        <select name="category" aria-label="Category">
+        <select name="category" aria-label="Category" onchange="this.form.requestSubmit()">
             <option value="">All categories</option>
             @foreach (var c in Model.Categories)
             {
                 <option selected="@(Model.Category == c)" value="@c">@c</option>
             }
         </select>
-        <select name="dietary" aria-label="Dietary preference">
+        <select name="dietary" aria-label="Dietary preference" onchange="this.form.requestSubmit()">
             <option value="">Any dietary preference</option>
             @foreach (var d in new[] { "Vegetarian", "Vegan", "No pork", "No beef", "No chicken" })
             {
                 <option value="@d" selected="@(Model.Dietary == d)">@d</option>
             }
         </select>
-        <select name="protein" aria-label="Protein">
+        <select name="protein" aria-label="Protein" onchange="this.form.requestSubmit()">
             <option value="">Any protein</option>
             @foreach (var p in new[] { "Chicken", "Beef", "Lamb", "Duck", "Seafood", "Molluscs", "Vegetarian" })
             {
