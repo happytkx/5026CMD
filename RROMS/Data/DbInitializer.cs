@@ -161,6 +161,18 @@ namespace RROMS.Data
                 context.SaveChanges();
             }
 
+            // Correct the classification on existing Céleste menu records.
+            // This also handles databases seeded before the menu was updated.
+            var escargots = context.MenuItems.FirstOrDefault(item =>
+                item.Name == "Escargots de Bourgogne" &&
+                item.ProteinType == "Other");
+
+            if (escargots is not null)
+            {
+                escargots.ProteinType = "Molluscs";
+                context.SaveChanges();
+            }
+
             // Seed welcome announcement
             if (!context.Announcements.Any())
             {
