@@ -131,7 +131,7 @@
 .menu-toolbar .menu-filters
 {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr)) max-content max-content;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) max-content max-content;
     align-items: center;
     flex: 1 1 auto;
     min-width: 0;
