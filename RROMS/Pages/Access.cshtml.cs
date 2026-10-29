@@ -1,4 +1,4 @@
-// Development-only role preview and sign-out handlers. This is a temporary Sprint 2 integration aid, not the real customer/staff login module.
+// Optional development-only role preview (disabled by default) and POST sign-out. Customer login is under /Account/Login.
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -19,10 +19,12 @@ public class AccessModel(ApplicationDbContext db, IWebHostEnvironment env, IConf
     {
         get; set;
     }
-    public async Task OnGetAsync()
+    public async Task<IActionResult> OnGetAsync()
     {
+        if (!DemoEnabled) return RedirectToPage("/Account/Login");
         if (DemoEnabled)
             Customers = await db.Customers.AsNoTracking().ToListAsync();
+        return Page();
     }
     public async Task<IActionResult> OnPostAsync(string role)
     {
@@ -32,7 +34,8 @@ public class AccessModel(ApplicationDbContext db, IWebHostEnvironment env, IConf
         if (customer == null || role is not ("Customer" or "Restaurant Staff"))
             return BadRequest();
         var claims = new[] { new Claim(ClaimTypes.NameIdentifier, CustomerId.ToString()),
-            new Claim("CustomerID", CustomerId.ToString()), new Claim(ClaimTypes.Name, customer.CustomerName), new Claim(ClaimTypes.Role, role) };
+            new Claim("CustomerID", CustomerId.ToString()), new Claim(ClaimTypes.Name, customer.CustomerName), new Claim(ClaimTypes.Role, role),
+            new Claim("DevelopmentPreview", "true") };
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
             new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme)));
         return RedirectToPage(role == "Customer" ? "/Reservations/Index" : "/Staff/Index");

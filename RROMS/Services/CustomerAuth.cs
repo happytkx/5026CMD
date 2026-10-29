@@ -32,6 +32,7 @@ public static class CustomerAuth
         {
             new Claim(ClaimTypes.NameIdentifier, customer.CustomerID.ToString()),
             new Claim("CustomerID", customer.CustomerID.ToString()),
+            new Claim("SessionVersion", customer.SessionVersion.ToString()),
             new Claim(ClaimTypes.Name, customer.CustomerName),
             new Claim(ClaimTypes.Role, customer.Role)
         };

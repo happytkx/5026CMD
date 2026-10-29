@@ -59,6 +59,19 @@ namespace RROMS.Models
             get; set;
         }
 
+        // Nullable credentials preserve existing reservation-only customer records during upgrade.
+        [StringLength(100)] public string? NormalizedEmail { get; set; }
+        public bool EmailConfirmed { get; set; }
+        [StringLength(64)] public string? VerificationTokenHash { get; set; }
+        public DateTime? VerificationExpiresUtc { get; set; }
+        public DateTime? VerificationSentUtc { get; set; }
+        public DateTime? LockedUntilUtc { get; set; }
+        [StringLength(64)] public string? PasswordResetTokenHash { get; set; }
+        public DateTime? PasswordResetExpiresUtc { get; set; }
+        public DateTime? PasswordResetSentUtc { get; set; }
+        public int SessionVersion { get; set; }
+        public bool IsDemo { get; set; }
+
         public ICollection<Reservation> Reservations { get; set; } = [];
     }
 }

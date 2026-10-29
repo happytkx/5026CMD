@@ -1,0 +1,17 @@
+@page
+@model RROMS.Pages.Account.StaffLoginModel
+@{ ViewData["Title"] = "Staff sign in"; }
+<section class="account-shell">
+    <aside class="account-photo"><div><p class="eyebrow">CÉLESTE RESTAURANT OPERATIONS</p><h1>Thoughtful service.<br />Every visit.</h1><p>Reservations, seating and customer requests.</p></div></aside>
+    <div class="account-panel">
+        <p class="eyebrow">RESTAURANT STAFF</p><h2>Staff sign in</h2><p class="muted">Access the reservation dashboard with your staff account.</p>
+        <form method="post" class="account-form">
+            <input type="hidden" asp-for="ReturnUrl" />
+            <div asp-validation-summary="All" class="error" role="alert"></div>
+            <label asp-for="Email">Staff email</label><input asp-for="Email" type="email" autocomplete="username" required maxlength="100" />
+            <label asp-for="Password"></label><input asp-for="Password" type="password" autocomplete="current-password" required maxlength="128" />
+            <button type="submit">Sign in to staff dashboard</button>
+        </form>
+        <p class="account-switch"><a asp-page="Login">Customer sign in</a></p>
+    </div>
+</section>

@@ -2747,3 +2747,19 @@ td small
     box-shadow: 0 0 0 2px rgba(115, 121, 87, 0.13);
 }
 
+/* Customer account forms share the restaurant palette without changing booking layouts. */
+.account-shell { display:grid; grid-template-columns:1fr 1fr; max-width:1160px; margin:40px auto 70px; border:1px solid #e1dacd; background:#fff; }
+.account-photo { min-height:600px; background:linear-gradient(0deg,rgba(35,29,20,.74),rgba(35,29,20,.05)),url('/images/celeste-indoor.jpg') center/cover; display:flex; align-items:flex-end; padding:48px; color:#fff; }
+.account-photo h1 { color:#fff; font-size:clamp(2.4rem,4vw,3.6rem); }
+.account-photo .eyebrow { color:#eee3cf; }
+.account-panel { padding:44px; align-self:center; }
+.account-panel h2 { font-family:'Playfair Display',serif; font-size:2.3rem; }
+.account-form { display:flex; flex-direction:column; gap:10px; margin:24px 0; }
+.account-form label { font-weight:500; margin-top:8px; }
+.account-form input { width:100%; min-width:0; }
+.account-form button { margin-top:14px; width:100%; }
+.account-form .validation-summary-valid { display:none; }
+.account-form small { color:#655f54; }
+.account-switch { border-top:1px solid #e8e1d5; padding-top:22px; margin-top:26px; }
+.account-compact { max-width:650px; margin:50px auto; padding:36px; }
+@media(max-width:760px) { .account-shell { grid-template-columns:1fr; margin:20px 16px 40px; } .account-photo { min-height:240px; padding:28px; } .account-panel { padding:28px 22px; } .account-compact { margin:25px 16px; padding:24px; } }

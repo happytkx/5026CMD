@@ -1,0 +1,15 @@
+@page
+@model RROMS.Pages.Account.VerifyEmailModel
+@{ ViewData["Title"] = "Verify your email"; }
+<section class="account-compact card">
+    <p class="eyebrow">ONE LAST STEP</p><h1>Verify your email</h1>
+    @if (TempData["AccountMessage"] is string message) { <p role="status">@message</p> }
+    <p>Open the confirmation link in your email before signing in. Links expire after 24 hours.</p>
+    @if (Model.Notice != null) { <p class="success" role="status">@Model.Notice</p> }
+    <form method="post" class="account-form">
+        <div asp-validation-summary="All" class="error" role="alert"></div>
+        <label asp-for="Email">Email address</label><input asp-for="Email" type="email" autocomplete="email" required maxlength="100" />
+        <button type="submit">Resend verification email</button>
+    </form>
+    <p><a asp-page="Login">Back to sign in</a></p>
+</section>

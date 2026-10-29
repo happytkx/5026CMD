@@ -10,7 +10,7 @@ using RROMS.Services;
 
 namespace RROMS.Pages.Account;
 
-public class LoginModel(ApplicationDbContext db, IPasswordHasher<Customer> hasher) : PageModel
+public class LoginModel(CustomerAccountService accounts) : PageModel
 {
     [BindProperty, Required, EmailAddress, StringLength(100)]
     public string Email { get; set; } = "";
@@ -33,37 +33,8 @@ public class LoginModel(ApplicationDbContext db, IPasswordHasher<Customer> hashe
     {
         if (!ModelState.IsValid)
             return Page();
-        var email = Email.Trim();
-        var customer = await db.Customers.FirstOrDefaultAsync(c => c.Email == email);
-        var now = ReservationPolicy.Now;
-        if (customer?.PasswordHash == null)
-        {
-            // Hash anyway so an unknown email costs the same as a wrong password.
-            hasher.HashPassword(new Customer(), Password);
-            return Fail();
-        }
-        if (customer.LockoutEnd > now)
-        {
-            ModelState.AddModelError("", $"Too many failed attempts. Please try again in {Math.Ceiling((customer.LockoutEnd.Value - now).TotalMinutes)} minute(s).");
-            return Page();
-        }
-        var result = hasher.VerifyHashedPassword(customer, customer.PasswordHash, Password);
-        if (result == PasswordVerificationResult.Failed)
-        {
-            customer.FailedLoginCount++;
-            if (customer.FailedLoginCount >= CustomerAuth.MaxFailedAttempts)
-            {
-                customer.LockoutEnd = now.Add(CustomerAuth.LockoutDuration);
-                customer.FailedLoginCount = 0;
-            }
-            await db.SaveChangesAsync();
-            return Fail();
-        }
-        if (result == PasswordVerificationResult.SuccessRehashNeeded)
-            customer.PasswordHash = hasher.HashPassword(customer, Password);
-        customer.FailedLoginCount = 0;
-        customer.LockoutEnd = null;
-        await db.SaveChangesAsync();
+        var customer = await accounts.Authenticate(Email, Password);
+        if (customer == null) return Fail();
         await CustomerAuth.SignInAsync(HttpContext, customer, RememberMe);
         return LocalRedirect(Destination(customer.Role));
     }

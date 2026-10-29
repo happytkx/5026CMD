@@ -24,6 +24,7 @@ public class ReservationEmailService(ApplicationDbContext db, IEmailSender sende
     // Called inside the booking transaction; SMTP sending is deferred until the transaction has committed.
     public static void QueueConfirmation(ApplicationDbContext context, Reservation r, bool modified)
     {
+        if (r.Customer.IsDemo) return;
         context.ReservationEmails.Add(new ReservationEmail
         {
             Reservation = r,
@@ -40,7 +41,7 @@ public class ReservationEmailService(ApplicationDbContext db, IEmailSender sende
     public async Task QueueReminders(DateTime now)
     {
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-        var bookings = await db.Reservations.Include(r => r.Customer).Where(r => r.ReservationStatus == "Confirmed" && r.DepositStatus == "Paid" && r.ReservationDate >= now.Date).ToListAsync();
+        var bookings = await db.Reservations.Include(r => r.Customer).Where(r => !r.Customer.IsDemo && r.ReservationStatus == "Confirmed" && r.DepositStatus == "Paid" && r.ReservationDate >= now.Date).ToListAsync();
         foreach (var r in bookings)
         {
             var start = r.ReservationDate.Add(r.StartTime);
