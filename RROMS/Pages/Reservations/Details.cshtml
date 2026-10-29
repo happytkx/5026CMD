@@ -22,14 +22,13 @@
     <div class="workflow-columns">
         <div>
             <section class="card">
-                <h3>Simulated Deposit Payment</h3>
-                <p>No real money is charged. Use a dummy reference to demonstrate payment.</p>
+                <h3>Deposit Payment</h3>
                 <p>Table held until @r.HoldExpiresAt?.ToString("h:mm tt").</p>
                 <form method="post" asp-page-handler="Action">
                     <input type="hidden" name="action" value="Pay"/>
                     <label for="billing-email">Billing email</label>
                     <input id="billing-email" value="@r.Customer.Email" readonly/>
-                    <label for="dummyReference">Dummy payment reference</label>
+                    <label for="dummyReference">Payment reference</label>
                     <input id="dummyReference" name="dummyReference" placeholder="DEMO-1234" maxlength="40" required/>
                     <label for="paymentSuccess">Simulation outcome</label>
                     <select id="paymentSuccess" name="paymentSuccess">
