@@ -9,9 +9,8 @@
     <h1>My orders</h1>
     <p>Order status refreshes automatically while this page is open. Orders are settled with your final bill.</p>
 </section>
-<div class="section-heading">
-    <span></span>
-    <a class="button secondary" asp-page="/MyBill">View Running Bill</a>
+<div class="order-history-actions">
+    <a class="button secondary" asp-page="/MyBill">View Bill</a>
     <a class="button" asp-page="/Menu">Order</a>
 </div>
 @if (TempData["Success"] is string ok)

@@ -69,9 +69,10 @@ else if (Model.Booking is { } booking)
                 <h2>@(Model.IsPaid ? "Paid Final Bill" : booking.ReservationStatus == "Seated" ? "Live Running Bill" : "Current Bill Estimate")</h2>
                 <p class="muted">Reservation @booking.BookingReference · @booking.PartySize guests</p>
             </div>
-            <span class="celeste-bill-status @(Model.IsPaid ? "celeste-bill-status-paid" : "celeste-bill-status-draft")">
-                @(Model.IsPaid ? "Paid" : "Estimate")
-            </span>
+            @if (Model.IsPaid)
+            {
+                <span class="celeste-bill-status celeste-bill-status-paid">Paid</span>
+            }
         </div>
 
         @if (!Model.IsPaid)

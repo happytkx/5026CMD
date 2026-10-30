@@ -339,6 +339,54 @@
     .basket-remove-form { grid-column: 3; }
 }
 
+/* Clear, receipt-like checkout summary with one amount per row. */
+.checkout-summary-card > .eyebrow { margin: 0 0 8px; }
+.checkout-summary-card > h2 { margin: 0 0 12px; }
+.checkout-summary-subtitle {
+    margin: 0;
+    padding-bottom: 17px;
+    border-bottom: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.65;
+}
+.checkout-summary-card .order-totals { margin: 16px 0 24px; }
+.checkout-summary-card .order-totals > div:not(.grand) {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+}
+.checkout-summary-card .order-totals .grand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 17px;
+    padding: 16px 14px;
+    border: 1px solid #D5DBC8;
+    border-radius: 4px;
+    background: #EFF1E9;
+}
+.checkout-summary-card .order-totals .grand dt { font: 500 19px/1.3 var(--serif); }
+.checkout-summary-card .order-totals .grand dd {
+    color: var(--olive-deep);
+    font: 600 23px/1.3 var(--serif);
+    white-space: nowrap;
+}
+.checkout-summary-card form label:first-of-type { margin-top: 5px; }
+
+/* Keep My Orders actions anchored to opposite sides of the toolbar. */
+.order-history-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin: 20px 0 28px;
+}
+.order-history-actions .button { margin: 0; }
+@media (max-width: 480px) {
+    .order-history-actions { flex-wrap: wrap; }
+    .order-history-actions .button { flex: 1 1 auto; }
+}
+
 /* Order history */
 .order-card .order-head
 {
@@ -563,7 +611,17 @@
 }
 
 .celeste-bill-summary dl {
+    display: block;
+    width: 100%;
     margin: 0;
+}
+.celeste-bill-summary dt {
+    flex: 1 1 auto;
+    min-width: 0;
+    line-height: 1.55;
+}
+.celeste-bill-summary dd {
+    flex: 0 0 auto;
 }
 
 .celeste-bill-summary dl > div {
