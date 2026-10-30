@@ -105,6 +105,11 @@ namespace RROMS.Models
             get; set;
         }
 
+        // Each dish advances independently through the kitchen workflow.
+        // The parent order status is a summary used by billing and reporting.
+        [Required, StringLength(30)]
+        public string KitchenStatus { get; set; } = "Received";
+
         // Keep cancelled dishes for history while excluding them from the bill.
         public bool IsCancelled { get; set; }
 

@@ -54,7 +54,7 @@
                     <div class="order-round">
                         <div class="order-round-heading">
                             <strong>Ordered @o.CreatedAt.ToString("dd MMM, h:mm tt")</strong>
-                            <span class="badge">@o.Status</span>
+                            <span class="badge">@DiningOrderPresentation.RoundStatus(o)</span>
                         </div>
                         @if (!string.IsNullOrWhiteSpace(o.Notes))
                         {
@@ -80,7 +80,7 @@
                                         <td>@line.Quantity</td>
                                         <td>RM @line.UnitPrice.ToString("N2")</td>
                                         <td>@(cancelled ? "Excluded" : $"RM {line.LineTotal:N2}")</td>
-                                        <td><span class="@(cancelled ? "dish-cancelled" : "dish-active")">@(cancelled ? "Cancelled" : o.Status)</span></td>
+                                        <td><span class="@(cancelled ? "dish-cancelled" : "dish-active")">@(cancelled ? "Cancelled" : line.KitchenStatus)</span></td>
                                     </tr>
                                 }
                                 </tbody>

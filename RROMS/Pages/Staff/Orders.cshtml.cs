@@ -15,19 +15,32 @@ public class OrdersModel(ApplicationDbContext db) : PageModel
 {
     public List<CustomerOrder> Orders { get; set; } = [];
     public HashSet<int> PaidReservationIds { get; set; } = [];
+    [BindProperty(SupportsGet = true)] public int? Expanded { get; set; }
 
-    // Kitchen rounds retain their own progress, even though the reservation displays as one session.
-    public static string[] NextStatuses(string status) => status switch
+    // Each dish follows its own kitchen progression. The parent status is
+    // the earliest outstanding step, so billing never treats a partially
+    // served round as fully served.
+    public static string? NextDishStatus(string status) => status switch
     {
-        "Received" => ["Preparing", "Cancelled"],
-        "Preparing" => ["Ready to Serve", "Cancelled"],
-        "Ready to Serve" => ["Served", "Cancelled"],
-        "Served" => ["Completed"],
-        _ => []
+        "Received" => "Preparing",
+        "Preparing" => "Ready to Serve",
+        "Ready to Serve" => "Served",
+        _ => null
     };
 
     public static bool CanCancelDish(string status) =>
         status is "Received" or "Preparing" or "Ready to Serve";
+
+    private static string DeriveRoundStatus(IEnumerable<OrderLine> lines)
+    {
+        var active = lines.Where(line => !line.IsCancelled).ToList();
+        if (active.Count == 0) return "Cancelled";
+        if (active.Any(line => line.KitchenStatus == "Received")) return "Received";
+        if (active.Any(line => line.KitchenStatus == "Preparing")) return "Preparing";
+        if (active.Any(line => line.KitchenStatus == "Ready to Serve")) return "Ready to Serve";
+        if (active.Any(line => line.KitchenStatus == "Served")) return "Served";
+        return "Completed";
+    }
 
     public async Task OnGetAsync()
     {
@@ -51,44 +64,70 @@ public class OrdersModel(ApplicationDbContext db) : PageModel
             .Select(b => b.ReservationID).ToListAsync()).ToHashSet();
     }
 
-    public async Task<IActionResult> OnPostUpdateOrderAsync(int orderId, string status)
+    public async Task<IActionResult> OnPostUpdateDishesAsync(int orderId, string status, int[]? lineIds)
     {
-        if (!CustomerOrder.Statuses.Contains(status))
+        if (orderId <= 0 || status is not ("Preparing" or "Ready to Serve" or "Served"))
             return BadRequest();
 
-        var order = await db.Orders.FirstOrDefaultAsync(o => o.OrderID == orderId);
+        var selectedIds = (lineIds ?? []).Distinct().ToArray();
+        if (selectedIds.Length == 0)
+        {
+            TempData["Error"] = "Select at least one dish to update.";
+            return RedirectToPage();
+        }
+
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var order = await db.Orders
+            .Include(o => o.Lines)
+            .Include(o => o.Reservation)
+            .SingleOrDefaultAsync(o => o.OrderID == orderId);
+
         if (order == null)
             return NotFound();
 
-        if (order.Status == status)
-            return RedirectToPage();
-
-        if (!NextStatuses(order.Status).Contains(status))
-        {
-            TempData["Error"] = $"Invalid status transition from {order.Status} to {status}.";
-            return RedirectToPage();
-        }
-
-        if (status == "Cancelled" &&
+        if (order.Reservation.ReservationStatus != "Seated" ||
             await db.Bills.AnyAsync(b => b.ReservationID == order.ReservationID && b.BillStatus == "Paid"))
         {
-            TempData["Error"] = "This dining session has already been paid. The order cannot be cancelled.";
-            return RedirectToPage();
+            TempData["Error"] = "Kitchen statuses cannot be changed after checkout or when the reservation is not seated.";
+            return RedirectToPage(new { expanded = order.ReservationID });
         }
 
-        order.Status = status;
+        var selectedLines = order.Lines.Where(l => selectedIds.Contains(l.OrderLineID)).ToList();
+        if (selectedLines.Count != selectedIds.Length ||
+            selectedLines.Any(l => l.IsCancelled || NextDishStatus(l.KitchenStatus) != status))
+        {
+            TempData["Error"] = "A selected dish is no longer eligible for that status. Refresh and try again.";
+            return RedirectToPage(new { expanded = order.ReservationID });
+        }
+
+        foreach (var line in selectedLines)
+            line.KitchenStatus = status;
+
+        order.Status = DeriveRoundStatus(order.Lines);
+        var names = string.Join(", ", selectedLines.Select(l => l.ItemName).Distinct());
         db.CustomerNotifications.Add(new CustomerNotification
         {
             CustomerID = order.CustomerID,
-            Title = status == "Cancelled" ? "Order cancelled" : "Order status updated",
-            Message = $"Dishes for your reservation are now {status}.",
+            Title = "Dish status updated",
+            Message = $"Kitchen update: {names[..Math.Min(names.Length, 320)]} now {status}.",
             Type = "Order",
             RelatedOrderID = order.OrderID,
             CreatedAt = ReservationPolicy.Now
         });
-        await db.SaveChangesAsync();
-        TempData["Success"] = "Kitchen status updated and the customer notified.";
-        return RedirectToPage();
+
+        try
+        {
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (DbUpdateException)
+        {
+            TempData["Error"] = "The dish statuses could not be saved. Refresh and try again.";
+            return RedirectToPage(new { expanded = order.ReservationID });
+        }
+
+        TempData["Success"] = $"{selectedLines.Count} dish(es) updated to {status}. The customer was notified.";
+        return RedirectToPage(new { expanded = order.ReservationID });
     }
 
     // A cancellation retains the original line and its original price for audit,
@@ -100,6 +139,8 @@ public class OrdersModel(ApplicationDbContext db) : PageModel
 
         await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var line = await db.OrderLines
+            .Include(l => l.Order)
+            .ThenInclude(o => o.Lines)
             .Include(l => l.Order)
             .ThenInclude(o => o.Reservation)
             .SingleOrDefaultAsync(l => l.OrderLineID == orderLineId);
@@ -114,7 +155,7 @@ public class OrdersModel(ApplicationDbContext db) : PageModel
             return RedirectToPage();
         }
 
-        if (!CanCancelDish(order.Status) || order.Reservation.ReservationStatus != "Seated")
+        if (!CanCancelDish(line.KitchenStatus) || order.Reservation.ReservationStatus != "Seated")
         {
             TempData["Error"] = "Only unserved dishes in an active seated reservation can be cancelled.";
             return RedirectToPage();
@@ -131,6 +172,7 @@ public class OrdersModel(ApplicationDbContext db) : PageModel
             .ToListAsync();
 
         line.IsCancelled = true;
+        line.KitchenStatus = "Cancelled";
         line.CancelledAt = ReservationPolicy.Now;
         var staffName = User.Identity?.Name ?? "Restaurant Staff";
         line.CancelledBy = staffName.Length > 100 ? staffName[..100] : staffName;
@@ -139,8 +181,7 @@ public class OrdersModel(ApplicationDbContext db) : PageModel
         order.Tax = Math.Round(order.Subtotal * .06m, 2);
         order.Total = order.Subtotal + order.Tax;
 
-        if (remaining.Count == 0)
-            order.Status = "Cancelled";
+        order.Status = DeriveRoundStatus(order.Lines);
 
         db.CustomerNotifications.Add(new CustomerNotification
         {
@@ -165,6 +206,6 @@ public class OrdersModel(ApplicationDbContext db) : PageModel
 
         TempData["Success"] =
             $"{line.ItemName} cancelled. The customer was notified. Refresh any saved draft bill before collecting payment.";
-        return RedirectToPage();
+        return RedirectToPage(new { expanded = order.ReservationID });
     }
 }

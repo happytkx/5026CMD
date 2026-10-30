@@ -202,6 +202,23 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
                     .AnyAsync(b => b.ReservationID == id && b.BillStatus == "Paid");
                 if (!finalBillPaid)
                     throw new InvalidOperationException("Settle the final dining bill before completing the reservation.");
+                // The kitchen round and its dishes are completed together when
+                // staff closes a fully paid reservation.
+                var completedOrders = await db.Orders
+                    .Include(o => o.Lines)
+                    .Where(o => o.ReservationID == id && o.Status != "Cancelled")
+                    .ToListAsync();
+                foreach (var completedOrder in completedOrders)
+                {
+                    if (completedOrder.Status is not ("Served" or "Completed") ||
+                        completedOrder.Lines.Where(l => !l.IsCancelled)
+                            .Any(l => l.KitchenStatus is not ("Served" or "Completed")))
+                        throw new InvalidOperationException("All dishes must be served before completing this reservation.");
+
+                    completedOrder.Status = "Completed";
+                    foreach (var line in completedOrder.Lines.Where(l => !l.IsCancelled))
+                        line.KitchenStatus = "Completed";
+                }
                 r.ReservationStatus = "Completed";
                 message = "Dining session completed. Ordering is closed.";
                 break;

@@ -240,7 +240,8 @@ public class BillingService
             .ToListAsync();
 
         if (activeOrders.Count == 0 ||
-            activeOrders.Any(o => o.Status is not ("Served" or "Completed")))
+            activeOrders.Any(o => o.Status is not ("Served" or "Completed") ||
+                o.Lines.Where(l => !l.IsCancelled).Any(l => l.KitchenStatus is not ("Served" or "Completed"))))
         {
             return new BillSettlementCheck(
                 false, "All active dining orders must be served before settlement.",

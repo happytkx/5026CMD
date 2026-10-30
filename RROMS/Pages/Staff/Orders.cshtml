@@ -8,7 +8,7 @@
 }
 <p class="eyebrow">RESTAURANT OPERATIONS</p>
 <h1>Dining Orders</h1>
-<p>Every reservation appears once. Open View Details to follow the dishes and manage kitchen progress. Staff can cancel a dish before it is served; cancelled dishes are excluded from billing.</p>
+<p>Every reservation appears once. Open View Details to follow the dishes and manage kitchen progress. Update individual dishes as they move through the kitchen. Staff can cancel an unserved dish; cancelled dishes are excluded from billing.</p>
 <p><a class="button secondary" asp-page="/Staff/Billing">Go to Billing &amp; Checkout</a></p>
 @if (TempData["Success"] is string ok)
 {
@@ -21,17 +21,17 @@
 <div class="staff-stats">
     <section class="card">
         <small>IN PROGRESS</small>
-        <h2>@Model.Orders.Where(o => o.Status is "Received" or "Preparing" or "Ready to Serve").Select(o => o.ReservationID).Distinct().Count()</h2>
+        <h2>@Model.Orders.Where(o => o.Lines.Any(l => !l.IsCancelled && (l.KitchenStatus is "Received" or "Preparing" or "Ready to Serve"))).Select(o => o.ReservationID).Distinct().Count()</h2>
         <p>Reservations with unserved dishes</p>
     </section>
     <section class="card">
         <small>RECEIVED</small>
-        <h2>@Model.Orders.Where(o => o.Status == "Received").Select(o => o.ReservationID).Distinct().Count()</h2>
+        <h2>@Model.Orders.Where(o => o.Lines.Any(l => !l.IsCancelled && l.KitchenStatus == "Received")).Select(o => o.ReservationID).Distinct().Count()</h2>
         <p>Reservations with new dishes</p>
     </section>
     <section class="card">
         <small>READY TO SERVE</small>
-        <h2>@Model.Orders.Where(o => o.Status == "Ready to Serve").Select(o => o.ReservationID).Distinct().Count()</h2>
+        <h2>@Model.Orders.Where(o => o.Lines.Any(l => !l.IsCancelled && l.KitchenStatus == "Ready to Serve")).Select(o => o.ReservationID).Distinct().Count()</h2>
         <p>Reservations ready for service</p>
     </section>
     <section class="card">
@@ -73,7 +73,7 @@ else
                     </div>
                 </div>
 
-                <details class="staff-session-details">
+                <details class="staff-session-details" open="@(Model.Expanded == booking.ReservationID)">
                     <summary>
                         <strong>View Details</strong>
                         <span>Items, kitchen status and dish cancellation</span>
@@ -85,25 +85,56 @@ else
                                 <div class="staff-round-heading">
                                     <div>
                                         <p class="reference">ORDERED @o.CreatedAt.ToString("dd MMM, h:mm tt")</p>
-                                        <span class="badge">@o.Status</span>
+                                        <span class="badge">@DiningOrderPresentation.RoundStatus(o)</span>
                                         <strong class="staff-round-total">RM @(o.Status == "Cancelled" ? "0.00" : o.Total.ToString("N2"))</strong>
                                     </div>
-                                    @if (OrdersModel.NextStatuses(o.Status).Length > 0 && !isPaid)
-                                    {
-                                        <form method="post" asp-page-handler="UpdateOrder" class="order-update"
-                                              onsubmit="return this.elements['status'].value !== 'Cancelled' || confirm('Cancel all remaining dishes in this ordering round?');">
-                                            <input type="hidden" name="orderId" value="@o.OrderID" />
-                                            <label for="status-@o.OrderID">Update kitchen status</label>
-                                            <select id="status-@o.OrderID" name="status" aria-label="New status for dishes ordered @o.CreatedAt.ToString("h:mm tt")">
-                                                @foreach (var next in OrdersModel.NextStatuses(o.Status))
-                                                {
-                                                    <option value="@next">@next</option>
-                                                }
-                                            </select>
-                                            <button type="submit">Update</button>
-                                        </form>
-                                    }
+
                                 </div>
+                                @{
+                                    var editableLines = o.Lines.Where(line => !line.IsCancelled &&
+                                        OrdersModel.NextDishStatus(line.KitchenStatus) != null).OrderBy(line => line.OrderLineID).ToList();
+                                    var initialStatus = editableLines.Select(line => OrdersModel.NextDishStatus(line.KitchenStatus))
+                                        .FirstOrDefault() ?? "Preparing";
+                                }
+                                @if (editableLines.Count > 0 && booking.ReservationStatus == "Seated" && !isPaid)
+                                {
+                                    <details class="dish-status-editor">
+                                        <summary>Update status</summary>
+                                        <form method="post" asp-page-handler="UpdateDishes" class="dish-status-form">
+                                            <input type="hidden" name="orderId" value="@o.OrderID" />
+                                            <div class="dish-status-instruction">
+                                                <strong>Choose the dishes to update</strong>
+                                                <p>Only dishes ready for the next step can be selected. Other dishes keep their current status.</p>
+                                            </div>
+                                            <div class="dish-status-target">
+                                                <label for="target-@o.OrderID">Update selected dishes to</label>
+                                                <select id="target-@o.OrderID" name="status">
+                                                    @foreach (var target in new[] { "Preparing", "Ready to Serve", "Served" })
+                                                    {
+                                                        <option value="@target" selected="@(target == initialStatus)">@target</option>
+                                                    }
+                                                </select>
+                                            </div>
+                                            <fieldset class="dish-status-choices">
+                                                <legend>Select dishes</legend>
+                                                @foreach (var line in editableLines)
+                                                {
+                                                    var nextStatus = OrdersModel.NextDishStatus(line.KitchenStatus);
+                                                    <label class="dish-status-option">
+                                                        <input type="checkbox" name="lineIds" value="@line.OrderLineID"
+                                                               data-next-status="@nextStatus" disabled="@(nextStatus != initialStatus)" />
+                                                        <span class="dish-status-dish">@line.Quantity × @line.ItemName</span>
+                                                        <span class="dish-active">@line.KitchenStatus</span>
+                                                    </label>
+                                                }
+                                            </fieldset>
+                                            <div class="dish-status-actions">
+                                                <button type="submit">Done</button>
+                                                <span class="dish-status-hint">Select at least one dish to update.</span>
+                                            </div>
+                                        </form>
+                                    </details>
+                                }
                                 @if (!string.IsNullOrWhiteSpace(o.Notes))
                                 {
                                     <p class="order-notes">Special request: @o.Notes</p>
@@ -129,9 +160,9 @@ else
                                                 <td>@line.Quantity</td>
                                                 <td>RM @line.UnitPrice.ToString("N2")</td>
                                                 <td>@(cancelled ? "Excluded" : $"RM {line.LineTotal:N2}")</td>
-                                                <td><span class="@(cancelled ? "dish-cancelled" : "dish-active")">@(cancelled ? "Cancelled" : o.Status)</span></td>
+                                                <td><span class="@(cancelled ? "dish-cancelled" : "dish-active")">@(cancelled ? "Cancelled" : line.KitchenStatus)</span></td>
                                                 <td>
-                                                    @if (!cancelled && OrdersModel.CanCancelDish(o.Status) && booking.ReservationStatus == "Seated" && !isPaid)
+                                                    @if (!cancelled && OrdersModel.CanCancelDish(line.KitchenStatus) && booking.ReservationStatus == "Seated" && !isPaid)
                                                     {
                                                         <form method="post" asp-page-handler="CancelDish" class="dish-cancel-form"
                                                               onsubmit="return confirm('Cancel this dish and remove its cost from the bill?');">
@@ -156,4 +187,28 @@ else
             </section>
         }
     </div>
+}
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.dish-status-form').forEach(form => {
+            const target = form.querySelector('select[name="status"]');
+            const choices = Array.from(form.querySelectorAll('input[name="lineIds"]'));
+            const sync = () => {
+                choices.forEach(choice => {
+                    const allowed = choice.dataset.nextStatus === target.value;
+                    choice.disabled = !allowed;
+                    if (!allowed) choice.checked = false;
+                });
+            };
+            target.addEventListener('change', sync);
+            sync();
+            form.addEventListener('submit', event => {
+                if (!choices.some(choice => choice.checked && !choice.disabled)) {
+                    event.preventDefault();
+                    form.querySelector('.dish-status-hint').textContent = 'Please tick at least one eligible dish.';
+                }
+            });
+        });
+    </script>
 }

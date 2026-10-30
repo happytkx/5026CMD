@@ -43,7 +43,8 @@ public class OrderBillingSource(ApplicationDbContext db) : ReservationOrderBilli
 
         return new OrderBillingSnapshot(
             reservationId,
-            orders.All(o => o.Status is "Served" or "Completed"),
+            orders.All(o => (o.Status is "Served" or "Completed") &&
+                o.Lines.Where(l => !l.IsCancelled).All(l => l.KitchenStatus is "Served" or "Completed")),
             lines,
             orders.Sum(o => o.Subtotal),
             orders.Sum(o => o.Tax),

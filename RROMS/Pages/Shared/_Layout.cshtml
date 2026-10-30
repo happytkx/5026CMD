@@ -113,7 +113,12 @@
                 <span>CÉLESTE</span>
                 <small>FINE DINING</small>
             </a>
-            <nav aria-label="Main navigation">
+            <button type="button" class="mobile-menu-toggle" aria-label="Open navigation menu" aria-controls="main-navigation" aria-expanded="false">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </button>
+            <nav id="main-navigation" aria-label="Main navigation">
                 <a asp-page="/Index" class="@(currentPage == "/Index" ? "active" : "")" aria-current="@(currentPage == "/Index" ? "page" : null)">
                     Home
                 </a>
@@ -262,6 +267,37 @@
 
         }
 
+        <script>
+            (function () {
+                const header = document.querySelector('.guest-view .site-header');
+                const toggle = header?.querySelector('.mobile-menu-toggle');
+                const menu = header?.querySelector('#main-navigation');
+                if (!header || !toggle || !menu) return;
+
+                function setMenuOpen(open) {
+                    header.classList.toggle('menu-open', open);
+                    toggle.setAttribute('aria-expanded', String(open));
+                    toggle.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
+                }
+
+                toggle.addEventListener('click', () => setMenuOpen(!header.classList.contains('menu-open')));
+                menu.addEventListener('click', event => {
+                    if (event.target.closest('a')) setMenuOpen(false);
+                });
+                document.addEventListener('click', event => {
+                    if (!header.contains(event.target)) setMenuOpen(false);
+                });
+                document.addEventListener('keydown', event => {
+                    if (event.key === 'Escape' && header.classList.contains('menu-open')) {
+                        setMenuOpen(false);
+                        toggle.focus();
+                    }
+                });
+                window.addEventListener('resize', () => {
+                    if (window.innerWidth > 1100) setMenuOpen(false);
+                });
+            })();
+        </script>
         @await RenderSectionAsync("Scripts", required: false)
     </body>
 </html>
