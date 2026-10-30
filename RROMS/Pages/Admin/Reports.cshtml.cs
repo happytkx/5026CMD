@@ -12,10 +12,12 @@ namespace RROMS.Pages.Admin;
 public class ReportsModel : PageModel
 {
     private readonly ReportingService _reportingService;
+    private readonly BusinessAnalyticsService _businessAnalytics;
 
-    public ReportsModel(ReportingService reportingService)
+    public ReportsModel(ReportingService reportingService, BusinessAnalyticsService businessAnalytics)
     {
         _reportingService = reportingService;
+        _businessAnalytics = businessAnalytics;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -27,6 +29,7 @@ public class ReportsModel : PageModel
         ReservationPolicy.Now.Date;
 
     public ReservationReportSummary? Summary { get; set; }
+    public BusinessAnalyticsReport? Insights { get; set; }
 
     public List<DailyReservationCount> DailyReservations
     { get; set; } = new();
@@ -55,6 +58,7 @@ public class ReportsModel : PageModel
 
         DailyDeposits = await _reportingService
             .GetDailyDepositCollectionAsync(StartDate, EndDate);
+        Insights = await _businessAnalytics.GetReportAsync(StartDate, EndDate);
     }
 
     // Export the selected report to an Excel-compatible CSV file.
@@ -79,6 +83,7 @@ public class ReportsModel : PageModel
 
         var dailyDeposits = await _reportingService
             .GetDailyDepositCollectionAsync(from, to);
+        var insights = await _businessAnalytics.GetReportAsync(from, to);
 
         var csv = new StringBuilder();
 
@@ -166,6 +171,18 @@ public class ReportsModel : PageModel
                 Number(day.PaymentCount),
                 Money(day.TotalAmount));
         }
+
+        Row();
+        Row("Customer Behaviour", "Active Customers", Number(insights.ActiveCustomers), "");
+        Row("Customer Behaviour", "First-time Customers", Number(insights.NewCustomers), "");
+        Row("Customer Behaviour", "Returning Customers", Number(insights.ReturningCustomers), "");
+        Row("Customer Behaviour", "Average Party Size", insights.AveragePartySize.ToString("0.0", CultureInfo.InvariantCulture), "");
+        Row("Customer Behaviour", "Orders Per Reservation", insights.OrdersPerReservation.ToString("0.00", CultureInfo.InvariantCulture), "");
+        Row();
+        foreach (var item in insights.LeastOrdered)
+            Row("Least-Ordered Menu", item.Name + " (" + item.Category + ")", Number(item.Quantity), Money(item.Sales));
+        foreach (var category in insights.CategorySales)
+            Row("Menu Category Sales", category.Category, Number(category.Quantity), Money(category.Sales));
 
         // Explain the different date rules.
         Row();
