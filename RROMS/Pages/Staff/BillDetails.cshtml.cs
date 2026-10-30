@@ -32,6 +32,14 @@ public class BillDetailsModel : PageModel
 
     public List<Payment> Payments { get; set; } = new();
 
+    // Actual non-cancelled order lines, shown on the itemised final bill.
+    public List<CustomerOrder> DiningOrders { get; set; } = new();
+
+    // A paid bill retains its original checkout amount for history,
+    // but the amount still owed is zero after settlement.
+    public decimal OutstandingBalance =>
+        Bill?.BillStatus == "Paid" ? 0m : Bill?.BalanceToPay ?? 0m;
+
     // Financial settlement checks.
     // This does not verify the source of food orders.
     public BillSettlementCheck? SettlementCheck { get; set; }
@@ -85,6 +93,17 @@ public class BillDetailsModel : PageModel
         }
 
         Bill = await _billingService.GetBillAsync(id);
+
+        if (Bill != null)
+        {
+            DiningOrders = await _db.Orders
+                .AsNoTracking()
+                .Include(o => o.Lines)
+                .Where(o => o.ReservationID == id && o.Status != "Cancelled")
+                .OrderBy(o => o.CreatedAt)
+                .ThenBy(o => o.OrderID)
+                .ToListAsync();
+        }
 
         Payments = await _db.Payments
             .AsNoTracking()

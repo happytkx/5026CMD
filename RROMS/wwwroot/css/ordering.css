@@ -403,6 +403,189 @@
     outline-offset: 3px;
 }
 
+/* Staff final-bill presentation */
+.celeste-bill-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.celeste-bill-heading .eyebrow {
+    margin: 0 0 14px;
+}
+
+.celeste-bill-heading h2 {
+    margin: 0;
+}
+
+.celeste-bill-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 9px 16px;
+    border: 1px solid var(--gold);
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.celeste-bill-status-draft {
+    background: var(--paper);
+    color: #826B43;
+}
+
+.celeste-bill-status-paid {
+    background: #E8EBDF;
+    border-color: var(--olive-deep);
+    color: var(--olive-deep);
+}
+
+.celeste-bill-meta {
+    margin: 10px 0 28px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.celeste-bill-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(295px, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.celeste-bill-grid h3 {
+    margin: 0 0 16px;
+    font-size: 25px;
+}
+
+.celeste-bill-lines table {
+    min-width: 540px;
+}
+
+.celeste-bill-lines th,
+.celeste-bill-lines td {
+    padding: 14px 16px;
+}
+
+.celeste-bill-numeric {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.celeste-bill-order-row {
+    background: var(--paper);
+    color: var(--olive-deep);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .5px;
+}
+
+.celeste-bill-order-state {
+    margin-left: 12px;
+    color: var(--muted);
+    font-weight: 400;
+}
+
+.celeste-bill-summary {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 24px;
+}
+
+.celeste-bill-summary dl {
+    margin: 0;
+}
+
+.celeste-bill-summary dl > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding: 8px 0;
+}
+
+.celeste-bill-summary dt,
+.celeste-bill-summary dd {
+    margin: 0;
+}
+
+.celeste-bill-summary dd {
+    font-weight: 600;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.celeste-bill-summary .celeste-bill-grand {
+    margin-top: 10px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+    font-weight: 600;
+}
+
+.celeste-bill-grand dd {
+    font-size: 18px;
+}
+
+.celeste-bill-summary .celeste-bill-balance {
+    margin-top: 12px;
+    padding: 16px 12px;
+    border-top: 2px solid var(--olive-deep);
+    background: var(--white);
+    color: var(--olive-deep);
+    font-weight: 600;
+}
+
+.celeste-bill-balance dd {
+    font: 24px var(--serif);
+}
+
+.celeste-bill-tax-note {
+    margin: 18px 0 0;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.celeste-bill-alert {
+    margin: 18px 0;
+    padding: 14px 18px;
+    border: 1px solid #D7AAA5;
+    border-left: 3px solid #A04B4B;
+    background: #FCF2F0;
+    color: #873E3E;
+}
+
+.celeste-bill-paid-note,
+.celeste-bill-ready {
+    margin: 18px 0;
+    padding: 14px 18px;
+    border-left: 3px solid var(--olive-deep);
+    background: #E8EBDF;
+    color: #4F583D;
+}
+
+.celeste-bill-ready p {
+    margin: 6px 0 0;
+}
+
+.celeste-bill-refresh {
+    margin-top: 22px;
+}
+
+.celeste-bill-refresh button {
+    margin: 0;
+}
+
+@media (max-width: 1100px) {
+    .celeste-bill-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .order-update {
     display: flex;
     align-items: center;

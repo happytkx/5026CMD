@@ -89,90 +89,142 @@
         </a>
     </section>
 
-    <!-- Saved bill details -->
-    <section class="card">
-        <h2>Dining Bill</h2>
+    <!-- Itemised dining bill -->
+    <section class="card celeste-bill-card">
+        <div class="celeste-bill-heading">
+            <div>
+                <p class="eyebrow">CÉLESTE FINE DINING</p>
+                <h2>Dining Bill</h2>
+            </div>
+            @if (Model.Bill is { } currentBill)
+            {
+                <span class="celeste-bill-status @(currentBill.BillStatus == "Paid" ? "celeste-bill-status-paid" : "celeste-bill-status-draft")">
+                    @currentBill.BillStatus
+                </span>
+            }
+        </div>
 
         @if (Model.Bill is { } bill)
         {
-            <p>
-                <strong>Bill Number:</strong>
-                @bill.BillID
+            <p class="celeste-bill-meta">
+                Bill #@bill.BillID &nbsp; · &nbsp;
+                Created @bill.CreatedAt.ToString("dd MMM yyyy, h:mm tt")
             </p>
 
-            <p>
-                <strong>Created:</strong>
-                @bill.CreatedAt.ToString("dd MMM yyyy, h:mm tt")
-            </p>
+            <div class="celeste-bill-grid">
+                <div>
+                    <h3>Ordered Dishes</h3>
+                    @if (Model.DiningOrders.Count == 0)
+                    {
+                        <p class="notice">No active dining orders are available. Review the reservation before checkout.</p>
+                    }
+                    else
+                    {
+                        <div class="table-wrap celeste-bill-lines">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Dish</th>
+                                        <th class="celeste-bill-numeric">Qty</th>
+                                        <th class="celeste-bill-numeric">Unit Price</th>
+                                        <th class="celeste-bill-numeric">Line Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var order in Model.DiningOrders)
+                                    {
+                                        <tr class="celeste-bill-order-row">
+                                            <td colspan="4">
+                                                Order @order.Reference
+                                                <span class="celeste-bill-order-state">@order.Status</span>
+                                            </td>
+                                        </tr>
+                                        @foreach (var line in order.Lines.OrderBy(l => l.OrderLineID))
+                                        {
+                                            <tr>
+                                                <td>@line.ItemName</td>
+                                                <td class="celeste-bill-numeric">@line.Quantity</td>
+                                                <td class="celeste-bill-numeric">RM @line.UnitPrice.ToString("N2")</td>
+                                                <td class="celeste-bill-numeric">RM @line.LineTotal.ToString("N2")</td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
 
-            <p>
-                <strong>Bill Status:</strong>
-                <span class="badge">@bill.BillStatus</span>
-            </p>
-
-            <div class="staff-stats">
-                <article class="card">
-                    <small>FOOD & BEVERAGE TOTAL</small>
-                    <h2>RM @bill.TotalBill.ToString("N2")</h2>
-                </article>
-
-                <article class="card">
-                    <small>MINIMUM SPENDING</small>
-                    <h2>RM @bill.MinSpend.ToString("N2")</h2>
-                </article>
-
-                <article class="card">
-                    <small>DEPOSIT APPLIED</small>
-                    <h2>RM @bill.DepositApplied.ToString("N2")</h2>
-                </article>
-
-                <article class="card">
-                    <small>
-                        @(bill.BillStatus == "Paid"
-                            ? "AMOUNT SETTLED AT CHECKOUT"
-                            : "BALANCE TO PAY")
-                    </small>
-                    <h2>RM @bill.BalanceToPay.ToString("N2")</h2>
-                </article>
+                <aside class="celeste-bill-summary" aria-label="Bill charges and payments">
+                    <h3>Charges &amp; Payments</h3>
+                    <dl>
+                        <div>
+                            <dt>Food &amp; Beverage Subtotal</dt>
+                            <dd>RM @bill.FoodSubtotal.ToString("N2")</dd>
+                        </div>
+                        <div>
+                            <dt>Tax (6%)</dt>
+                            <dd>RM @bill.TaxAmount.ToString("N2")</dd>
+                        </div>
+                        <div class="celeste-bill-grand">
+                            <dt>Grand Total</dt>
+                            <dd>RM @bill.TotalBill.ToString("N2")</dd>
+                        </div>
+                        <div>
+                            <dt>Minimum Spending</dt>
+                            <dd>RM @bill.MinSpend.ToString("N2")</dd>
+                        </div>
+                        <div>
+                            <dt>Deposit Applied</dt>
+                            <dd>− RM @bill.DepositApplied.ToString("N2")</dd>
+                        </div>
+                        @if (bill.BillStatus == "Paid")
+                        {
+                            <div>
+                                <dt>Final Payment Received</dt>
+                                <dd>− RM @Model.PaidDiningPayments.ToString("N2")</dd>
+                            </div>
+                        }
+                        <div class="celeste-bill-balance">
+                            <dt>@(bill.BillStatus == "Paid" ? "Outstanding Balance" : "Balance Payable")</dt>
+                            <dd>RM @Model.OutstandingBalance.ToString("N2")</dd>
+                        </div>
+                    </dl>
+                    <p class="celeste-bill-tax-note">
+                        Tax is taken from the amounts recorded when each dining order was placed.
+                        Minimum spending is assessed before tax.
+                    </p>
+                    @if (Model.MinimumSpendShortfall > 0m)
+                    {
+                        <p class="celeste-bill-alert">
+                            Minimum spending has not been met.
+                            Shortfall: <strong>RM @Model.MinimumSpendShortfall.ToString("N2")</strong>.
+                            Checkout is blocked.
+                        </p>
+                    }
+                    else if (bill.BillStatus == "Paid")
+                    {
+                        <p class="celeste-bill-paid-note">
+                            Payment completed. No outstanding balance remains.
+                        </p>
+                    }
+                </aside>
             </div>
-
-            @if (Model.MinimumSpendShortfall > 0m)
-            {
-                <p class="notice">
-                    Minimum spending has not been met.
-                    Shortfall:
-                    RM @Model.MinimumSpendShortfall.ToString("N2")
-                </p>
-            }
-
-            @if (bill.BillStatus == "Paid")
-            {
-                <p class="notice">
-                    This bill has been marked as paid.
-                    The balance above represents the amount
-                    due at final settlement, not an
-                    outstanding amount.
-                </p>
-            }
         }
         else
         {
-            <p>
-                No saved dining bill is available
-                for this reservation yet.
-            </p>
-
+            <p>No saved dining bill is available for this reservation yet.</p>
             <p class="notice">
-                Bill information will appear after
-                actual food and beverage orders have
-                been served and a bill is generated from them.
+                Once all active dining orders have been served, generate a draft bill
+                to review the dishes, tax, deposit and remaining amount payable.
             </p>
         }
 
         @if (Model.Booking is { ReservationStatus: "Seated" } &&
              (Model.Bill == null || Model.Bill.BillStatus == "Draft"))
         {
-            <form method="post" asp-page-handler="GenerateDraft"
+            <form class="celeste-bill-refresh" method="post"
+                  asp-page-handler="GenerateDraft"
                   asp-route-id="@Model.Booking.ReservationID">
                 <button type="submit">
                     @(Model.Bill == null
@@ -191,23 +243,22 @@
         {
             <p class="notice">
                 No dining bill has been saved yet.
-                Checkout is unavailable until actual
-                food and beverage orders are integrated.
+                All active dining orders must be served
+                before a draft bill can be generated.
             </p>
         }
         else if (Model.Bill.BillStatus == "Paid")
         {
             <p class="notice">
-                This bill has already been settled.
-                Review the Payment History section
-                for recorded transactions and receipts.
+                This bill has been paid. Outstanding balance: RM 0.00.
+                The original amount paid is preserved in Payment History.
             </p>
         }
         else if (Model.SettlementCheck is { } check)
         {
             @if (!check.CanSettle)
             {
-                <p class="notice">
+                <p class="celeste-bill-alert">
                     <strong>Checkout blocked:</strong>
                     @check.Message
                 </p>
@@ -222,21 +273,18 @@
             }
             else
             {
-                <p>
-                    The saved bill passes the current
-                    financial settlement checks.
-                </p>
-
-                <p>
-                    <strong>Calculated checkout amount:</strong>
-                    RM @check.BalanceToPay.ToString("N2")
-                </p>
+                <div class="celeste-bill-ready">
+                    <strong>Ready for checkout.</strong>
+                    The served dining orders, minimum spending and deposit
+                    have passed the current settlement checks.
+                    <p>
+                        <strong>Amount payable onsite:</strong>
+                        RM @check.BalanceToPay.ToString("N2")
+                    </p>
+                </div>
 
                 <p class="notice">
-                    Final payment recording is not yet enabled.
-                    The food and beverage total must first
-                    be verified against actual orders from
-                    the ordering module.
+                    Staff payment confirmation is not yet available on this screen.
                 </p>
             }
         }
