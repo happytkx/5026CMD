@@ -42,50 +42,47 @@
                     <span>CÉLESTE</span>
                     <small>FINE DINING</small>
                 </a>
-                <p class="sidebar-label">RESTAURANT OPERATIONS</p>
-                <nav aria-label="Staff navigation">
-                    <a class="@(currentPage=="/Staff/Index" ? "active" : "")" asp-page="/Staff/Index">
+                @if (admin)
+                {
+                    <p class="sidebar-label">ADMINISTRATOR MODULE</p>
+                    <nav aria-label="Administrator navigation">
+                        <a class="@(currentPage == "/Admin/Index" ? "active" : "")" asp-page="/Admin/Index">
+                            Admin Dashboard
+                        </a>
+                        <a class="@(currentPage == "/Admin/Reports" || currentPage == "/Admin/ReportReservations" ? "active" : "")" asp-page="/Admin/Reports">
+                            Reports &amp; Analytics
+                        </a>
+                        <a class="@(currentPage == "/Admin/PaymentCollections" ? "active" : "")" asp-page="/Admin/PaymentCollections">
+                            Payment Collections
+                        </a>
+                        <a class="@(currentPage == "/Admin/Occupancy" ? "active" : "")" asp-page="/Admin/Occupancy">
+                            Table Utilisation
+                        </a>
+                    </nav>
+                    <p class="sidebar-label sidebar-group-divider">SHARED STAFF OPERATIONS</p>
+                    <p class="sidebar-group-description">Admin access to daily restaurant operations</p>
+                }
+                else
+                {
+                    <p class="sidebar-label">RESTAURANT STAFF MODULE</p>
+                }
+                <nav aria-label="Restaurant staff operations">
+                    <a class="@(currentPage == "/Staff/Index" ? "active" : "")" asp-page="/Staff/Index">
                         Daily Reservations
                     </a>
-                    <a class="@(currentPage=="/Staff/Seating" ? "active" : "")" asp-page="/Staff/Seating">
+                    <a class="@(currentPage == "/Staff/Seating" ? "active" : "")" asp-page="/Staff/Seating">
                         Seating &amp; Allocation
                     </a>
                     <a class="@(currentPage == "/Staff/Orders" ? "active" : "")" asp-page="/Staff/Orders">
                         Dining Orders
                     </a>
-                    <a class="@(currentPage == "/Staff/Billing" ? "active" : "")" asp-page="/Staff/Billing">
-                        Billing
+                    <a class="@(currentPage == "/Staff/Billing" || currentPage == "/Staff/BillDetails" || currentPage == "/Staff/BillingHistory" || currentPage == "/Staff/PaymentReceipt" ? "active" : "")" asp-page="/Staff/Billing">
+                        Billing &amp; Checkout
                     </a>
-
-                    @if (admin)
-                    {
-                        <a class="@(currentPage == "/Admin/Index" ? "active" : "")"
-                           asp-page="/Admin/Index">
-                            Admin Dashboard
-                        </a>
-
-                        <a class="@(currentPage == "/Admin/Reports" ? "active" : "")"
-                           asp-page="/Admin/Reports">
-                            Reports &amp; Analytics
-                        </a>
-
-                        <a class="@(currentPage == "/Admin/PaymentCollections" ? "active" : "")"
-                           asp-page="/Admin/PaymentCollections">
-                            Payment Collections
-                        </a>
-
-                        <a class="@(currentPage == "/Admin/Occupancy" ? "active" : "")"
-                           asp-page="/Admin/Occupancy">
-                            Table Utilisation
-                        </a>
-                    }
-
-                    <a asp-page="/Index">
-                        Customer Website
-                    </a>
-                    <a asp-page="/Account/Login">
-                        Sign in
-                    </a>
+                </nav>
+                <p class="sidebar-label sidebar-group-divider">QUICK LINKS</p>
+                <nav aria-label="Other pages">
+                    <a asp-page="/Index">View Customer Website</a>
                 </nav>
                 <div class="staff-account">
                     <strong>@(admin ? "ADMIN ACCOUNT" : "STAFF ACCOUNT")</strong>
@@ -97,7 +94,7 @@
             </aside>
             <div class="workspace-bar">
                 CÉLESTE / RESERVATION MANAGEMENT
-                <span>@(admin ? "Administrator" : "Restaurant Staff")</span>
+                <span>@(admin ? "Administrator · Shared staff access" : "Restaurant Staff")</span>
             </div>
         }
         <div class="welcome-bar">
@@ -119,9 +116,21 @@
                 </a>
                 @if (staff)
                 {
-                    <a asp-page="/Staff/Index" class="@(currentPage.StartsWith("/Staff") ? "active" : "")">
-                        Daily reservations
-                    </a>
+                    @if (admin)
+                    {
+                        <a asp-page="/Admin/Index" class="@(currentPage.StartsWith("/Admin") ? "active" : "")">
+                            Admin dashboard
+                        </a>
+                        <a asp-page="/Staff/Index" class="@(currentPage.StartsWith("/Staff") || currentPage == "/Reservations/Details" ? "active" : "")">
+                            Staff operations
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-page="/Staff/Index" class="@(currentPage.StartsWith("/Staff") ? "active" : "")">
+                            Staff workspace
+                        </a>
+                    }
                 }
                 else
                 {

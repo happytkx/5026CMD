@@ -2,23 +2,14 @@
 @model RROMS.Pages.Staff.BillDetailsModel
 
 @{
-    ViewData["Title"] = "Bill Details";
+    ViewData["Title"] = "Review Bill & Checkout";
 }
 
 <p class="eyebrow">BILLING & PAYMENTS</p>
 
-<h1>Bill Details & Payment History</h1>
-
-<p>
-    View reservation information, saved bill details,
-    and recorded payment transactions.
-</p>
-
-<p>
-    <a asp-page="/Staff/Billing">
-        Back to Billing
-    </a>
-</p>
+<h1>Review Bill &amp; Checkout</h1>
+<p>Prepare the draft from served orders, check the tax and deposit deductions, and confirm full onsite payment.</p>
+<a class="billing-back-link" asp-page="/Staff/Billing">← Back to Billing &amp; Checkout</a>
 
 @if (TempData["BillMessage"] is string billMessage)
 {
@@ -32,69 +23,26 @@
 
 @if (Model.Booking is { } booking)
 {
-    <!-- Reservation details -->
-    <section class="card">
-        <h2>Reservation Information</h2>
-
-        <div class="staff-stats">
-            <article class="card">
-                <small>BOOKING REFERENCE</small>
-                <h2>@booking.BookingReference</h2>
-            </article>
-
-            <article class="card">
-                <small>CUSTOMER</small>
-                <h2>@booking.Customer.CustomerName</h2>
-            </article>
-
-            <article class="card">
-                <small>RESERVATION STATUS</small>
-                <h2>@booking.ReservationStatus</h2>
-            </article>
-
-            <article class="card">
-                <small>GUESTS</small>
-                <h2>@booking.PartySize</h2>
-            </article>
+    <div class="billing-detail-intro">
+        <div>
+            <span class="eyebrow">CURRENT RESERVATION</span>
+            <strong>@booking.BookingReference</strong>
+            <span>@booking.Customer.CustomerName · @booking.PartySize guests · @booking.ReservationStatus</span>
         </div>
-
-        <p>
-            <strong>Dining Date:</strong>
-            @booking.ReservationDate.ToString("dd MMM yyyy")
-        </p>
-
-        <p>
-            <strong>Arrival Time:</strong>
-            @booking.StartTime.ToString(@"hh\:mm")
-        </p>
-
-        <p>
-            <strong>Dining Area:</strong>
-            @booking.PreferredDiningOption
-        </p>
-
-        <p>
-            <strong>Assigned Table:</strong>
-            @booking.TableID
-        </p>
-
-        <p>
-            <strong>Deposit Status:</strong>
-            @booking.DepositStatus
-        </p>
-
-        <a asp-page="/Reservations/Details"
-           asp-route-id="@booking.ReservationID">
-            View Full Reservation
-        </a>
-    </section>
+        <nav class="billing-detail-nav" aria-label="Checkout page sections">
+            <a class="button" href="#dining-bill">1. Draft &amp; Review</a>
+            <a class="button secondary" href="#checkout">2. Final Payment</a>
+            <a class="button secondary" href="#payment-history">3. Receipts</a>
+        </nav>
+    </div>
 
     <!-- Itemised dining bill -->
-    <section class="card celeste-bill-card">
+    <section class="card celeste-bill-card" id="dining-bill">
         <div class="celeste-bill-heading">
             <div>
                 <p class="eyebrow">CÉLESTE FINE DINING</p>
-                <h2>Dining Bill</h2>
+                <h2>@(Model.Bill?.BillStatus == "Paid" ? "Paid & Itemised Bill" : "Draft & Itemised Bill")</h2>
+                <p class="muted">Review the served dishes, subtotal, tax, minimum spending and paid deposit before charging the customer.</p>
             </div>
             @if (Model.Bill is { } currentBill)
             {
@@ -236,8 +184,10 @@
     </section>
 
     <!-- Checkout readiness -->
-    <section class="card">
-        <h2>Checkout Readiness</h2>
+    <section class="card billing-checkout-card" id="checkout">
+        <p class="eyebrow">STAFF ONLY · ONSITE PAYMENT</p>
+        <h2>Final Payment</h2>
+        <p>Confirm the full balance with the customer, then choose the method received. Partial payments are not accepted.</p>
 
         @if (Model.Bill == null)
         {
@@ -249,10 +199,11 @@
         }
         else if (Model.Bill.BillStatus == "Paid")
         {
-            <p class="notice">
-                This bill has been paid. Outstanding balance: RM 0.00.
-                The original amount paid is preserved in Payment History.
-            </p>
+            <div class="celeste-bill-ready">
+                <strong>Payment complete · RM 0.00 outstanding.</strong>
+                <p>The payment amount is saved in Payment History. Staff can now complete the dining session.</p>
+                <a class="button" asp-page="/Reservations/Details" asp-route-id="@booking.ReservationID">Complete Dining Session</a>
+            </div>
         }
         else if (Model.SettlementCheck is { } check)
         {
@@ -320,6 +271,63 @@
     </section>
 
 
+    <!-- Reservation details -->
+    <section class="card">
+        <h2>Reservation Information</h2>
+
+        <div class="staff-stats">
+            <article class="card">
+                <small>BOOKING REFERENCE</small>
+                <h2>@booking.BookingReference</h2>
+            </article>
+
+            <article class="card">
+                <small>CUSTOMER</small>
+                <h2>@booking.Customer.CustomerName</h2>
+            </article>
+
+            <article class="card">
+                <small>RESERVATION STATUS</small>
+                <h2>@booking.ReservationStatus</h2>
+            </article>
+
+            <article class="card">
+                <small>GUESTS</small>
+                <h2>@booking.PartySize</h2>
+            </article>
+        </div>
+
+        <p>
+            <strong>Dining Date:</strong>
+            @booking.ReservationDate.ToString("dd MMM yyyy")
+        </p>
+
+        <p>
+            <strong>Arrival Time:</strong>
+            @booking.StartTime.ToString(@"hh\:mm")
+        </p>
+
+        <p>
+            <strong>Dining Area:</strong>
+            @booking.PreferredDiningOption
+        </p>
+
+        <p>
+            <strong>Assigned Table:</strong>
+            @booking.TableID
+        </p>
+
+        <p>
+            <strong>Deposit Status:</strong>
+            @booking.DepositStatus
+        </p>
+
+        <a asp-page="/Reservations/Details"
+           asp-route-id="@booking.ReservationID">
+            View Full Reservation
+        </a>
+    </section>
+
     <!-- Successful payment totals -->
     <section class="card">
         <h2>Payment Summary</h2>
@@ -350,8 +358,8 @@
     </section>
 
     <!-- Payment transaction history -->
-    <section class="card">
-        <h2>Payment History</h2>
+    <section class="card" id="payment-history">
+        <h2>Payment History &amp; Receipts</h2>
 
         @if (Model.Payments.Count == 0)
         {

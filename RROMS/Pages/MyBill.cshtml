@@ -5,8 +5,8 @@
 }
 <section class="account-heading">
     <p class="eyebrow">YOUR CÉLESTE DINING EXPERIENCE</p>
-    <h1>My Bill</h1>
-    <p>Review your spending while dining and access your completed payment records.</p>
+    <h1>My Bill &amp; Receipts</h1>
+    <p>Follow your dining spending, see tax and deposit deductions, and find your receipt after staff confirms payment.</p>
 </section>
 
 @if (Model.MyReservations.Count == 0)
@@ -18,26 +18,55 @@
 }
 else if (Model.Booking is { } booking)
 {
-    <form method="get" class="card mybill-selector">
-        <label for="id">Reservation</label>
-        <select id="id" name="id" onchange="this.form.submit()">
-            @foreach (var reservation in Model.MyReservations)
-            {
-                <option value="@reservation.ReservationID"
-                        selected="@(reservation.ReservationID == booking.ReservationID)">
-                    @reservation.BookingReference · @reservation.ReservationDate.ToString("dd MMM yyyy")
-                    (@reservation.ReservationStatus)
-                </option>
-            }
-        </select>
-        <button type="submit" class="secondary">View Bill</button>
+    <form method="get" class="card mybill-selector" aria-label="Choose reservation to view">
+        <div class="mybill-select-field">
+            <label for="id">Choose a reservation</label>
+            <select id="id" name="id">
+                @foreach (var reservation in Model.MyReservations)
+                {
+                    <option value="@reservation.ReservationID"
+                            selected="@(reservation.ReservationID == booking.ReservationID)">
+                        @reservation.ReservationDate.ToString("dd MMM yyyy") · @reservation.BookingReference
+                        (@reservation.ReservationStatus)
+                    </option>
+                }
+            </select>
+        </div>
+        <button type="submit">View This Bill</button>
     </form>
+
+    <div class="mybill-progress" role="status">
+        <div class="mybill-progress-symbol" aria-hidden="true">@(Model.IsPaid ? "✓" : booking.ReservationStatus == "Seated" ? "●" : "○")</div>
+        <div class="mybill-progress-content">
+            @if (Model.IsPaid)
+            {
+                <strong>Payment complete</strong>
+                <p>Your bill has been settled. The receipt and payment details are available below.</p>
+            }
+            else if (booking.ReservationStatus == "Seated")
+            {
+                <strong>Dining in progress</strong>
+                <p>Your running bill updates as orders are placed. Staff will prepare the final bill and take payment at the restaurant.</p>
+            }
+            else
+            {
+                <strong>Reservation @booking.ReservationStatus</strong>
+                <p>Your running bill will show charges once staff checks you in and you begin ordering. Final payment is handled by staff.</p>
+            }
+        </div>
+        <a class="button secondary mybill-progress-action" asp-page="/Orders/Index">My Orders</a>
+    </div>
+
+    <nav class="mybill-jump-links" aria-label="Bill page sections">
+        <a href="#bill-summary">Bill summary</a>
+        <a href="#payment-history">Payments &amp; receipts</a>
+    </nav>
 
     <section class="card celeste-customer-bill">
         <div class="celeste-bill-heading">
             <div>
                 <p class="eyebrow">CÉLESTE FINE DINING</p>
-                <h2>@(Model.IsPaid ? "Paid Final Bill" : "Live Running Bill")</h2>
+                <h2>@(Model.IsPaid ? "Paid Final Bill" : booking.ReservationStatus == "Seated" ? "Live Running Bill" : "Current Bill Estimate")</h2>
                 <p class="muted">Reservation @booking.BookingReference · @booking.PartySize guests</p>
             </div>
             <span class="celeste-bill-status @(Model.IsPaid ? "celeste-bill-status-paid" : "celeste-bill-status-draft")">
@@ -48,8 +77,9 @@ else if (Model.Booking is { } booking)
         @if (!Model.IsPaid)
         {
             <p class="notice">
-                This is a running estimate based on orders already placed.
-                It updates as new orders are recorded. Staff will verify your final bill before collecting payment.
+                @(booking.ReservationStatus == "Seated"
+                    ? "This is a live estimate from your placed orders, including tax and deposit deductions. Staff verifies the final bill before taking payment."
+                    : "No final payment is due here. Your spending estimate begins when you check in and place dining orders.")
             </p>
         }
 
@@ -89,7 +119,7 @@ else if (Model.Booking is { } booking)
                 }
             </div>
 
-            <aside class="celeste-bill-summary">
+            <aside class="celeste-bill-summary" id="bill-summary" aria-label="Estimated charges and payments">
                 <h3>Bill Summary</h3>
                 <dl>
                     <div><dt>Food &amp; Beverage Subtotal</dt><dd>RM @Model.FoodSubtotal.ToString("N2")</dd></div>
@@ -124,8 +154,9 @@ else if (Model.Booking is { } booking)
         </div>
     </section>
 
-    <section class="card">
-        <h2>Payment History &amp; Receipts</h2>
+    <section class="card mybill-history" id="payment-history">
+        <h2>Payments &amp; Receipts</h2>
+        <p class="muted">Your reservation deposit and any final dining payment are listed here. A receipt becomes available after each successful payment.</p>
         @if (Model.Payments.Count == 0)
         {
             <p>No payment transactions are recorded for this reservation yet.</p>

@@ -7,6 +7,7 @@
 <p class="eyebrow">RESTAURANT OPERATIONS</p>
 <h1>Dining Orders</h1>
 <p>Only orders placed through a checked-in, Seated reservation are accepted. Status changes notify the customer. Served and completed orders flow into the reservation's bill.</p>
+<p><a class="button secondary" asp-page="/Staff/Billing">Go to Billing &amp; Checkout</a></p>
 @if (TempData["Success"] is string ok)
 {
     <p class="success">@ok</p>
