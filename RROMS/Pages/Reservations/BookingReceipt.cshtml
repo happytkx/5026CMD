@@ -1,0 +1,108 @@
+@page "{id:int}"
+@model RROMS.Pages.Reservations.BookingReceiptModel
+@{
+    Layout = null;
+    var reservation = Model.Booking!;
+    var deposit = Model.DepositPayment;
+    var visit = reservation.ReservationDate.Add(reservation.StartTime);
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Booking @(Model.IsPaid ? "Receipt" : "Summary") · Céleste</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <style>
+        :root { color-scheme: light; }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 32px 18px; background: #f5f1e9; color: #302c27; font: 13px/1.65 "Inter", Arial, sans-serif; }
+        .receipt-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; max-width: 760px; margin: 0 auto 18px; }
+        .receipt-toolbar a { color: #626748; text-underline-offset: 4px; }
+        .receipt-toolbar button { border: 0; border-radius: 4px; background: #626748; color: white; padding: 12px 21px; font: 600 12px "Inter", sans-serif; cursor: pointer; }
+        .receipt-toolbar button:hover { background: #51563d; }
+        .booking-receipt { width: 100%; max-width: 760px; margin: auto; padding: 42px 48px 35px; background: white; border: 1px solid #dfd7c9; box-shadow: 0 15px 45px rgba(62,52,39,.07); }
+        .receipt-brand { text-align: center; letter-spacing: 8px; color: #2d2a26; font: 500 37px/1.1 "Cormorant Garamond", Georgia, serif; }
+        .receipt-brand small { display: block; margin: 8px -8px 0 0; letter-spacing: 4px; font: 9px "Inter", sans-serif; }
+        .receipt-kicker { margin: 30px 0 6px; text-align: center; letter-spacing: 2px; font-size: 10px; font-weight: 600; color: #9a784c; }
+        h1 { margin: 0 0 10px; text-align: center; font: 500 36px/1.2 "Cormorant Garamond", Georgia, serif; }
+        .receipt-intro { margin: 0 0 28px; text-align: center; color: #6f685f; }
+        .receipt-reference { margin: 0 0 25px; padding: 16px 20px; background: #f2efe8; border-left: 3px solid #b79d73; }
+        .receipt-reference small { display: block; color: #786d5d; text-transform: uppercase; letter-spacing: 1.2px; font-size: 9px; }
+        .receipt-reference strong { font-size: 17px; overflow-wrap: anywhere; }
+        h2 { margin: 22px 0 11px; font: 500 23px/1.25 "Cormorant Garamond", Georgia, serif; }
+        .receipt-details { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 13px 22px; }
+        .receipt-field small { display: block; color: #746f68; font-size: 10px; letter-spacing: .2px; }
+        .receipt-field strong { font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
+        .receipt-divider { height: 1px; background: #ded7cb; margin: 25px 0 19px; }
+        .receipt-amount { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 15px 18px; background: #edf0e7; }
+        .receipt-amount span { color: #626748; font-size: 11px; font-weight: 600; }
+        .receipt-amount strong { color: #515a3d; font: 600 26px "Cormorant Garamond", Georgia, serif; white-space: nowrap; }
+        .receipt-note { color: #746e65; font-size: 10px; margin: 20px 0 0; }
+        .receipt-footer { margin-top: 24px; padding-top: 15px; border-top: 1px solid #ded7cb; text-align: center; color: #736b60; font-size: 10px; }
+        @@page { size: A4 portrait; margin: 12mm; }
+        @@media print {
+            body { background: #fff; margin: 0; padding: 0; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            .receipt-toolbar { display: none !important; }
+            .booking-receipt { max-width: none; width: 100%; padding: 10mm 11mm; border: none; box-shadow: none; break-inside: avoid; }
+            h1 { font-size: 33px; }
+            .receipt-brand { font-size: 35px; }
+        }
+        @@media (max-width: 550px) {
+            .booking-receipt { padding: 27px 20px; }
+            .receipt-details { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt-toolbar">
+        <a asp-page="Details" asp-route-id="@reservation.ReservationID">← Back to reservation</a>
+        <button type="button" onclick="window.print()">Print / Save as PDF</button>
+    </div>
+    <article class="booking-receipt" aria-label="Céleste reservation @(Model.IsPaid ? "receipt" : "summary")">
+        <div class="receipt-brand">CÉLESTE<small>FINE DINING</small></div>
+        <p class="receipt-kicker">YOUR RESERVATION</p>
+        <h1>@(Model.IsPaid ? "Booking & Deposit Receipt" : "Booking Summary")</h1>
+        <p class="receipt-intro">@(Model.IsPaid ? "Thank you. Your reservation deposit is recorded as paid." : "Your reservation details and current deposit status.")</p>
+        <div class="receipt-reference">
+            <small>Booking Reference</small>
+            <strong>@reservation.BookingReference</strong>
+        </div>
+        <h2>Reservation Details</h2>
+        <div class="receipt-details">
+            <div class="receipt-field"><small>Guest</small><strong>@reservation.Customer.CustomerName</strong></div>
+            <div class="receipt-field"><small>Status</small><strong>@reservation.ReservationStatus</strong></div>
+            <div class="receipt-field"><small>Dining Date</small><strong>@visit.ToString("dddd, dd MMMM yyyy")</strong></div>
+            <div class="receipt-field"><small>Arrival Time</small><strong>@visit.ToString("h:mm tt") (MYT)</strong></div>
+            <div class="receipt-field"><small>Guests</small><strong>@reservation.PartySize</strong></div>
+            <div class="receipt-field"><small>Dining Area</small><strong>@reservation.PreferredDiningOption</strong></div>
+            <div class="receipt-field"><small>Table</small><strong>@reservation.TableID</strong></div>
+            <div class="receipt-field"><small>Guest Email</small><strong>@reservation.Customer.Email</strong></div>
+        </div>
+        <div class="receipt-divider"></div>
+        <h2>Deposit Details</h2>
+        <div class="receipt-details">
+            <div class="receipt-field"><small>Deposit Status</small><strong>@reservation.DepositStatus</strong></div>
+            <div class="receipt-field"><small>Payment Method</small><strong>@(deposit?.PaymentMethod ?? "Not yet recorded")</strong></div>
+            @if (deposit is not null)
+            {
+                <div class="receipt-field"><small>Receipt Number</small><strong>PAY-@deposit.PaymentID.ToString("D6")</strong></div>
+                <div class="receipt-field"><small>Payment Date</small><strong>@deposit.PaymentDate.ToString("dd MMM yyyy, h:mm tt")</strong></div>
+                <div class="receipt-field"><small>Payment Reference</small><strong>@(string.IsNullOrWhiteSpace(deposit.PaymentReference) ? "Not provided" : deposit.PaymentReference)</strong></div>
+            }
+        </div>
+        <div class="receipt-amount">
+            <span>@(Model.IsPaid ? "DEPOSIT PAID" : "REQUIRED DEPOSIT")</span>
+            <strong>RM @((Model.IsPaid ? deposit!.Amount : reservation.DepositAmount).ToString("N2"))</strong>
+        </div>
+        <p class="receipt-note">
+            Paid deposits are applied toward the final dining bill. Cancellation or no-show results in forfeiture of the paid deposit under the restaurant's booking policy. This document confirms the reservation and deposit only, not the final dining payment.
+        </p>
+        <p class="receipt-footer">CÉLESTE FINE DINING · All reservation times are Malaysia time (UTC+8)<br />Thank you for choosing Céleste.</p>
+    </article>
+    @if (Model.Print)
+    {
+        <script>window.addEventListener('load', function () { window.print(); });</script>
+    }
+</body>
+</html>

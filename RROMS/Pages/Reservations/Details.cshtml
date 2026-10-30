@@ -364,7 +364,19 @@ else
                         }
                     </section>
                 }
-                <button class="secondary" type="button" onclick="window.print()">Print booking / receipt</button>
+                <div class="booking-receipt-actions">
+                    <a class="button secondary booking-print-button"
+                       asp-page="BookingReceipt" asp-route-id="@r.ReservationID"
+                       asp-route-print="true" target="_blank" rel="noopener">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                            <path d="M6 14h12v7H6zM18 12h.01" />
+                        </svg>
+                        @(r.DepositStatus == "Paid" ? "Print Booking Receipt" : "Print Booking Summary")
+                    </a>
+                    <small>Opens a clean, printable one-page document.</small>
+                </div>
             }
         </div>
         <div>

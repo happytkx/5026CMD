@@ -1299,3 +1299,39 @@ form.card.mybill-selector {
     .menu-category-rename > div { flex-wrap: wrap; }
     .menu-admin-item-bar { flex-wrap: wrap; }
 }
+
+/* Center account forms at all desktop widths while keeping their fields legible. */
+.guest-view .auth-card {
+    width: min(100%, 620px);
+    max-width: 620px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.guest-view .auth-card input:not([type="checkbox"]) { width: 100%; }
+.guest-view .auth-card .wide-button { width: 100%; }
+@media (max-width: 650px) {
+    .guest-view .auth-card { width: 100%; }
+}
+
+/* Reservation receipt: a clear standalone action, distinct from cancellation. */
+.booking-receipt-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 24px 0;
+    padding: 19px 0 0;
+    border-top: 1px solid var(--line);
+}
+.booking-receipt-actions .booking-print-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 48px;
+    margin: 0;
+    padding: 12px 20px;
+    font-size: 11px;
+}
+.booking-print-button svg { width: 19px; height: 19px; flex-shrink: 0; }
+.booking-receipt-actions small { color: var(--muted); font-size: 11px; }
