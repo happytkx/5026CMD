@@ -8,16 +8,20 @@ using RROMS.Models;
 using RROMS.Services;
 namespace RROMS.Pages.Reservations;
 
-[Authorize(Roles = "Customer,Restaurant Staff,Staff")]
+[Authorize(Roles = "Customer,Restaurant Staff,Staff,Administrator")]
 public class DetailsModel(ApplicationDbContext db, ReservationService service, TableAllocationService allocation, IConfiguration config) : PageModel
 {
     public Reservation? Booking
     {
         get; set;
     }
-    public bool IsStaff => User.IsInRole("Restaurant Staff") || User.IsInRole("Staff");
+    // Administrators inherit staff operations; business rules remain in ReservationService.
+    public bool IsStaff => User.IsInRole("Restaurant Staff") || User.IsInRole("Staff") || User.IsInRole("Administrator");
     public List<Notification> Notifications { get; set; } = [];
     public List<ReservationEmail> EmailMessages { get; set; } = [];
+    public string BankName => config["SimulatedPayments:BankName"] ?? "Demo Bank";
+    public string BankAccountName => config["SimulatedPayments:AccountName"] ?? "Celeste Restaurant (Demo)";
+    public string BankAccountNumber => config["SimulatedPayments:AccountNumber"] ?? "DEMO-00000000";
     public bool EmailEnabled => config.GetValue<bool>("Email:Enabled");
     public List<RestaurantTable> AvailableTables { get; set; } = [];
     public List<Reservation> CustomerHistory { get; set; } = [];
@@ -60,7 +64,8 @@ public class DetailsModel(ApplicationDbContext db, ReservationService service, T
         return Page();
     }
     public async Task<IActionResult> OnPostActionAsync(int id, string action, string? tableId, string? dummyReference,
-        bool paymentSuccess = true, bool allowLargerTable = false, string? reassignmentReason = null)
+        bool paymentSuccess = true, bool allowLargerTable = false, string? reassignmentReason = null,
+        string paymentMethod = "", string? phone = null, string? cardholder = null, string? cardNumber = null, string? expiry = null, string? cvv = null)
     {
         if (!await Load(id))
             return NotFound();
@@ -73,10 +78,15 @@ public class DetailsModel(ApplicationDbContext db, ReservationService service, T
                     throw new InvalidOperationException("Choose a valid rescheduling time.");
                 newStart = NewDate.Date.Add(time);
             }
-            if (action == "Pay" && (string.IsNullOrWhiteSpace(dummyReference) || dummyReference.Length > 40))
-                throw new InvalidOperationException("Enter a dummy payment reference, up to 40 characters.");
+            if (action == "Pay")
+            {
+                // Never redisplay payment inputs through ModelState, or persist card/phone fields.
+                ModelState.Clear();
+                SimulatedDeposit.Validate(paymentMethod, phone, cardholder, cardNumber, expiry, cvv, dummyReference);
+                if (paymentMethod != "Bank Transfer") dummyReference = "SIM-" + Guid.NewGuid().ToString("N");
+            }
             await service.Change(id, ReservationIdentity.CustomerId(User), IsStaff, action, newStart, tableId, paymentSuccess, dummyReference,
-                allowLargerTable, reassignmentReason);
+                allowLargerTable, reassignmentReason, paymentMethod);
             TempData["Message"] = action == "Pay" && !paymentSuccess ? "Payment failed. Your booking remains pending; you can retry before the hold expires." : "Reservation updated.";
             return RedirectToPage(new
             {

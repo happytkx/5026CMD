@@ -20,6 +20,8 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
         var settings = await Settings();
         if (!ReservationPolicy.Areas(size).Contains(area))
             throw new InvalidOperationException("Choose an allowed dining area for 1–12 guests.");
+        if (!ReservationPolicy.MeetsAdvance(area, start, ReservationPolicy.Now))
+            throw new InvalidOperationException("Book Indoor/Outdoor at least 2 hours ahead, or VIP at least 24 hours ahead (Malaysia time). Choose a later slot.");
         var end = ReservationPolicy.End(start, area, settings.ClosingTime);
         if (start <= ReservationPolicy.Now || start.TimeOfDay < settings.OpeningTime ||
             end.Date != start.Date || end.TimeOfDay > settings.ClosingTime || end <= start ||
@@ -35,7 +37,7 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
         var result = new List<DateTime>();
         for (var start = date.Date.Add(settings.OpeningTime); start < date.Date.Add(settings.ClosingTime); start = start.AddMinutes(30))
         {
-            if (start <= ReservationPolicy.Now)
+            if (!ReservationPolicy.MeetsAdvance(area, start, ReservationPolicy.Now))
                 continue;
             var end = ReservationPolicy.End(start, area, settings.ClosingTime);
             if (end <= date.Date.Add(settings.ClosingTime) && end > start &&
@@ -82,7 +84,7 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
 
     public async Task Change(int id, int? customerId, bool staff, string action,
         DateTime? newStart = null, string? tableId = null, bool paymentSuccess = true, string? paymentReference = null,
-        bool allowLargerTable = false, string? reassignmentReason = null)
+        bool allowLargerTable = false, string? reassignmentReason = null, string paymentMethod = "Card")
     {
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         await ExpireCore();
@@ -95,6 +97,12 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
         {
             // Record each simulation attempt; only success confirms the booking and queues a confirmation email.
             case "Pay":
+                if (paymentMethod is not ("Card" or "TNG" or "Bank Transfer"))
+                    throw new InvalidOperationException("Choose a supported simulated payment method.");
+                await ValidateSlot(r.PartySize, r.PreferredDiningOption, start);
+                if (!(await allocation.Available(r.PartySize, r.PreferredDiningOption, start, r.ReservationDate.Add(r.EndTime), id)).Any(t => t.TableID == r.TableID))
+                    throw new InvalidOperationException("The assigned table is no longer available.");
+                r.DepositAmount = CalculateDeposit(r.PartySize);
                 if (paymentReference?.Length > 40)
                     throw new InvalidOperationException("Payment reference must be at most 40 characters.");
                 if (r.ReservationStatus != "Pending" || r.HoldExpiresAt <= now)
@@ -103,7 +111,7 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
                 {
                     ReservationID = id,
                     PaymentType = "Deposit",
-                    PaymentMethod = "Card",
+                    PaymentMethod = paymentMethod,
                     PaymentReference = paymentReference ?? "SIM-" + Guid.NewGuid().ToString("N"),
                     Amount = r.DepositAmount,
                     PaymentStatus = paymentSuccess ? "Paid" : "Failed",

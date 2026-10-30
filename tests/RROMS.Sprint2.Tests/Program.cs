@@ -23,7 +23,30 @@ async Task Reject(Func<Task> operation, string name)
     catch (InvalidOperationException) { Check(true, name); return; }
     throw new Exception("FAIL: expected rejection: " + name);
 }
+// Reservation details must use the same staff-role hierarchy as the application's Staff policy.
+foreach (var role in new[] { "Administrator", "Restaurant Staff", "Staff", "Customer" })
+{
+ var details = new RROMS.Pages.Reservations.DetailsModel(null!, null!, null!, new ConfigurationBuilder().Build());
+ details.PageContext = new Microsoft.AspNetCore.Mvc.RazorPages.PageContext {
+  HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext { User = new System.Security.Claims.ClaimsPrincipal(
+   new System.Security.Claims.ClaimsIdentity(new[] { new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, role) }, "Test")) }
+ };
+ Check(details.IsStaff == (role != "Customer"), role + " reservation management access");
+}
 var now = ReservationPolicy.Now;
+foreach (var area in new[] { "Indoor", "Outdoor", "VIP Room" }) {
+ var hours = area == "VIP Room" ? 24 : 2;
+ Check(ReservationPolicy.MeetsAdvance(area, now.AddHours(hours), now), area + " exact advance boundary allowed");
+ Check(!ReservationPolicy.MeetsAdvance(area, now.AddHours(hours).AddTicks(-1), now), area + " below advance boundary rejected");
+ Check(ReservationPolicy.MeetsAdvance(area, now.AddHours(hours).AddTicks(1), now), area + " above advance boundary allowed");
+}
+SimulatedDeposit.Validate("TNG", "0123456789", null, null, null, null, null);
+SimulatedDeposit.Validate("Card", null, "Demo Guest", "4242424242424242", "12/30", "123", null);
+SimulatedDeposit.Validate("Bank Transfer", null, null, null, null, null, "DEMO-123");
+await Reject(() => { SimulatedDeposit.Validate("Card", null, "Demo", "1111111111111111", "12/30", "123", null); return Task.CompletedTask; }, "Non-demo card rejected");
+await Reject(() => { SimulatedDeposit.Validate("Bank Transfer", null, null, null, null, null, ""); return Task.CompletedTask; }, "Missing bank reference rejected");
+await Reject(() => { SimulatedDeposit.Validate("TNG", "", null, null, null, null, null); return Task.CompletedTask; }, "Missing TNG phone rejected");
+
 Check(ReservationPolicy.Areas(1).SequenceEqual(new[] { "Indoor", "Outdoor" }), "1 guest area filter");
 Check(ReservationPolicy.Areas(3).Length == 2 && ReservationPolicy.Areas(4).Length == 2 && ReservationPolicy.Areas(5).Length == 2 && ReservationPolicy.Areas(6).Length == 3 && ReservationPolicy.Areas(8).Length == 3, "3/4/5/6/8 guest boundaries");
 Check(ReservationPolicy.Areas(9).SequenceEqual(new[] { "VIP Room" }) && ReservationPolicy.Areas(12).Length == 1, "9–12 VIP only");

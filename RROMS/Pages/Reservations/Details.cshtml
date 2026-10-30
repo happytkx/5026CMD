@@ -11,6 +11,7 @@
 {
     <p class="success" role="status">@message</p>
 }
+<p class="notice">Book and complete deposit payment at least 2 hours before Indoor/Outdoor visits or 24 hours before VIP visits. New times selected when rescheduling must also satisfy these limits. All times are Malaysia time (Asia/Kuala_Lumpur).</p>
 <div asp-validation-summary="All" class="error" role="alert">
 </div>
 @if (Model.View=="Payment")
@@ -23,14 +24,17 @@
         <div>
             <section class="card">
                 <h3>Simulated Deposit Payment</h3>
-                <p>No real money is charged. Use a dummy reference to demonstrate payment.</p>
+                <p>No real money is charged. Select a payment method and use demo details.</p>
                 <p>Table held until @r.HoldExpiresAt?.ToString("h:mm tt").</p>
                 <form method="post" asp-page-handler="Action">
                     <input type="hidden" name="action" value="Pay"/>
                     <label for="billing-email">Billing email</label>
                     <input id="billing-email" value="@r.Customer.Email" readonly/>
-                    <label for="dummyReference">Dummy payment reference</label>
-                    <input id="dummyReference" name="dummyReference" placeholder="DEMO-1234" maxlength="40" required/>
+<label>Payment method <select id="paymentMethod" name="paymentMethod"><option value="TNG">Touch 'n Go eWallet</option><option value="Card">Credit / Debit Card</option><option value="Bank Transfer">Bank Transfer</option></select></label>
+<fieldset data-method="TNG"><legend>Touch 'n Go simulation</legend><img src="/images/demo-payment-qr.svg" width="180" height="180" alt="Simulated merchant QR" /><p>Demo merchant QR. No real payment.</p><label>TNG phone number <input name="phone" type="tel" maxlength="14" required /></label></fieldset>
+<fieldset data-method="Card"><legend>Demo card only</legend><p>Use number 4242424242424242, expiry 12/30, CVV 123. Do not enter real card details.</p><label>Cardholder name <input name="cardholder" maxlength="100" required autocomplete="off" /></label><label>Card number <input name="cardNumber" pattern="4242424242424242" maxlength="16" required autocomplete="off" /></label><label>Expiry MM/YY <input name="expiry" pattern="12/30" maxlength="5" required autocomplete="off" /></label><label>CVV <input name="cvv" type="password" pattern="123" maxlength="3" required autocomplete="off" /></label></fieldset>
+<fieldset data-method="Bank Transfer"><legend>Simulated bank transfer</legend><p>Bank: @Model.BankName<br />Account name: @Model.BankAccountName<br />Account number: @Model.BankAccountNumber</p><p>No real transfer or online banking credentials required.</p><label>Transaction reference <input name="dummyReference" maxlength="40" pattern="[A-Za-z0-9-]+" required /></label></fieldset>
+<script>(() => { const selector = document.getElementById('paymentMethod'); function update() { document.querySelectorAll('[data-method]').forEach(panel => { panel.hidden = panel.dataset.method !== selector.value; panel.disabled = panel.hidden; }); } selector.addEventListener('change', update); update(); })();</script>
                     <label for="paymentSuccess">Simulation outcome</label>
                     <select id="paymentSuccess" name="paymentSuccess">
                         <option value="true">
@@ -57,7 +61,7 @@
                     </div>
                 </form>
             </section>
-            <p class="notice">This coursework payment is simulated. No card or banking details are required.</p>
+            <p class="notice">This coursework payment is simulated. Use demo details only. Card details are never saved.</p>
             <form method="post" asp-page-handler="Action" onsubmit="return confirm('Cancel this pending reservation?');">
                 <button class="quiet" name="action" value="Cancel">Cancel pending reservation</button>
             </form>
