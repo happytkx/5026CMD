@@ -50,14 +50,32 @@ public class CheckoutModel(ApplicationDbContext db) : PageModel
 
     public async Task OnGetAsync() => await Load();
 
+    // Quantity stepper changes only items already in this customer's session basket.
     public IActionResult OnPostChange(int itemId, int quantity)
     {
         var basket = Basket.Read(HttpContext.Session);
+        if (!basket.ContainsKey(itemId))
+            return RedirectToPage();
+
         if (quantity <= 0)
             basket.Remove(itemId);
         else
-            basket[itemId] = Math.Min(Basket.MaxQuantity, quantity);
+            basket[itemId] = Math.Clamp(quantity, 1, Basket.MaxQuantity);
+
         Basket.Write(HttpContext.Session, basket);
+        return RedirectToPage();
+    }
+
+    // Removing a dish changes the session basket, never an already placed order.
+    public IActionResult OnPostRemove(int itemId)
+    {
+        var basket = Basket.Read(HttpContext.Session);
+        if (basket.Remove(itemId))
+        {
+            Basket.Write(HttpContext.Session, basket);
+            TempData["BasketMessage"] = "Dish removed from your basket.";
+        }
+
         return RedirectToPage();
     }
 
