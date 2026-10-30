@@ -16,6 +16,17 @@
 
 
 
+@{
+    var quickToday = ReservationPolicy.Now.Date;
+    var quickWeek = quickToday.AddDays(-(((int)quickToday.DayOfWeek + 6) % 7));
+    var quickMonth = new DateTime(quickToday.Year, quickToday.Month, 1);
+}
+<div class="report-period-presets">
+    <span>Quick periods:</span>
+    <a asp-page="/Admin/Reports" asp-route-StartDate="@quickToday.ToString("yyyy-MM-dd")" asp-route-EndDate="@quickToday.ToString("yyyy-MM-dd")">Today</a>
+    <a asp-page="/Admin/Reports" asp-route-StartDate="@quickWeek.ToString("yyyy-MM-dd")" asp-route-EndDate="@quickToday.ToString("yyyy-MM-dd")">This Week</a>
+    <a asp-page="/Admin/Reports" asp-route-StartDate="@quickMonth.ToString("yyyy-MM-dd")" asp-route-EndDate="@quickToday.ToString("yyyy-MM-dd")">This Month</a>
+</div>
 <form method="get" class="report-period-form">
 
     <section class="card report-period-card">

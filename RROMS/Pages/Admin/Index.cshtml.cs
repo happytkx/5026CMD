@@ -12,8 +12,10 @@ using RROMS.Services;
 namespace RROMS.Pages.Admin;
 
 [Authorize(Policy = "Admin")]
-public class IndexModel(ApplicationDbContext db) : PageModel
+public class IndexModel(ApplicationDbContext db, BusinessAnalyticsService analytics, OccupancyReportingService occupancy) : PageModel
 {
+    public BusinessAnalyticsReport? Insights { get; private set; }
+    public OccupancyReport? Occupancy { get; private set; }
     public DateTime From { get; private set; }
     public DateTime To { get; private set; }
     public decimal OrderSales
@@ -49,6 +51,9 @@ public class IndexModel(ApplicationDbContext db) : PageModel
         OrderCount = orders.Count;
         ReservationCount = await db.Reservations.CountAsync(r => r.ReservationDate >= From && r.ReservationDate < endExclusive);
         CustomerCount = await db.Customers.CountAsync(c => c.Role == Customer.CustomerRole);
+        Insights = await analytics.GetReportAsync(From, To);
+        if ((To - From).Days <= 89)
+            Occupancy = await occupancy.GetReportAsync(From, To);
         Popular = orders.SelectMany(o => o.Lines).GroupBy(l => l.ItemName)
             .Select(g => new PopularRow(g.Key, g.Sum(l => l.Quantity), g.Sum(l => l.LineTotal)))
             .OrderByDescending(p => p.Quantity).Take(8).ToList();

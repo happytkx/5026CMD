@@ -656,3 +656,13 @@
 .mybill-selector button { margin: 0; }
 .celeste-customer-bill { margin-bottom: 28px; }
 .celeste-customer-bill .celeste-bill-heading { margin-bottom: 18px; }
+
+/* Dashboard analytics and report period shortcuts */
+.report-period-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 16px 0 22px; font-size: 12px; }
+.report-period-presets span { color: var(--muted); }
+.report-period-presets a { display: inline-flex; padding: 8px 14px; border: 1px solid var(--line); border-radius: 3px; background: var(--white); color: var(--olive-deep); text-decoration: none; }
+.report-period-presets a:hover { border-color: var(--olive-deep); background: var(--paper); }
+.analytics-summary-row { display: flex; justify-content: space-between; gap: 16px; padding: 13px 0; border-bottom: 1px solid var(--line); }
+.analytics-summary-row strong { text-align: right; }
+.analytics-links { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0 30px; }
+.analytics-links a { margin: 0; }
