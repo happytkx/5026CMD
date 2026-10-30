@@ -411,6 +411,11 @@ else
                 @p.PaymentDate.ToString("dd MMM yyyy HH:mm") · RM @p.Amount.ToString("N2") · @p.PaymentStatus · @p.PaymentType
                 <br/>
                 <small>@p.PaymentMethod · Reference @p.PaymentReference</small>
+                @if (p.PaymentStatus == "Paid" && (p.PaymentType == "Deposit" || p.PaymentType == "DiningBill"))
+                {
+                    <a asp-page="@(Model.IsStaff ? "/Staff/PaymentReceipt" : "/Reservations/Receipt")" asp-route-id="@p.PaymentID">View / print receipt</a>
+                }
+
             </p>
         }
     </section>

@@ -429,6 +429,30 @@ try
             o.ReservationID == registeredBooking.ReservationID && o.CustomerID == registered.CustomerID),
             "Checked-in reservation can place a linked dine-in order");
         Check((await http.GetAsync("/Orders")).IsSuccessStatusCode, "Customer order history renders after placing order");
+        var receiptPayment = new Payment { ReservationID = registeredBooking.ReservationID, PaymentType = "Deposit", PaymentMethod = "TNG", PaymentReference = "TEST-RECEIPT", PaymentStatus = "Paid", Amount = 100, PaymentDate = ReservationPolicy.Now };
+        db.Payments.Add(receiptPayment);
+        await db.SaveChangesAsync();
+        var receiptResponse = await http.GetAsync($"/Reservations/Receipt/{receiptPayment.PaymentID}");
+        Check(receiptResponse.IsSuccessStatusCode && (await receiptResponse.Content.ReadAsStringAsync()).Contains("TEST-RECEIPT"), "Customer can view printable owned receipt");
+        var otherPaymentId = await db.Payments.Where(p => p.Reservation.CustomerID != registered.CustomerID && p.PaymentStatus == "Paid").Select(p => p.PaymentID).FirstAsync();
+        Check((await http.GetAsync($"/Reservations/Receipt/{otherPaymentId}")).StatusCode == System.Net.HttpStatusCode.NotFound, "Other customer's receipt is inaccessible");
+        receiptPayment.PaymentStatus = "Failed"; await db.SaveChangesAsync();
+        Check((await http.GetAsync($"/Reservations/Receipt/{receiptPayment.PaymentID}")).StatusCode == System.Net.HttpStatusCode.NotFound, "Failed payment cannot generate receipt");
+        receiptPayment.PaymentStatus = "Paid"; await db.SaveChangesAsync();
+        using (var streamTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
+        using (var liveResponse = await http.GetAsync("/Orders?handler=Updates", HttpCompletionOption.ResponseHeadersRead, streamTimeout.Token))
+        using (var reader = new StreamReader(await liveResponse.Content.ReadAsStreamAsync(streamTimeout.Token)))
+        {
+            Check(liveResponse.Content.Headers.ContentType?.MediaType == "text/event-stream", "Order updates use an authenticated event stream");
+            var line = await reader.ReadLineAsync(streamTimeout.Token);
+            var ownedOrder = await db.Orders.SingleAsync(o => o.ReservationID == registeredBooking.ReservationID);
+            Check(line != null && line.Contains("\"orderId\":" + ownedOrder.OrderID), "Live stream includes owned order");
+            await db.Orders.Where(o => o.OrderID == ownedOrder.OrderID).ExecuteUpdateAsync(s => s.SetProperty(o => o.Status, "Preparing"));
+            string? update;
+            do { update = await reader.ReadLineAsync(streamTimeout.Token); }
+            while (update != null && !update.Contains("Preparing"));
+            Check(update != null, "Status change arrives on existing stream without page reload");
+        }
         using var staffHttp = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, CookieContainer = new System.Net.CookieContainer() })
             { BaseAddress = http.BaseAddress };
         var staffLoginHtml = await (await staffHttp.GetAsync("/Account/Login")).Content.ReadAsStringAsync();

@@ -1,5 +1,5 @@
 @page
-@* Customer order history with live status (refreshes every 30 seconds) and a review form for completed orders. *@
+@* Customer order history with live status streamed without page reloads and a review form for completed orders. *@
 @model RROMS.Pages.Orders.IndexModel
 @{
     ViewData["Title"] = "My orders";
@@ -23,7 +23,7 @@
 }
 @foreach (var o in Model.Items)
 {
-    <article class="card order-card">
+    <article class="card order-card" data-order-id="@o.OrderID">
         <div class="order-head">
             <div>
                 <p class="reference">ORDER REF · @o.Reference</p>
@@ -36,13 +36,13 @@
                 }
             </div>
             <div class="order-side">
-                <span class="badge">@o.Status</span>
+                <span class="badge" data-order-status aria-live="polite">@o.Status</span>
                 <p class="price">RM @o.Total.ToString("0.00")</p>
             </div>
         </div>
-        @if (o.Status == "Completed" && !Model.ReviewedOrderIds.Contains(o.OrderID))
+        @if (!Model.ReviewedOrderIds.Contains(o.OrderID))
         {
-            <form method="post" asp-page-handler="Review" class="review-form">
+            <form method="post" asp-page-handler="Review" class="review-form" hidden="@(o.Status != "Completed")">
                 <input type="hidden" name="orderId" value="@o.OrderID" />
                 <div>
                     <label for="rating-@o.OrderID">Rating</label>
@@ -71,11 +71,24 @@
 {
     <section class="card empty-state">You haven't placed an order yet.</section>
 }
+<p id="live-status" role="status">Connecting to live order updates…</p>
 @section Scripts {
     <script>
-        // Refresh order progress, but not while the customer is typing a review.
-        setTimeout(function () {
-            if (!document.hidden && !document.querySelector('.review-form :focus')) window.location.reload();
-        }, 30000);
+        (() => {
+            const notice = document.getElementById('live-status');
+            const updates = new EventSource('@Url.Page("Index", "Updates")');
+            updates.onopen = () => notice.textContent = 'Live order updates connected.';
+            updates.onerror = () => notice.textContent = 'Connection interrupted. Reconnecting automatically…';
+            updates.onmessage = event => {
+                for (const order of JSON.parse(event.data)) {
+                    const card = document.querySelector('[data-order-id="' + order.orderId + '"]');
+                    if (!card) continue;
+                    card.querySelector('[data-order-status]').textContent = order.status;
+                    const review = card.querySelector('.review-form');
+                    if (review) review.hidden = order.status !== 'Completed';
+                }
+            };
+            window.addEventListener('pagehide', () => updates.close());
+        })();
     </script>
 }

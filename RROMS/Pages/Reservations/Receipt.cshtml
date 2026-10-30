@@ -1,0 +1,231 @@
+﻿@page "{id:int}"
+@model RROMS.Pages.Reservations.ReceiptModel
+
+@{
+    var payment = Model.Payment!;
+    var booking = payment.Reservation;
+
+    bool isDeposit = payment.PaymentType == "Deposit";
+
+    ViewData["Title"] = "Payment Receipt";
+}
+
+<div class="receipt-actions">
+    <p>
+        <a asp-page="/Reservations/Details"
+           asp-route-id="@booking.ReservationID">
+            Back to Reservation
+        </a>
+    </p>
+
+    <button type="button"
+            onclick="window.print()">
+        Print / Save as PDF
+    </button>
+</div>
+
+<section class="card receipt-sheet">
+    <p class="eyebrow">CÉLESTE FINE DINING</p>
+
+    <h1>
+        @(isDeposit
+            ? "Deposit Payment Record"
+            : "Dining Payment Receipt")
+    </h1>
+
+    <p>Restaurant Reservation & Order Management System</p>
+
+    <hr />
+
+    <h2>Transaction Information</h2>
+
+    <table>
+        <tbody>
+            <tr>
+                <th>Receipt Number</th>
+                <td>
+                    PAY-@payment.PaymentID.ToString("D6")
+                </td>
+            </tr>
+
+            <tr>
+                <th>Payment Date</th>
+                <td>
+                    @payment.PaymentDate.ToString(
+                        "dd MMM yyyy, h:mm tt")
+                </td>
+            </tr>
+
+            <tr>
+                <th>Payment Type</th>
+                <td>
+                    @(isDeposit
+                        ? "Reservation Deposit"
+                        : "Final Dining Payment")
+                </td>
+            </tr>
+
+            <tr>
+                <th>Payment Method</th>
+                <td>@payment.PaymentMethod</td>
+            </tr>
+
+            <tr>
+                <th>Payment Reference</th>
+                <td>
+                    @(string.IsNullOrWhiteSpace(
+                        payment.PaymentReference)
+                        ? "Not provided"
+                        : payment.PaymentReference)
+                </td>
+            </tr>
+
+            <tr>
+                <th>Payment Status</th>
+                <td>@payment.PaymentStatus</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <hr />
+
+    <h2>Reservation Information</h2>
+
+    <table>
+        <tbody>
+            <tr>
+                <th>Booking Reference</th>
+                <td>@booking.BookingReference</td>
+            </tr>
+
+            <tr>
+                <th>Customer</th>
+                <td>@booking.Customer.CustomerName</td>
+            </tr>
+
+            <tr>
+                <th>Dining Date</th>
+                <td>
+                    @booking.ReservationDate.ToString(
+                        "dd MMM yyyy")
+                </td>
+            </tr>
+
+            <tr>
+                <th>Dining Area</th>
+                <td>@booking.PreferredDiningOption</td>
+            </tr>
+
+            <tr>
+                <th>Number of Guests</th>
+                <td>@booking.PartySize</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <hr />
+
+    <div class="receipt-amount">
+        <p>AMOUNT RECORDED AS PAID</p>
+
+        <h2>RM @payment.Amount.ToString("N2")</h2>
+    </div>
+
+    @if (isDeposit)
+    {
+        <p class="notice">
+            This is a simulated deposit payment record
+            created for the coursework system.
+            No real money was charged.
+
+            A paid deposit is normally applied toward
+            the final dining bill. Cancellation or
+            no-show always results in full deposit forfeiture
+            under the reservation policy.
+        </p>
+    }
+    else
+    {
+        <p class="notice">
+            This receipt represents the final dining
+            payment recorded by restaurant staff.
+            It is not an external payment gateway
+            confirmation.
+
+            Any deposit applied to the dining bill
+            is recorded separately.
+        </p>
+    }
+
+    <hr />
+
+    <p>
+        Thank you for choosing Céleste.
+    </p>
+
+    <small>
+        This document is generated from the
+        payment records stored in the system.
+    </small>
+</section>
+
+<style>
+    .receipt-sheet {
+        max-width: 800px;
+        margin: 24px auto;
+        padding: 36px;
+    }
+
+    .receipt-sheet table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .receipt-sheet th,
+    .receipt-sheet td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .receipt-sheet th {
+        width: 42%;
+    }
+
+    .receipt-amount {
+        text-align: center;
+        padding: 24px;
+    }
+
+    .receipt-amount h2 {
+        font-size: 32px;
+    }
+
+    @@media print {
+        .staff-sidebar,
+        .workspace-bar,
+        .welcome-bar,
+        .site-header,
+        .site-footer,
+        .receipt-actions,
+        .skip-link {
+            display: none !important;
+        }
+
+        body,
+        main {
+            background: white !important;
+            color: black !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .receipt-sheet {
+            max-width: none !important;
+            border: none !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+    }
+</style>

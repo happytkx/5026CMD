@@ -23,6 +23,28 @@ public class IndexModel(ApplicationDbContext db) : PageModel
         ReviewedOrderIds = (await db.Reviews.Where(r => r.CustomerID == id).Select(r => r.OrderID).ToListAsync()).ToHashSet();
     }
 
+    // Authenticated SSE snapshots catch changes and reconnects without reloading review forms.
+    public async Task OnGetUpdatesAsync(CancellationToken cancellationToken)
+    {
+        Response.ContentType = "text/event-stream";
+        Response.Headers.CacheControl = "no-store";
+        Response.Headers["X-Accel-Buffering"] = "no";
+        var id = ReservationIdentity.CustomerId(User);
+        try
+        {
+            // End periodically so reconnect revalidates the authentication cookie.
+            for (var tick = 0; tick < 30 && !cancellationToken.IsCancellationRequested; tick++)
+            {
+                var statuses = await db.Orders.AsNoTracking().Where(o => o.CustomerID == id)
+                    .Select(o => new { orderId = o.OrderID, status = o.Status }).ToListAsync(cancellationToken);
+                await Response.WriteAsync("data: " + System.Text.Json.JsonSerializer.Serialize(statuses) + "\n\n", cancellationToken);
+                await Response.Body.FlushAsync(cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+    }
+
     public async Task<IActionResult> OnPostReviewAsync(int orderId, int rating, string? comment)
     {
         var id = ReservationIdentity.CustomerId(User);
