@@ -37,7 +37,7 @@ public class DetailsModel(ApplicationDbContext db, ReservationService service, T
             .SingleOrDefaultAsync(r => r.ReservationID == id && (IsStaff || r.CustomerID == customerId));
         if (Booking == null)
             return false;
-        Notifications = await db.Notifications.Where(n => n.ReservationID == id).OrderByDescending(n => n.SentDate).ToListAsync();
+        Notifications = await db.Notifications.Where(n => n.ReservationID == id && (IsStaff || n.NotificationType != "Audit")).OrderByDescending(n => n.SentDate).ToListAsync();
         EmailMessages = await db.ReservationEmails.AsNoTracking().Where(e => e.ReservationID == id)
             .OrderByDescending(e => e.ReservationEmailID).ToListAsync();
         if (Booking.ReservationStatus == "Confirmed")
@@ -57,9 +57,9 @@ public class DetailsModel(ApplicationDbContext db, ReservationService service, T
             return NotFound();
         if (View is not ("Details" or "Payment" or "Confirmation" or "Modify" or "Late"))
             View = "Details";
-        if (Booking!.ReservationStatus == "Pending")
+        if (Booking!.ReservationStatus == "Pending" && !IsStaff)
             View = "Payment";
-        else if (View == "Payment" || (View == "Confirmation" && Booking.ReservationStatus != "Confirmed"))
+        else if ((View == "Payment" && Booking.ReservationStatus != "Pending") || (View == "Confirmation" && Booking.ReservationStatus != "Confirmed"))
             View = "Details";
         return Page();
     }
@@ -102,8 +102,10 @@ public class DetailsModel(ApplicationDbContext db, ReservationService service, T
         }
         db.ChangeTracker.Clear();
         await Load(id);
-        if (Booking!.ReservationStatus == "Pending")
+        if (Booking!.ReservationStatus == "Pending" && !IsStaff)
             View = "Payment";
+        else if (Booking.ReservationStatus != "Pending" && View == "Payment")
+            View = "Details";
         return Page();
     }
 }

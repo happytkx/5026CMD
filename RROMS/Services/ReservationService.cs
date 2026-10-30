@@ -8,7 +8,7 @@ namespace RROMS.Services;
 
 // All mutation paths share serializable transactions, including the expiry worker.
 // Availability must be checked inside the transaction, not only when displaying slots.
-public class ReservationService(ApplicationDbContext db, TableAllocationService allocation)
+public class ReservationService(ApplicationDbContext db, TableAllocationService allocation, IHttpContextAccessor? http = null)
 {
     // Fixed agreed coursework deposit. Opening/closing hours are read from RestaurantSettings.
     public decimal CalculateDeposit(int partySize) => partySize * 50m;
@@ -73,7 +73,7 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
             DepositStatus = "Unpaid",
             ReservationStatus = "Pending",
             DietaryRequest = requests,
-            HoldExpiresAt = start < ReservationPolicy.Now.AddMinutes(10) ? start : ReservationPolicy.Now.AddMinutes(10)
+            HoldExpiresAt = ReservationPolicy.PaymentDeadline(area, start, ReservationPolicy.Now)
         };
         booking.BookingReference = GenerateBookingReference();
         db.Reservations.Add(booking);
@@ -92,6 +92,8 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
             (staff || r.CustomerID == customerId)) ?? throw new InvalidOperationException("Reservation not found.");
         var now = ReservationPolicy.Now;
         var start = r.ReservationDate.Add(r.StartTime);
+        var previousStatus = r.ReservationStatus;
+        var previousTable = r.TableID;
         var message = "";
         switch (action)
         {
@@ -198,10 +200,14 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
             case "Complete":
                 if (!staff || r.ReservationStatus != "Seated")
                     throw new InvalidOperationException("Only seated reservations can be completed.");
+                if (!await db.Bills.AnyAsync(b => b.ReservationID == id && b.BillStatus == "Paid"))
+                    throw new InvalidOperationException("Settle the final dining bill before completing this reservation.");
                 r.ReservationStatus = "Completed";
                 message = "Dining session completed. Ordering is closed.";
                 break;
             case "NoShow":
+                if (staff && r.ReservationStatus == "No-show") { await tx.CommitAsync(); return; }
+
                 if (!staff || r.ReservationStatus != "Confirmed" || !ReservationPolicy.IsExpired(start, r.LateArrivalNotified, now))
                     throw new InvalidOperationException("No-show is allowed only after the arrival deadline.");
                 r.ReservationStatus = "No-show";
@@ -211,6 +217,11 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
             default:
                 throw new InvalidOperationException("Unknown reservation action.");
         }
+        var user = http?.HttpContext?.User;
+        var actor = user?.Identity?.IsAuthenticated == true
+            ? $"{user.Identity.Name} (ID: {user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value}; role: {user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value})"
+            : staff ? "Internal staff operation" : $"Customer ID: {customerId}";
+        Notify(r, "Audit", $"Actor: {actor}. Action: {action}. Status: {previousStatus} -> {r.ReservationStatus}. Table: {previousTable} -> {r.TableID}. {message}");
         Notify(r, action, message);
         if ((action == "Pay" && paymentSuccess) || action == "Modify")
             ReservationEmailService.QueueConfirmation(db, r, action == "Modify");
@@ -240,11 +251,11 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
             (r.ReservationStatus == "Confirmed" && r.ReservationDate <= now.Date)).ToListAsync();
         foreach (var r in candidates)
         {
-            if (r.ReservationStatus == "Pending" && r.HoldExpiresAt <= now)
+            if (r.ReservationStatus == "Pending" && (r.HoldExpiresAt <= now || !ReservationPolicy.MeetsAdvance(r.PreferredDiningOption, r.ReservationDate.Add(r.StartTime), now)))
             {
                 r.ReservationStatus = "Expired";
                 r.HoldExpiresAt = null;
-                Notify(r, "Expired", "Unpaid reservation expired. The table has been released.");
+                Notify(r, "Expired", "Payment deadline passed. No deposit was charged and the table has been released. Choose a later slot to book again.");
             }
             else if (r.ReservationStatus == "Confirmed" && ReservationPolicy.IsExpired(r.ReservationDate.Add(r.StartTime), r.LateArrivalNotified, now))
             {

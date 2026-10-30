@@ -8,6 +8,8 @@ public static class ReservationPolicy
     public static bool MeetsAdvance(string area, DateTime start, DateTime now) =>
         area is "Indoor" or "Outdoor" or "VIP Room" &&
         start - now >= TimeSpan.FromHours(area == "VIP Room" ? 24 : 2);
+    public static DateTime PaymentDeadline(string area, DateTime start, DateTime created) =>
+        new[] { created.AddMinutes(10), start.AddHours(area == "VIP Room" ? -24 : -2) }.Min();
     // Guests choose an area; they never choose a specific table. Invalid party sizes have no eligible areas.
     public static string[] Areas(int size) => size switch
     {

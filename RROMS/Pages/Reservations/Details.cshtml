@@ -25,7 +25,7 @@
             <section class="card">
                 <h3>Simulated Deposit Payment</h3>
                 <p>No real money is charged. Select a payment method and use demo details.</p>
-                <p>Table held until @r.HoldExpiresAt?.ToString("h:mm tt").</p>
+                <p>Payment deadline: @r.HoldExpiresAt?.ToString("dd MMM yyyy h:mm:ss tt") (Malaysia time). Advance booking limits may shorten the 10-minute payment window.</p>
                 <form method="post" asp-page-handler="Action">
                     <input type="hidden" name="action" value="Pay"/>
                     <label for="billing-email">Billing email</label>
@@ -137,6 +137,15 @@ else
             <h1>Reservation Details</h1>
             <p>Reference @r.BookingReference</p>
         </section>
+    }
+    @if (r.ReservationStatus == "Expired") {
+        <p class="notice">Payment deadline passed. Choose a later slot to make a new reservation.</p>
+        @if (!Model.IsStaff) { <a class="button" asp-page="Create">Choose another slot</a> }
+    }
+    @if (Model.IsStaff && r.ReservationStatus == "Pending") {
+        <p>Payment deadline: @r.HoldExpiresAt?.ToString("dd MMM yyyy h:mm:ss tt") (Malaysia time).</p>
+        <a class="button" asp-page="Details" asp-route-id="@r.ReservationID" asp-route-view="Payment">Open deposit payment</a>
+        <form method="post" asp-page-handler="Action"><button name="action" value="Cancel">Cancel unpaid reservation</button></form>
     }
     <p class="eyebrow">@(Model.IsStaff ? "GUEST RESERVATION" : Model.View=="Modify" ? "MANAGE RESERVATION" : Model.View=="Late" ? "ARRIVAL INFORMATION" : "YOUR VISIT")</p>
     <div class="section-heading">
@@ -357,7 +366,7 @@ else
                         <form method="post" asp-page-handler="Action">
                             <button name="action" value="Complete">Complete dining session</button>
                         </form>
-                        <p>Final billing and payment recording belong to Sprint 4.</p>
+                        <p>Settle the final bill before completing this dining session.</p><a asp-page="/Staff/BillDetails" asp-route-id="@r.ReservationID">Open final bill</a>
                     </section>
                 }
                 <button class="secondary" type="button" onclick="window.print()">Print booking / receipt</button>

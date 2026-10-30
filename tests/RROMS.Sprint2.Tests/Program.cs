@@ -34,6 +34,9 @@ foreach (var role in new[] { "Administrator", "Restaurant Staff", "Staff", "Cust
  Check(details.IsStaff == (role != "Customer"), role + " reservation management access");
 }
 var now = ReservationPolicy.Now;
+Check(ReservationPolicy.PaymentDeadline("Indoor", now.AddHours(2).AddMinutes(3), now) == now.AddMinutes(3), "Indoor hold capped at advance cutoff");
+Check(ReservationPolicy.PaymentDeadline("VIP Room", now.AddHours(24).AddMinutes(4), now) == now.AddMinutes(4), "VIP hold capped at advance cutoff");
+Check(ReservationPolicy.PaymentDeadline("Indoor", now.AddDays(1), now) == now.AddMinutes(10), "Normal hold remains ten minutes");
 foreach (var area in new[] { "Indoor", "Outdoor", "VIP Room" }) {
  var hours = area == "VIP Room" ? 24 : 2;
  Check(ReservationPolicy.MeetsAdvance(area, now.AddHours(hours), now), area + " exact advance boundary allowed");
@@ -79,6 +82,7 @@ if (!args.Contains("--integration")) { Console.WriteLine($"{passed} policy check
 // This run owns a uniquely named database. Never use the application's real database.
 var database = "RROMS_Sprint2_Test_" + Guid.NewGuid().ToString("N");
 var connection = $"Server=(localdb)\\MSSQLLocalDB;Database={database};Trusted_Connection=True;TrustServerCertificate=True";
+connection = (await DevelopmentLocalDb.Resolve(connection, true))!;
 var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer(connection).Options;
 await using var db = new ApplicationDbContext(options);
 try
@@ -144,6 +148,9 @@ try
     await db.SaveChangesAsync();
     await service.Change(arrival.ReservationID, null, true, "CheckIn");
     Check(arrival.ReservationStatus == "Seated" && arrival.OrderingEnabled && arrival.CheckedInAt != null, "Staff check-in activates ordering");
+    await Reject(() => service.Change(arrival.ReservationID, null, true, "Complete"), "Completion blocked before settlement");
+    db.Bills.Add(new Bill { ReservationID = arrival.ReservationID, BillStatus = "Paid", TotalBill = 100, MinSpend = 100, DepositApplied = 100 });
+    await db.SaveChangesAsync();
     await service.Change(arrival.ReservationID, null, true, "Complete");
     Check(arrival.ReservationStatus == "Completed" && !arrival.OrderingEnabled, "Completion closes ordering");
     var noShow = await service.Create(customer.CustomerID, 2, "Indoor", start, null);
@@ -153,6 +160,9 @@ try
     await db.SaveChangesAsync();
     await service.Expire();
     Check(noShow.ReservationStatus == "No-show" && noShow.DepositStatus == "Forfeited", "Automatic normal no-show forfeits deposit");
+    await service.Change(noShow.ReservationID, null, true, "NoShow");
+    Check(noShow.ReservationStatus == "No-show", "Repeated manual no-show succeeds after expiry");
+    Check(await db.Notifications.AnyAsync(n => n.ReservationID == arrival.ReservationID && n.NotificationType == "Audit"), "Reservation actions create audit entries");
     var notified = await service.Create(customer.CustomerID, 2, "Indoor", start.AddDays(3), null);
     await service.Change(notified.ReservationID, customer.CustomerID, false, "Pay");
     await service.Change(notified.ReservationID, customer.CustomerID, false, "Late");
@@ -461,6 +471,15 @@ try
             "Staff sign-in does not grant administrator access");
     }
     finally { if (!webServer.HasExited) { webServer.Kill(entireProcessTree: true); await webServer.WaitForExitAsync(); } }
+    foreach (var method in new[] { "Card", "TNG", "Bank Transfer" })
+    {
+        var attempt = await service.Create(customer.CustomerID, 2, "Indoor", start.AddDays(40), null);
+        await service.Change(attempt.ReservationID, customer.CustomerID, false, "Pay", paymentSuccess: false, paymentMethod: method);
+        Check(attempt.ReservationStatus == "Pending", method + " failed attempt stays pending");
+        await service.Change(attempt.ReservationID, customer.CustomerID, false, "Pay", paymentReference: "TEST-RECEIPT", paymentMethod: method);
+        Check(attempt.ReservationStatus == "Confirmed" && await db.Payments.AnyAsync(p => p.ReservationID == attempt.ReservationID && p.PaymentMethod == method && p.PaymentStatus == "Paid"), method + " successful retry recorded");
+        await service.Change(attempt.ReservationID, customer.CustomerID, false, "Cancel");
+    }
     db.ChangeTracker.Clear();
     await DevelopmentDataSeeder.Seed(db, new ConfigurationBuilder().Build());
     var demoCustomers = await db.Customers.CountAsync(c => c.IsDemo);
