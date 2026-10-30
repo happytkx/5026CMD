@@ -18,7 +18,7 @@
     <a asp-page="/Admin/Reports"
        asp-route-StartDate="@Model.StartDate.ToString("yyyy-MM-dd")"
        asp-route-EndDate="@Model.EndDate.ToString("yyyy-MM-dd")">
-        Back to Reports & Analytics
+        Back to Reservation Reports
     </a>
 </p>
 
@@ -38,6 +38,7 @@
             <label asp-for="Status">Reservation Status</label>
             <select asp-for="Status">
                 <option value="">All statuses</option>
+                <option value="Scheduled">Scheduled (Confirmed, Seated, Completed)</option>
                 <option value="Pending">Pending</option>
                 <option value="Confirmed">Confirmed</option>
                 <option value="Seated">Seated</option>

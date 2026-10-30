@@ -26,7 +26,7 @@
     <a asp-page="/Admin/Index" asp-route-from="@periodWeek.ToString("yyyy-MM-dd")" asp-route-to="@periodToday.ToString("yyyy-MM-dd")">This Week</a>
     <a asp-page="/Admin/Index" asp-route-from="@periodMonth.ToString("yyyy-MM-dd")" asp-route-to="@periodToday.ToString("yyyy-MM-dd")">This Month</a>
 </div>
-<form method="get" class="filters">
+<form method="get" class="filters dashboard-filters">
     <label for="from">From</label>
     <input id="from" type="date" name="from" value="@Model.From.ToString("yyyy-MM-dd")" />
     <label for="to">To</label>

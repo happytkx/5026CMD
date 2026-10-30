@@ -71,10 +71,15 @@
     </p>
 
     <section class="staff-stats">
-        <article class="card">
+        <a class="card occupancy-stat-link" asp-page="/Admin/ReportReservations"
+           asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+           asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
+           asp-route-Status="Scheduled"
+           aria-label="View all scheduled reservations in Reservation Reports">
             <small>SCHEDULED RESERVATIONS</small>
             <h2>@report.ReservationCount</h2>
-        </article>
+            <p class="stat-link-hint">View reservations →</p>
+        </a>
 
         <article class="card">
             <small>RESERVED GUESTS</small>

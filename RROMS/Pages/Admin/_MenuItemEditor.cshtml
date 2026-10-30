@@ -1,4 +1,12 @@
 @model RROMS.Models.MenuItem
+@{
+    var dietaryOptions = ViewData["DietaryOptions"] as List<string> ?? new();
+    var allergenOptions = ViewData["AllergenOptions"] as List<string> ?? new();
+    var currentDietary = (Model.DietaryTags ?? "").Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    var currentAllergens = (Model.Allergens ?? "").Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+}
 <input type="hidden" name="Dish.MenuItemID" value="@Model.MenuItemID" />
 <div class="menu-editor-grid">
     <div class="menu-form-field">
@@ -36,24 +44,48 @@
                   maxlength="600">@Model.Description</textarea>
     </div>
     <div class="menu-form-field menu-form-wide">
-        <label for="dish-image-@Model.MenuItemID">Image URL or local /images/ path</label>
-        <input id="dish-image-@Model.MenuItemID" name="Dish.ImageUrl" value="@Model.ImageUrl"
-               maxlength="400" placeholder="/images/menu/your-dish.png" />
+        <label for="dish-image-@Model.MenuItemID">Dish image</label>
+        <label class="menu-image-dropzone" data-upload-zone>
+            <input id="dish-image-@Model.MenuItemID" type="file" name="DishImage"
+                   accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" data-upload-input />
+            <span class="menu-upload-icon" aria-hidden="true">↑</span>
+            <strong>Drag an image here or click to choose a file</strong>
+            <small data-upload-name>JPG, PNG or WebP · Maximum 5 MB</small>
+            @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+            {
+                <img src="@Model.ImageUrl" alt="Current image for @Model.Name" class="menu-upload-preview" data-upload-preview />
+            }
+            else
+            {
+                <img alt="Selected dish image preview" class="menu-upload-preview" data-upload-preview hidden />
+            }
+        </label>
+        @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+        {
+            <small class="menu-current-image">Leave the image unchanged to keep the current photo.</small>
+        }
     </div>
     <div class="menu-form-field">
-        <label for="dish-dietary-@Model.MenuItemID">Dietary tags (comma separated)</label>
-        <input id="dish-dietary-@Model.MenuItemID" name="Dish.DietaryTags"
-               value="@Model.DietaryTags" maxlength="250" placeholder="Vegetarian, No pork" />
+        <label for="dish-dietary-@Model.MenuItemID">Dietary tags</label>
+        <select id="dish-dietary-@Model.MenuItemID" name="DietarySelections" class="menu-tag-select"
+                multiple data-placeholder="Select dietary tags">
+            @foreach (var tag in dietaryOptions)
+            {
+                <option value="@tag" selected="@currentDietary.Contains(tag)">@tag</option>
+            }
+        </select>
+        <small class="menu-field-help">Select any that apply.</small>
     </div>
     <div class="menu-form-field">
         <label for="dish-allergens-@Model.MenuItemID">Allergens</label>
-        <input id="dish-allergens-@Model.MenuItemID" name="Dish.Allergens"
-               value="@Model.Allergens" maxlength="300" placeholder="Milk, Nuts" />
-    </div>
-    <div class="menu-form-field">
-        <label for="dish-spice-@Model.MenuItemID">Spice level (0–5)</label>
-        <input id="dish-spice-@Model.MenuItemID" type="number" name="Dish.SpiceLevel"
-               value="@Model.SpiceLevel" min="0" max="5" step="1" required />
+        <select id="dish-allergens-@Model.MenuItemID" name="AllergenSelections" class="menu-tag-select"
+                multiple data-placeholder="Select allergens">
+            @foreach (var allergen in allergenOptions)
+            {
+                <option value="@allergen" selected="@currentAllergens.Contains(allergen)">@allergen</option>
+            }
+        </select>
+        <small class="menu-field-help">Select all allergens present in the dish.</small>
     </div>
     <div class="menu-editor-options">
         <label class="menu-check">
