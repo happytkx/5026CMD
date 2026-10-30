@@ -45,8 +45,15 @@ foreach (var area in new[] { "Indoor", "Outdoor", "VIP Room" }) {
 }
 SimulatedDeposit.Validate("TNG", "0123456789", null, null, null, null, null);
 SimulatedDeposit.Validate("Card", null, "Demo Guest", "4242424242424242", "12/30", "123", null);
+var currentExpiry = ReservationPolicy.Now.ToString("MM/yy", System.Globalization.CultureInfo.InvariantCulture);
+SimulatedDeposit.Validate("Card", null, "Test Guest", "5555-5555-5555-4444", currentExpiry, "9876", null);
+SimulatedDeposit.Validate("Card", null, "Test Guest", "4111 1111 1111 1111", currentExpiry, "456", null);
+Check(true, "Different card numbers, formatting and security codes accepted");
+await Reject(() => { SimulatedDeposit.Validate("Card", null, "Test", "5555555555554444", "13/30", "123", null); return Task.CompletedTask; }, "Invalid expiry month rejected");
+await Reject(() => { SimulatedDeposit.Validate("Card", null, "Test", "5555555555554444", "01/20", "123", null); return Task.CompletedTask; }, "Expired card rejected");
+await Reject(() => { SimulatedDeposit.Validate("Card", null, "Test", "5555555555554444", currentExpiry, "ab3", null); return Task.CompletedTask; }, "Non-numeric security code rejected");
 SimulatedDeposit.Validate("Bank Transfer", null, null, null, null, null, "DEMO-123");
-await Reject(() => { SimulatedDeposit.Validate("Card", null, "Demo", "1111111111111111", "12/30", "123", null); return Task.CompletedTask; }, "Non-demo card rejected");
+await Reject(() => { SimulatedDeposit.Validate("Card", null, "Demo", "12345", "12/30", "123", null); return Task.CompletedTask; }, "Short card number rejected");
 await Reject(() => { SimulatedDeposit.Validate("Bank Transfer", null, null, null, null, null, ""); return Task.CompletedTask; }, "Missing bank reference rejected");
 await Reject(() => { SimulatedDeposit.Validate("TNG", "", null, null, null, null, null); return Task.CompletedTask; }, "Missing TNG phone rejected");
 
