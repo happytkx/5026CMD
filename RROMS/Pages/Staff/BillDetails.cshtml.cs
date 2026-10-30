@@ -64,7 +64,7 @@ public class BillDetailsModel : PageModel
         {
             await _orderBilling.SaveDraftFromOrdersAsync(id);
             TempData["BillMessage"] =
-                "The draft bill was updated from the dining orders.";
+                "The final bill was prepared from the served dishes. It is awaiting payment.";
         }
         catch (InvalidOperationException ex)
         {

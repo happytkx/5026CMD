@@ -105,6 +105,14 @@ namespace RROMS.Models
             get; set;
         }
 
+        // Keep cancelled dishes for history while excluding them from the bill.
+        public bool IsCancelled { get; set; }
+
+        public DateTime? CancelledAt { get; set; }
+
+        [StringLength(100)]
+        public string? CancelledBy { get; set; }
+
         public CustomerOrder Order { get; set; } = null!;
 
         public MenuItem MenuItem { get; set; } = null!;

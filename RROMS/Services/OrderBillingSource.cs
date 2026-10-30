@@ -25,7 +25,7 @@ public class OrderBillingSource(ApplicationDbContext db) : ReservationOrderBilli
         {
             if (order.Subtotal < 0m || order.Tax < 0m ||
                 order.Total != order.Subtotal + order.Tax ||
-                order.Subtotal != order.Lines.Sum(l => l.LineTotal) ||
+                order.Subtotal != order.Lines.Where(l => !l.IsCancelled).Sum(l => l.LineTotal) ||
                 order.Lines.Any(l =>
                     l.Quantity <= 0 ||
                     l.UnitPrice < 0m ||
@@ -37,7 +37,7 @@ public class OrderBillingSource(ApplicationDbContext db) : ReservationOrderBilli
         }
 
         var lines = orders
-            .SelectMany(o => o.Lines)
+            .SelectMany(o => o.Lines.Where(l => !l.IsCancelled))
             .Select(l => new OrderBillingLine(l.ItemName, l.Quantity, l.UnitPrice))
             .ToList();
 

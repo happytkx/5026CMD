@@ -18,6 +18,12 @@ public class MyBillModel(ApplicationDbContext db) : PageModel
     public List<Reservation> MyReservations { get; private set; } = [];
 
     public bool IsPaid => FinalBill?.BillStatus == "Paid";
+    // The saved unpaid bill is final only while it matches all served dish totals.
+    public bool IsFinalBillReady => !IsPaid && FinalBill?.BillStatus == "Draft" &&
+        Orders.Count > 0 &&
+        Orders.All(o => o.Status is "Served" or "Completed") &&
+        FinalBill.FoodSubtotal == Orders.Sum(o => o.Subtotal) &&
+        FinalBill.TaxAmount == Orders.Sum(o => o.Tax);
     public decimal FoodSubtotal => IsPaid ? FinalBill!.FoodSubtotal : Orders.Sum(o => o.Subtotal);
     public decimal TaxAmount => IsPaid ? FinalBill!.TaxAmount : Orders.Sum(o => o.Tax);
     public decimal GrandTotal => IsPaid ? FinalBill!.TotalBill : FoodSubtotal + TaxAmount;

@@ -50,7 +50,7 @@ public class OrderBillingIntegrationService
         if (!snapshot.IsReadyForBilling)
         {
             throw new InvalidOperationException(
-                "The order is not ready for billing.");
+                "All active dishes must be served before preparing the final bill.");
         }
 
         if (snapshot.Lines == null ||

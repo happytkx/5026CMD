@@ -950,3 +950,225 @@ form.card.mybill-selector {
 @media (max-width: 560px) {
     .basket-line { grid-template-columns: minmax(0, 1fr) auto auto; }
 }
+
+
+/* Reservation-based order history and expandable kitchen details. */
+.dining-session-card { margin-bottom: 20px; }
+.order-card-meta, .staff-session-meta {
+    margin: 7px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+}
+.order-side small { color: var(--muted); font-size: 11px; }
+.order-details, .staff-session-details {
+    margin-top: 22px;
+    border-top: 1px solid var(--line);
+}
+.order-details > summary, .staff-session-details > summary {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-height: 54px;
+    cursor: pointer;
+    color: var(--olive-deep);
+    list-style: none;
+}
+.order-details > summary::-webkit-details-marker,
+.staff-session-details > summary::-webkit-details-marker { display: none; }
+.order-details > summary strong, .staff-session-details > summary strong {
+    font-size: 13px;
+    font-weight: 700;
+}
+.order-details > summary span, .staff-session-details > summary span {
+    color: var(--muted);
+    font-size: 12px;
+}
+.order-details > summary::after, .staff-session-details > summary::after {
+    content: "⌄";
+    margin-left: auto;
+    font-size: 23px;
+    line-height: 1;
+    transition: transform .15s ease;
+}
+.order-details[open] > summary::after, .staff-session-details[open] > summary::after {
+    transform: rotate(180deg);
+}
+.order-details > summary:focus-visible,
+.staff-session-details > summary:focus-visible {
+    outline: 2px solid var(--olive-deep);
+    outline-offset: 3px;
+}
+.order-details-body, .staff-session-details-body {
+    padding: 8px 0 12px;
+}
+.order-round + .order-round, .staff-kitchen-round + .staff-kitchen-round {
+    margin-top: 26px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+}
+.order-round-heading, .staff-round-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 13px;
+}
+.order-round-heading strong { font-size: 13px; }
+.order-notes {
+    margin: 6px 0 15px;
+    padding: 11px 14px;
+    border-left: 3px solid var(--gold);
+    background: var(--paper);
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.55;
+}
+.order-detail-table { width: 100%; min-width: 540px; border-collapse: collapse; }
+.order-detail-table th {
+    padding: 13px 12px;
+    background: var(--paper);
+    color: var(--olive-deep);
+    font-size: 11px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+.order-detail-table td {
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+    vertical-align: middle;
+}
+.order-detail-table td:nth-child(n+2) { white-space: nowrap; }
+.order-detail-table tr:last-child td { border-bottom: 0; }
+.cancelled-line td { background: #FAF6F3; color: #928882; }
+.cancelled-line td:first-child { text-decoration: line-through; }
+.dish-cancelled, .dish-active {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    white-space: nowrap;
+}
+.dish-cancelled { background: #F7E9E6; color: #994A40; }
+.dish-active { background: #EBEEE3; color: var(--olive-deep); }
+.order-review-note { display: block; margin-top: 13px; color: var(--muted); }
+
+.staff-dining-sessions { display: grid; gap: 20px; }
+.staff-dining-session { padding: 25px 28px; }
+.staff-session-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 24px;
+}
+.staff-session-header h2 {
+    margin: 8px 0 5px;
+    font: 30px/1.2 var(--serif);
+}
+.staff-session-summary {
+    display: grid;
+    justify-items: end;
+    gap: 10px;
+    white-space: nowrap;
+}
+.staff-session-summary > strong {
+    color: var(--olive-deep);
+    font: 25px/1.2 var(--serif);
+}
+.staff-session-summary > a {
+    color: var(--olive-deep);
+    font-size: 12px;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+.staff-kitchen-round { min-width: 0; }
+.staff-round-heading > div:first-child { display: flex; gap: 11px; align-items: center; flex-wrap: wrap; }
+.staff-round-heading .reference { margin: 0; }
+.staff-round-total { font: 19px var(--serif); }
+.staff-detail-table { min-width: 710px; }
+.staff-detail-table td:last-child { text-align: right; }
+.dish-cancel-form { margin: 0; }
+.dish-cancel-button {
+    min-height: 38px;
+    margin: 0;
+    padding: 9px 12px;
+    border: 1px solid #BD6B60;
+    border-radius: 4px;
+    background: transparent;
+    color: #944A3E;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .04em;
+}
+.dish-cancel-button:hover { background: #FAEDEA; }
+.dish-cancel-button:focus-visible { outline: 2px solid #944A3E; outline-offset: 2px; }
+
+/* Compact status selector in the expanded kitchen round. */
+.staff-round-heading .order-update {
+    display: grid;
+    grid-template-columns: minmax(165px, 220px) auto;
+    column-gap: 10px;
+    row-gap: 5px;
+    align-items: end;
+    min-width: 0;
+    margin: 0;
+}
+.staff-round-heading .order-update label {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--muted);
+    font-size: 11px;
+}
+.staff-round-heading .order-update select,
+.staff-round-heading .order-update .ts-wrapper {
+    grid-column: 1;
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    margin: 0;
+    border-radius: 4px;
+}
+.staff-round-heading .order-update select {
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    background: var(--white);
+    color: var(--ink);
+}
+.staff-round-heading .order-update .ts-control {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    box-shadow: none;
+    background: var(--white);
+    color: var(--ink);
+    font-size: 12px;
+}
+.staff-round-heading .order-update .ts-dropdown {
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    box-shadow: 0 9px 22px #00000015;
+}
+.staff-round-heading .order-update button {
+    grid-column: 2;
+    min-height: 44px;
+    height: 44px;
+    margin: 0;
+    padding: 10px 17px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+@media (max-width: 760px) {
+    .staff-session-header { flex-direction: column; gap: 15px; }
+    .staff-session-summary { justify-items: start; }
+    .staff-round-heading { align-items: stretch; }
+    .staff-round-heading .order-update { width: 100%; grid-template-columns: minmax(0, 1fr) auto; }
+    .order-details > summary span, .staff-session-details > summary span { display: none; }
+}

@@ -8,7 +8,7 @@
 <p class="eyebrow">BILLING & PAYMENTS</p>
 
 <h1>Billing &amp; Checkout</h1>
-<p>Choose a seated reservation, prepare its draft, review the total with tax and deposit, then record the full payment received onsite.</p>
+<p>Choose a seated reservation, prepare its final bill, review the total with tax and deposit, then record the full payment received onsite.</p>
 
 <div class="billing-toolbar">
     <a class="button secondary" asp-page="/Staff/Orders">Check Dining Orders</a>
@@ -17,7 +17,7 @@
 
 <section class="billing-workflow" aria-label="Staff billing steps">
     <div><span>01</span><strong>Serve orders</strong><small>Finish all active dining orders.</small></div>
-    <div><span>02</span><strong>Prepare draft</strong><small>Review items, tax, minimum and deposit.</small></div>
+    <div><span>02</span><strong>Prepare final bill</strong><small>Review items, tax, minimum and deposit.</small></div>
     <div><span>03</span><strong>Take payment</strong><small>Record Cash, Card or E-Wallet in full.</small></div>
     <div><span>04</span><strong>Complete dining</strong><small>Close the reservation after settlement.</small></div>
 </section>
@@ -26,7 +26,7 @@
     <div class="billing-list-heading">
         <div>
             <h2>Seated Dining Sessions</h2>
-            <p>Only checked-in (Seated) reservations appear here. Open a booking to find the draft and final payment controls.</p>
+            <p>Only checked-in (Seated) reservations appear here. Open a booking to prepare the final bill and record payment.</p>
         </div>
         <a class="button secondary" asp-page="/Staff/Index">Daily Reservations</a>
     </div>
@@ -93,7 +93,7 @@
 
                                 <td>RM @(bill.BillStatus == "Paid" ? "0.00" : bill.BalanceToPay.ToString("N2"))</td>
 
-                                <td><span class="celeste-bill-status @(bill.BillStatus == "Paid" ? "celeste-bill-status-paid" : "celeste-bill-status-draft")">@bill.BillStatus</span></td>
+                                <td><span class="celeste-bill-status @(bill.BillStatus == "Paid" ? "celeste-bill-status-paid" : "celeste-bill-status-draft")">@(bill.BillStatus == "Draft" ? "Awaiting Payment" : bill.BillStatus)</span></td>
                             }
 
                             
@@ -102,7 +102,7 @@
                                    asp-page="/Staff/BillDetails"
                                    asp-route-id="@reservation.ReservationID"
                                    asp-fragment="dining-bill">
-                                    @(bill == null ? "Prepare Draft Bill" : bill.BillStatus == "Paid" ? "View Paid Bill" : "Review & Take Payment")
+                                    @(bill == null ? "Prepare Final Bill" : bill.BillStatus == "Paid" ? "View Paid Bill" : "Review & Take Payment")
                                 </a>
                                 <a asp-page="/Reservations/Details" asp-route-id="@reservation.ReservationID">
                                     @(bill?.BillStatus == "Paid" ? "Complete Reservation" : "View Reservation")

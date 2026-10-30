@@ -54,7 +54,7 @@ public class IndexModel(ApplicationDbContext db, BusinessAnalyticsService analyt
         Insights = await analytics.GetReportAsync(From, To);
         if ((To - From).Days <= 89)
             Occupancy = await occupancy.GetReportAsync(From, To);
-        Popular = orders.SelectMany(o => o.Lines).GroupBy(l => l.ItemName)
+        Popular = orders.SelectMany(o => o.Lines.Where(l => !l.IsCancelled)).GroupBy(l => l.ItemName)
             .Select(g => new PopularRow(g.Key, g.Sum(l => l.Quantity), g.Sum(l => l.LineTotal)))
             .OrderByDescending(p => p.Quantity).Take(8).ToList();
         Menu = await db.MenuItems.AsNoTracking().OrderBy(i => i.Category).ThenBy(i => i.Name).ToListAsync();

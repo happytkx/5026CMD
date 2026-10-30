@@ -8,7 +8,7 @@
 <p class="eyebrow">BILLING & PAYMENTS</p>
 
 <h1>Review Bill &amp; Checkout</h1>
-<p>Prepare the draft from served orders, check the tax and deposit deductions, and confirm full onsite payment.</p>
+<p>Once all active dishes are served and the guest is ready to settle, prepare the final bill, check tax and deposit deductions, and confirm full onsite payment.</p>
 <a class="billing-back-link" asp-page="/Staff/Billing">← Back to Billing &amp; Checkout</a>
 
 @if (TempData["BillMessage"] is string billMessage)
@@ -30,7 +30,7 @@
             <span>@booking.Customer.CustomerName · @booking.PartySize guests · @booking.ReservationStatus</span>
         </div>
         <nav class="billing-detail-nav" aria-label="Checkout page sections">
-            <a class="button" href="#dining-bill">1. Draft &amp; Review</a>
+            <a class="button" href="#dining-bill">1. Final Bill Review</a>
             <a class="button secondary" href="#checkout">2. Final Payment</a>
             <a class="button secondary" href="#payment-history">3. Receipts</a>
         </nav>
@@ -41,13 +41,13 @@
         <div class="celeste-bill-heading">
             <div>
                 <p class="eyebrow">CÉLESTE FINE DINING</p>
-                <h2>@(Model.Bill?.BillStatus == "Paid" ? "Paid & Itemised Bill" : "Draft & Itemised Bill")</h2>
+                <h2>@(Model.Bill?.BillStatus == "Paid" ? "Paid Final Bill" : "Final Bill Review")</h2>
                 <p class="muted">Review the served dishes, subtotal, tax, minimum spending and paid deposit before charging the customer.</p>
             </div>
             @if (Model.Bill is { } currentBill)
             {
                 <span class="celeste-bill-status @(currentBill.BillStatus == "Paid" ? "celeste-bill-status-paid" : "celeste-bill-status-draft")">
-                    @currentBill.BillStatus
+                    @(currentBill.BillStatus == "Draft" ? "Awaiting Payment" : currentBill.BillStatus)
                 </span>
             }
         </div>
@@ -75,29 +75,21 @@
                                         <th>Dish</th>
                                         <th class="celeste-bill-numeric">Qty</th>
                                         <th class="celeste-bill-numeric">Unit Price</th>
-                                        <th class="celeste-bill-numeric">Line Total</th>
+                                        <th class="celeste-bill-numeric">Total Price</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var order in Model.DiningOrders)
+                                    @foreach (var dish in Model.DiningOrders.SelectMany(o => o.Lines.Where(l => !l.IsCancelled))
+                                        .GroupBy(l => new { l.ItemName, l.UnitPrice }).OrderBy(g => g.Key.ItemName))
                                     {
-                                        <tr class="celeste-bill-order-row">
-                                            <td colspan="4">
-                                                Order @order.Reference
-                                                <span class="celeste-bill-order-state">@order.Status</span>
-                                            </td>
+                                        <tr>
+                                            <td>@dish.Key.ItemName</td>
+                                            <td class="celeste-bill-numeric">@dish.Sum(l => l.Quantity)</td>
+                                            <td class="celeste-bill-numeric">RM @dish.Key.UnitPrice.ToString("N2")</td>
+                                            <td class="celeste-bill-numeric">RM @dish.Sum(l => l.LineTotal).ToString("N2")</td>
                                         </tr>
-                                        @foreach (var line in order.Lines.OrderBy(l => l.OrderLineID))
-                                        {
-                                            <tr>
-                                                <td>@line.ItemName</td>
-                                                <td class="celeste-bill-numeric">@line.Quantity</td>
-                                                <td class="celeste-bill-numeric">RM @line.UnitPrice.ToString("N2")</td>
-                                                <td class="celeste-bill-numeric">RM @line.LineTotal.ToString("N2")</td>
-                                            </tr>
-                                        }
                                     }
-                                </tbody>
+                            </tbody>
                             </table>
                         </div>
                     }
@@ -161,9 +153,9 @@
         }
         else
         {
-            <p>No saved dining bill is available for this reservation yet.</p>
+            <p>No final bill has been prepared for this reservation yet.</p>
             <p class="notice">
-                Once all active dining orders have been served, generate a draft bill
+                When all active dishes are served and the guest is ready to settle, prepare the final bill
                 to review the dishes, tax, deposit and remaining amount payable.
             </p>
         }
@@ -176,8 +168,8 @@
                   asp-route-id="@Model.Booking.ReservationID">
                 <button type="submit">
                     @(Model.Bill == null
-                        ? "Generate Draft Bill from Orders"
-                        : "Refresh Draft Bill from Orders")
+                        ? "Prepare Final Bill"
+                        : "Update Final Bill")
                 </button>
             </form>
         }
@@ -192,9 +184,8 @@
         @if (Model.Bill == null)
         {
             <p class="notice">
-                No dining bill has been saved yet.
-                All active dining orders must be served
-                before a draft bill can be generated.
+                The final bill has not been prepared yet.
+                All active dishes must be served before staff can prepare it.
             </p>
         }
         else if (Model.Bill.BillStatus == "Paid")

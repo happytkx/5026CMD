@@ -25,31 +25,38 @@
 <section class="card">
     <h2>Filter Reservations</h2>
 
-    <form method="get" class="staff-search">
-        <label asp-for="StartDate">Start Date</label>
-        <input asp-for="StartDate" type="date" />
-
-        <label asp-for="EndDate">End Date</label>
-        <input asp-for="EndDate" type="date" />
-
-        <label asp-for="Status">Status</label>
-        <select asp-for="Status">
-            <option value="">All statuses</option>
-            <option value="Pending">Pending</option>
-            <option value="Confirmed">Confirmed</option>
-            <option value="Seated">Seated</option>
-            <option value="Completed">Completed</option>
-            <option value="Cancelled">Cancelled</option>
-            <option value="No-show">No-show</option>
-            <option value="Expired">Expired</option>
-        </select>
-
-        <label asp-for="Search">Search</label>
-        <input asp-for="Search"
-               placeholder="Guest name or booking reference" />
-
-        <button type="submit">Apply Filters</button>
+    <form method="get" class="staff-search report-reservation-filters">
+        <div class="report-filter-field">
+            <label asp-for="StartDate">Start Date</label>
+            <input asp-for="StartDate" type="date" />
+        </div>
+        <div class="report-filter-field">
+            <label asp-for="EndDate">End Date</label>
+            <input asp-for="EndDate" type="date" />
+        </div>
+        <div class="report-filter-field">
+            <label asp-for="Status">Reservation Status</label>
+            <select asp-for="Status">
+                <option value="">All statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Confirmed">Confirmed</option>
+                <option value="Seated">Seated</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+                <option value="No-show">No-show</option>
+                <option value="Expired">Unpaid Hold Expired</option>
+            </select>
+        </div>
+        <div class="report-filter-field">
+            <label asp-for="Search">Search by Customer or Booking</label>
+            <input asp-for="Search" placeholder="Guest name or booking reference" />
+        </div>
+        <button type="submit" class="report-filter-apply">Apply Filters</button>
     </form>
+    <p class="report-status-note">
+        <strong>Unpaid Hold Expired</strong> means the reservation was not confirmed because its deposit hold ended without payment.
+        <strong>No-show</strong> is assigned automatically when a confirmed guest misses the arrival deadline.
+    </p>
 
     <div asp-validation-summary="All"
          class="text-danger"></div>
@@ -133,7 +140,7 @@
 
                                 <td>
                                     <span class="badge">
-                                        @reservation.ReservationStatus
+                                        @(reservation.ReservationStatus == "Expired" ? "Unpaid Hold Expired" : reservation.ReservationStatus)
                                     </span>
                                 </td>
 

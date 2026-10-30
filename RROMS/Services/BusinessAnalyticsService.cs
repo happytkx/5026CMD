@@ -60,7 +60,7 @@ public class BusinessAnalyticsService(ApplicationDbContext db)
             .Where(o => o.CreatedAt >= from && o.CreatedAt < endExclusive &&
                         o.Status != "Cancelled")
             .ToListAsync();
-        var lines = orders.SelectMany(o => o.Lines).ToList();
+        var lines = orders.SelectMany(o => o.Lines.Where(l => !l.IsCancelled)).ToList();
 
         var totalsByDish = lines.GroupBy(l => l.MenuItemID).ToDictionary(
             g => g.Key,

@@ -390,6 +390,16 @@ namespace RROMS.Migrations
 
             modelBuilder.Entity("RROMS.Models.OrderLine", b =>
                 {
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CancelledBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsCancelled")
+                        .HasColumnType("bit");
+
                     b.Property<int>("OrderLineID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");

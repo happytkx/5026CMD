@@ -1,13 +1,15 @@
 @page
-@* Customer order history with live status (refreshes every 30 seconds) and a review form for completed orders. *@
+@* Reservations appear as one dining session, with each placed round available in View Details. *@
 @model RROMS.Pages.Orders.IndexModel
 @{
     ViewData["Title"] = "My orders";
+    var sessions = Model.Items.GroupBy(o => o.ReservationID)
+        .OrderByDescending(g => g.Max(o => o.CreatedAt)).ToList();
 }
 <section class="account-heading">
     <p class="eyebrow">YOUR CÉLESTE ORDERS</p>
     <h1>My orders</h1>
-    <p>Order status refreshes automatically while this page is open. Orders are settled with your final bill.</p>
+    <p>Follow the dishes ordered during each reservation. Status updates refresh while this page is open.</p>
 </section>
 <div class="order-history-actions">
     <a class="button secondary" asp-page="/MyBill">View Bill</a>
@@ -21,61 +23,110 @@
 {
     <p class="error">@err</p>
 }
-@foreach (var o in Model.Items)
+@foreach (var session in sessions)
 {
-    <article class="card order-card">
+    var rounds = session.OrderBy(o => o.CreatedAt).ThenBy(o => o.OrderID).ToList();
+    var booking = rounds[0].Reservation;
+    <article class="card order-card dining-session-card">
         <div class="order-head">
             <div>
-                <p class="reference">ORDER REF · @o.Reference</p>
-                <h2>@o.CreatedAt.ToString("dd MMM yyyy, h:mm tt")</h2>
-                <small>@string.Join(", ", o.Lines.Select(x => $"{x.ItemName} × {x.Quantity}"))</small>
-                <small>Reservation @o.Reservation.BookingReference · Table @o.Reservation.TableID</small>
-                @if (!string.IsNullOrWhiteSpace(o.Notes))
-                {
-                    <small>Preparation request: @o.Notes</small>
-                }
+                <p class="reference">RESERVATION · @booking.BookingReference</p>
+                <h2>@booking.ReservationDate.ToString("dd MMM yyyy") · Table @booking.TableID</h2>
+                <p class="order-card-meta">
+                    @DiningOrderPresentation.ActiveItemCount(rounds) items ·
+                    @rounds.Count ordering round@(rounds.Count == 1 ? "" : "s")
+                </p>
             </div>
             <div class="order-side">
-                <span class="badge">@o.Status</span>
-                <p class="price">RM @o.Total.ToString("0.00")</p>
+                <span class="badge">@DiningOrderPresentation.Status(rounds)</span>
+                <p class="price">RM @DiningOrderPresentation.Total(rounds).ToString("N2")</p>
+                <small>Food and tax, before deposit</small>
             </div>
         </div>
-        @if (o.Status == "Completed" && !Model.ReviewedOrderIds.Contains(o.OrderID))
-        {
-            <form method="post" asp-page-handler="Review" class="review-form">
-                <input type="hidden" name="orderId" value="@o.OrderID" />
-                <div>
-                    <label for="rating-@o.OrderID">Rating</label>
-                    <select id="rating-@o.OrderID" name="rating">
-                        <option value="5">5 - Excellent</option>
-                        <option value="4">4 - Good</option>
-                        <option value="3">3 - Okay</option>
-                        <option value="2">2 - Poor</option>
-                        <option value="1">1 - Bad</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="comment-@o.OrderID">Feedback</label>
-                    <textarea id="comment-@o.OrderID" name="comment" rows="2" maxlength="800" placeholder="Tell us about your experience" required></textarea>
-                </div>
-                <button type="submit" class="secondary">Submit review</button>
-            </form>
-        }
-        else if (Model.ReviewedOrderIds.Contains(o.OrderID))
-        {
-            <small>Review submitted — thank you for dining with us.</small>
-        }
+        <details class="order-details">
+            <summary>
+                <strong>View Details</strong>
+                <span>Dishes, quantities and status</span>
+            </summary>
+            <div class="order-details-body">
+                @foreach (var o in rounds)
+                {
+                    <div class="order-round">
+                        <div class="order-round-heading">
+                            <strong>Ordered @o.CreatedAt.ToString("dd MMM, h:mm tt")</strong>
+                            <span class="badge">@o.Status</span>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(o.Notes))
+                        {
+                            <p class="order-notes">Special request: @o.Notes</p>
+                        }
+                        <div class="table-wrap">
+                            <table class="order-detail-table">
+                                <thead>
+                                    <tr>
+                                        <th>Dish</th>
+                                        <th>Qty</th>
+                                        <th>Unit Price</th>
+                                        <th>Total Price</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                @foreach (var line in o.Lines.OrderBy(l => l.OrderLineID))
+                                {
+                                    var cancelled = line.IsCancelled || o.Status == "Cancelled";
+                                    <tr class="@(cancelled ? "cancelled-line" : "")">
+                                        <td>@line.ItemName</td>
+                                        <td>@line.Quantity</td>
+                                        <td>RM @line.UnitPrice.ToString("N2")</td>
+                                        <td>@(cancelled ? "Excluded" : $"RM {line.LineTotal:N2}")</td>
+                                        <td><span class="@(cancelled ? "dish-cancelled" : "dish-active")">@(cancelled ? "Cancelled" : o.Status)</span></td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                        @if (o.Status == "Completed" && !Model.ReviewedOrderIds.Contains(o.OrderID))
+                        {
+                            <form method="post" asp-page-handler="Review" class="review-form">
+                                <input type="hidden" name="orderId" value="@o.OrderID" />
+                                <div>
+                                    <label for="rating-@o.OrderID">Rating</label>
+                                    <select id="rating-@o.OrderID" name="rating">
+                                        <option value="5">5 - Excellent</option>
+                                        <option value="4">4 - Good</option>
+                                        <option value="3">3 - Okay</option>
+                                        <option value="2">2 - Poor</option>
+                                        <option value="1">1 - Bad</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="comment-@o.OrderID">Feedback</label>
+                                    <textarea id="comment-@o.OrderID" name="comment" rows="2" maxlength="800" placeholder="Tell us about your experience" required></textarea>
+                                </div>
+                                <button type="submit" class="secondary">Submit review</button>
+                            </form>
+                        }
+                        else if (Model.ReviewedOrderIds.Contains(o.OrderID))
+                        {
+                            <small class="order-review-note">Review submitted. Thank you for dining with us.</small>
+                        }
+                    </div>
+                }
+            </div>
+        </details>
     </article>
 }
-@if (!Model.Items.Any())
+@if (!sessions.Any())
 {
     <section class="card empty-state">You haven't placed an order yet.</section>
 }
 @section Scripts {
     <script>
-        // Refresh order progress, but not while the customer is typing a review.
+        // Refresh statuses without interrupting someone viewing details or writing feedback.
         setTimeout(function () {
-            if (!document.hidden && !document.querySelector('.review-form :focus')) window.location.reload();
+            if (!document.hidden && !document.querySelector('.order-details[open], .review-form :focus'))
+                window.location.reload();
         }, 30000);
     </script>
 }

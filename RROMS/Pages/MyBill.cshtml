@@ -43,6 +43,11 @@ else if (Model.Booking is { } booking)
                 <strong>Payment complete</strong>
                 <p>Your bill has been settled. The receipt and payment details are available below.</p>
             }
+            else if (Model.IsFinalBillReady)
+            {
+                <strong>Final bill prepared</strong>
+                <p>Your final bill is ready for staff to verify and record onsite payment.</p>
+            }
             else if (booking.ReservationStatus == "Seated")
             {
                 <strong>Dining in progress</strong>
@@ -66,7 +71,7 @@ else if (Model.Booking is { } booking)
         <div class="celeste-bill-heading">
             <div>
                 <p class="eyebrow">CÉLESTE FINE DINING</p>
-                <h2>@(Model.IsPaid ? "Paid Final Bill" : booking.ReservationStatus == "Seated" ? "Live Running Bill" : "Current Bill Estimate")</h2>
+                <h2>@(Model.IsPaid ? "Paid Final Bill" : Model.IsFinalBillReady ? "Final Bill · Awaiting Payment" : booking.ReservationStatus == "Seated" ? "Live Running Bill" : "Current Bill Estimate")</h2>
                 <p class="muted">Reservation @booking.BookingReference · @booking.PartySize guests</p>
             </div>
             @if (Model.IsPaid)
@@ -78,9 +83,11 @@ else if (Model.Booking is { } booking)
         @if (!Model.IsPaid)
         {
             <p class="notice">
-                @(booking.ReservationStatus == "Seated"
-                    ? "This is a live estimate from your placed orders, including tax and deposit deductions. Staff verifies the final bill before taking payment."
-                    : "No final payment is due here. Your spending estimate begins when you check in and place dining orders.")
+                @(Model.IsFinalBillReady
+                    ? "Your final bill has been prepared and is awaiting onsite payment. The paid reservation deposit is already deducted."
+                    : booking.ReservationStatus == "Seated"
+                        ? "This is a live estimate from your placed orders, including tax and deposit deductions. Staff verifies the final bill before taking payment."
+                        : "No final payment is due here. Your spending estimate begins when you check in and place dining orders.")
             </p>
         }
 
@@ -96,23 +103,18 @@ else if (Model.Booking is { } booking)
                     <div class="table-wrap celeste-bill-lines">
                         <table>
                             <thead>
-                                <tr><th>Dish</th><th>Qty</th><th>Unit Price</th><th>Line Total</th></tr>
+                                <tr><th>Dish</th><th>Qty</th><th>Unit Price</th><th>Total Price</th></tr>
                             </thead>
                             <tbody>
-                            @foreach (var order in Model.Orders)
+                            @foreach (var dish in Model.Orders.SelectMany(o => o.Lines.Where(l => !l.IsCancelled))
+                                .GroupBy(l => new { l.ItemName, l.UnitPrice }).OrderBy(g => g.Key.ItemName))
                             {
-                                <tr class="celeste-bill-order-row">
-                                    <td colspan="4">Order @order.Reference <span class="celeste-bill-order-state">@order.Status</span></td>
+                                <tr>
+                                    <td>@dish.Key.ItemName</td>
+                                    <td>@dish.Sum(l => l.Quantity)</td>
+                                    <td>RM @dish.Key.UnitPrice.ToString("N2")</td>
+                                    <td>RM @dish.Sum(l => l.LineTotal).ToString("N2")</td>
                                 </tr>
-                                @foreach (var line in order.Lines.OrderBy(l => l.OrderLineID))
-                                {
-                                    <tr>
-                                        <td>@line.ItemName</td>
-                                        <td>@line.Quantity</td>
-                                        <td>RM @line.UnitPrice.ToString("N2")</td>
-                                        <td>RM @line.LineTotal.ToString("N2")</td>
-                                    </tr>
-                                }
                             }
                             </tbody>
                         </table>
@@ -120,7 +122,7 @@ else if (Model.Booking is { } booking)
                 }
             </div>
 
-            <aside class="celeste-bill-summary" id="bill-summary" aria-label="Estimated charges and payments">
+            <aside class="celeste-bill-summary" id="bill-summary" aria-label="Bill charges and payments">
                 <h3>Bill Summary</h3>
                 <dl>
                     <div><dt>Food &amp; Beverage Subtotal</dt><dd>RM @Model.FoodSubtotal.ToString("N2")</dd></div>

@@ -251,7 +251,7 @@ public class BillingService
             o.Lines.Count == 0 ||
             o.Subtotal < 0m || o.Tax < 0m ||
             o.Total != o.Subtotal + o.Tax ||
-            o.Subtotal != o.Lines.Sum(l => l.LineTotal) ||
+            o.Subtotal != o.Lines.Where(l => !l.IsCancelled).Sum(l => l.LineTotal) ||
             o.Lines.Any(l => l.Quantity <= 0 ||
                              l.UnitPrice < 0m ||
                              l.LineTotal != l.Quantity * l.UnitPrice)))

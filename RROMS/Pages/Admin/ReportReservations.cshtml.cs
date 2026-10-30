@@ -51,7 +51,7 @@ public class ReportReservationsModel : PageModel
             ? "All Reservations"
             : Status == "Seated"
                 ? "Checked In (Seated)"
-                : Status;
+                : Status == "Expired" ? "Unpaid Hold Expired" : Status;
 
     public async Task<IActionResult> OnGetAsync()
     {

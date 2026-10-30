@@ -1,12 +1,14 @@
 @page
-@* Staff dining-order queue with status updates. *@
+@* A reservation is one dining session; expand it to manage each kitchen round and individual dishes. *@
 @model RROMS.Pages.Staff.OrdersModel
 @{
     ViewData["Title"] = "Dining orders";
+    var sessions = Model.Orders.GroupBy(o => o.ReservationID)
+        .OrderByDescending(g => g.Max(o => o.CreatedAt)).ToList();
 }
 <p class="eyebrow">RESTAURANT OPERATIONS</p>
 <h1>Dining Orders</h1>
-<p>Only orders placed through a checked-in, Seated reservation are accepted. Status changes notify the customer. Served and completed orders flow into the reservation's bill.</p>
+<p>Every reservation appears once. Open View Details to follow the dishes and manage kitchen progress. Staff can cancel a dish before it is served; cancelled dishes are excluded from billing.</p>
 <p><a class="button secondary" asp-page="/Staff/Billing">Go to Billing &amp; Checkout</a></p>
 @if (TempData["Success"] is string ok)
 {
@@ -19,86 +21,139 @@
 <div class="staff-stats">
     <section class="card">
         <small>IN PROGRESS</small>
-        <h2>@Model.Orders.Count(o => OrdersModel.NextStatuses(o.Status).Length > 0)</h2>
-        <p>Orders still moving through the kitchen</p>
+        <h2>@Model.Orders.Where(o => o.Status is "Received" or "Preparing" or "Ready to Serve").Select(o => o.ReservationID).Distinct().Count()</h2>
+        <p>Reservations with unserved dishes</p>
     </section>
     <section class="card">
         <small>RECEIVED</small>
-        <h2>@Model.Orders.Count(o => o.Status == "Received")</h2>
-        <p>Waiting to be prepared</p>
+        <h2>@Model.Orders.Where(o => o.Status == "Received").Select(o => o.ReservationID).Distinct().Count()</h2>
+        <p>Reservations with new dishes</p>
     </section>
     <section class="card">
         <small>READY TO SERVE</small>
-        <h2>@Model.Orders.Count(o => o.Status == "Ready to Serve")</h2>
-        <p>Waiting at the pass</p>
+        <h2>@Model.Orders.Where(o => o.Status == "Ready to Serve").Select(o => o.ReservationID).Distinct().Count()</h2>
+        <p>Reservations ready for service</p>
     </section>
     <section class="card">
-        <small>COMPLETED</small>
-        <h2>@Model.Orders.Count(o => o.Status == "Completed")</h2>
-        <p>Among the latest 100 orders</p>
+        <small>DINING SESSIONS</small>
+        <h2>@sessions.Count</h2>
+        <p>Recently active reservations</p>
     </section>
 </div>
-<div class="table-wrap">
-    <table>
-        <thead>
-            <tr>
-                <th>Reference / customer</th>
-                <th>Reservation / table</th>
-                <th>Items &amp; requests</th>
-                <th>Placed</th>
-                <th>Total</th>
-                <th>Status</th>
-                <th>Update</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var o in Model.Orders)
-            {
-                <tr>
-                    <td>
-                        <strong>@o.Reference</strong><br />
-                        <small>@o.Customer.CustomerName · @o.Customer.Email</small>
-                    </td>
-                    <td>
-                        <a asp-page="/Staff/BillDetails" asp-route-id="@o.ReservationID">@o.Reservation.BookingReference</a><br />
-                        <small>Table @o.Reservation.TableID</small>
-                    </td>
-                    <td>
-                        @string.Join(", ", o.Lines.Select(l => $"{l.ItemName} ×{l.Quantity}"))
-                        @if (!string.IsNullOrWhiteSpace(o.Notes))
+
+@if (!sessions.Any())
+{
+    <section class="card empty-state">No dining orders yet.</section>
+}
+else
+{
+    <div class="staff-dining-sessions">
+        @foreach (var session in sessions)
+        {
+            var rounds = session.OrderBy(o => o.CreatedAt).ThenBy(o => o.OrderID).ToList();
+            var booking = rounds[0].Reservation;
+            var customer = rounds[0].Customer;
+            var isPaid = Model.PaidReservationIds.Contains(booking.ReservationID);
+
+            <section class="card staff-dining-session">
+                <div class="staff-session-header">
+                    <div>
+                        <p class="reference">RESERVATION · @booking.BookingReference</p>
+                        <h2>Table @booking.TableID · @customer.CustomerName</h2>
+                        <p class="staff-session-meta">
+                            @DiningOrderPresentation.ActiveItemCount(rounds) items ·
+                            @rounds.Count ordering round@(rounds.Count == 1 ? "" : "s")
+                            · @booking.ReservationDate.ToString("dd MMM yyyy")
+                        </p>
+                    </div>
+                    <div class="staff-session-summary">
+                        <span class="badge">@DiningOrderPresentation.Status(rounds)</span>
+                        <strong>RM @DiningOrderPresentation.Total(rounds).ToString("N2")</strong>
+                        <a asp-page="/Staff/BillDetails" asp-route-id="@booking.ReservationID">View Bill</a>
+                    </div>
+                </div>
+
+                <details class="staff-session-details">
+                    <summary>
+                        <strong>View Details</strong>
+                        <span>Items, kitchen status and dish cancellation</span>
+                    </summary>
+                    <div class="staff-session-details-body">
+                        @foreach (var o in rounds)
                         {
-                            <br /><small>Request: @o.Notes</small>
-                        }
-                    </td>
-                    <td>@o.CreatedAt.ToString("h:mm tt, dd MMM")</td>
-                    <td>RM @o.Total.ToString("0.00")</td>
-                    <td><span class="badge">@o.Status</span></td>
-                    <td>
-                        @{ var next = OrdersModel.NextStatuses(o.Status); }
-                        @if (next.Length == 0)
-                        {
-                            <small>Final</small>
-                        }
-                        else
-                        {
-                            <form method="post" asp-page-handler="UpdateOrder" class="order-update">
-                                <input type="hidden" name="orderId" value="@o.OrderID" />
-                                <select name="status" aria-label="New status for order @o.Reference">
-                                    @foreach (var s in next)
+                            <section class="staff-kitchen-round">
+                                <div class="staff-round-heading">
+                                    <div>
+                                        <p class="reference">ORDERED @o.CreatedAt.ToString("dd MMM, h:mm tt")</p>
+                                        <span class="badge">@o.Status</span>
+                                        <strong class="staff-round-total">RM @(o.Status == "Cancelled" ? "0.00" : o.Total.ToString("N2"))</strong>
+                                    </div>
+                                    @if (OrdersModel.NextStatuses(o.Status).Length > 0 && !isPaid)
                                     {
-                                        <option value="@s">@s</option>
+                                        <form method="post" asp-page-handler="UpdateOrder" class="order-update"
+                                              onsubmit="return this.elements['status'].value !== 'Cancelled' || confirm('Cancel all remaining dishes in this ordering round?');">
+                                            <input type="hidden" name="orderId" value="@o.OrderID" />
+                                            <label for="status-@o.OrderID">Update kitchen status</label>
+                                            <select id="status-@o.OrderID" name="status" aria-label="New status for dishes ordered @o.CreatedAt.ToString("h:mm tt")">
+                                                @foreach (var next in OrdersModel.NextStatuses(o.Status))
+                                                {
+                                                    <option value="@next">@next</option>
+                                                }
+                                            </select>
+                                            <button type="submit">Update</button>
+                                        </form>
                                     }
-                                </select>
-                                <button type="submit" class="quiet">Save</button>
-                            </form>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(o.Notes))
+                                {
+                                    <p class="order-notes">Special request: @o.Notes</p>
+                                }
+                                <div class="table-wrap">
+                                    <table class="order-detail-table staff-detail-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Dish</th>
+                                                <th>Qty</th>
+                                                <th>Unit Price</th>
+                                                <th>Total Price</th>
+                                                <th>Status</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        @foreach (var line in o.Lines.OrderBy(l => l.OrderLineID))
+                                        {
+                                            var cancelled = line.IsCancelled || o.Status == "Cancelled";
+                                            <tr class="@(cancelled ? "cancelled-line" : "")">
+                                                <td>@line.ItemName</td>
+                                                <td>@line.Quantity</td>
+                                                <td>RM @line.UnitPrice.ToString("N2")</td>
+                                                <td>@(cancelled ? "Excluded" : $"RM {line.LineTotal:N2}")</td>
+                                                <td><span class="@(cancelled ? "dish-cancelled" : "dish-active")">@(cancelled ? "Cancelled" : o.Status)</span></td>
+                                                <td>
+                                                    @if (!cancelled && OrdersModel.CanCancelDish(o.Status) && booking.ReservationStatus == "Seated" && !isPaid)
+                                                    {
+                                                        <form method="post" asp-page-handler="CancelDish" class="dish-cancel-form"
+                                                              onsubmit="return confirm('Cancel this dish and remove its cost from the bill?');">
+                                                            <input type="hidden" name="orderLineId" value="@line.OrderLineID" />
+                                                            <button type="submit" class="dish-cancel-button" aria-label="Cancel @line.Quantity × @line.ItemName">Cancel Dish</button>
+                                                        </form>
+                                                    }
+                                                    else
+                                                    {
+                                                        <small class="muted">@(cancelled ? "Cancelled" : "Unavailable")</small>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </section>
                         }
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-    @if (!Model.Orders.Any())
-    {
-        <p class="empty-state">No orders yet.</p>
-    }
-</div>
+                    </div>
+                </details>
+            </section>
+        }
+    </div>
+}

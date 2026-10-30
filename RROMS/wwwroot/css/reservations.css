@@ -2763,3 +2763,107 @@ td small
 .account-switch { border-top:1px solid #e8e1d5; padding-top:22px; margin-top:26px; }
 .account-compact { max-width:650px; margin:50px auto; padding:36px; }
 @media(max-width:760px) { .account-shell { grid-template-columns:1fr; margin:20px 16px 40px; } .account-photo { min-height:240px; padding:28px; } .account-panel { padding:28px 22px; } .account-compact { margin:25px 16px; padding:24px; } }
+
+
+/* Report filter fields: labels above equal-width inputs, with one full-width action. */
+.staff-workspace form.staff-search.report-reservation-filters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px 24px;
+    align-items: end;
+    margin: 22px 0 12px;
+}
+.staff-workspace .report-reservation-filters .report-filter-field {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 0;
+}
+.staff-workspace .report-reservation-filters .report-filter-field label {
+    display: block;
+    width: auto;
+    margin: 0 0 8px;
+    color: var(--ink);
+    font-size: 12px;
+    font-weight: 500;
+}
+.staff-workspace .report-reservation-filters .report-filter-field input,
+.staff-workspace .report-reservation-filters .report-filter-field select {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: 52px;
+    min-height: 52px;
+    margin: 0;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--white);
+    color: var(--ink);
+    box-sizing: border-box;
+}
+.staff-workspace .report-reservation-filters .report-filter-field .ts-wrapper {
+    display: block;
+    width: 100%;
+    min-width: 0;
+}
+.staff-workspace .report-reservation-filters .report-filter-field .ts-control {
+    display: flex;
+    align-items: center;
+    min-height: 52px;
+    height: 52px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--white);
+}
+.staff-workspace .report-reservation-filters .report-filter-apply {
+    grid-column: 1 / -1;
+    display: block;
+    width: 100%;
+    min-height: 54px;
+    margin: 2px 0 0;
+    border-radius: 4px;
+}
+.report-status-note {
+    margin: 18px 0 0;
+    padding: 12px 15px;
+    border-left: 3px solid var(--gold);
+    background: var(--paper);
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.75;
+}
+.report-status-note strong { color: var(--ink); font-weight: 600; }
+
+/* Accessible compact icons in the customer navigation. */
+.site-header nav > a.nav-icon-link {
+    display: inline-flex;
+    flex: 0 0 38px;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border: 1px solid transparent;
+    border-radius: 50%;
+    transition: background .15s ease, border-color .15s ease;
+}
+.site-header nav > a.nav-icon-link svg {
+    width: 19px;
+    height: 19px;
+    display: block;
+}
+.site-header nav > a.nav-icon-link:hover,
+.site-header nav > a.nav-icon-link:focus-visible {
+    border-color: var(--line);
+    background: var(--paper);
+}
+.site-header nav > a.nav-icon-link.active {
+    background: #F1EEE6;
+}
+@media (max-width: 800px) {
+    .staff-workspace form.staff-search.report-reservation-filters {
+        grid-template-columns: 1fr;
+    }
+    .guest-view .site-header nav > a.nav-icon-link { display: inline-flex; }
+}
