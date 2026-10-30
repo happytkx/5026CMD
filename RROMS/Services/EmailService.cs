@@ -15,6 +15,8 @@ public class EmailService(IOptions<EmailOptions> settings) : IEmailSender
     public async Task SendAsync(string recipient, string subject, string body, string messageId, CancellationToken cancellationToken)
     {
         var o = settings.Value;
+        if (recipient.EndsWith(".test", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Email delivery to fictional test addresses is disabled.");
         if (!o.Enabled || string.IsNullOrWhiteSpace(o.Host) || string.IsNullOrWhiteSpace(o.SenderAddress))
             throw new InvalidOperationException("Email sender is not configured.");
         var message = new MimeMessage { Subject = subject, MessageId = messageId };

@@ -17,6 +17,7 @@ namespace RROMS.Data
         {
             get; set;
         }
+        public DbSet<StaffAccount> StaffAccounts { get; set; }
 
         public DbSet<DiningArea> DiningAreas
         {
@@ -95,6 +96,9 @@ namespace RROMS.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<Customer>().HasIndex(c => c.NormalizedEmail).IsUnique().HasFilter("[NormalizedEmail] IS NOT NULL");
+            modelBuilder.Entity<StaffAccount>().HasIndex(s => s.NormalizedEmail).IsUnique()
+                .HasFilter("[NormalizedEmail] IS NOT NULL");
             modelBuilder.Entity<ReservationEmail>().HasIndex(e => e.EventKey).IsUnique();
             modelBuilder.Entity<ReservationEmail>().HasIndex(e => new { e.Status, e.DueAt });
             modelBuilder.Entity<Reservation>().Property(r => r.BookingReference).HasMaxLength(40);

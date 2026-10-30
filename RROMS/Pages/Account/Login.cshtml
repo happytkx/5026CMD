@@ -7,7 +7,8 @@
 <section class="account-heading">
     <p class="eyebrow">YOUR CÉLESTE ACCOUNT</p>
     <h1>Sign in</h1>
-    <p>Welcome back. Sign in to manage reservations, order from the menu and follow your orders.</p>
+    <p>Welcome back. Customers and staff can sign in here using their account email and password.</p>
+    <p><a asp-page="ForgotPassword">Forgot your password?</a></p>
 </section>
 <section class="card auth-card">
     <form method="post">
@@ -20,5 +21,5 @@
         <label class="check"><input asp-for="RememberMe" /> Keep me signed in on this device</label>
         <button type="submit" class="wide-button">Sign in</button>
     </form>
-    <p class="muted">New to Céleste? <a asp-page="Register" asp-route-ReturnUrl="@Model.ReturnUrl">Create an account</a></p>
+    <p class="muted">New to Céleste? <a asp-page="Register" asp-route-ReturnUrl="@Model.ReturnUrl">Create a customer account</a></p>
 </section>

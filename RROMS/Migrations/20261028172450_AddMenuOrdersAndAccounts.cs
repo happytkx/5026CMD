@@ -25,12 +25,8 @@ namespace RROMS.Migrations
                 nullable: false,
                 defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified));
 
-            migrationBuilder.AddColumn<int>(
-                name: "FailedLoginCount",
-                table: "Customers",
-                type: "int",
-                nullable: false,
-                defaultValue: 0);
+            // Both branches added this field; preserve either existing schema.
+            migrationBuilder.Sql("IF COL_LENGTH('dbo.Customers', 'FailedLoginCount') IS NULL ALTER TABLE [Customers] ADD [FailedLoginCount] int NOT NULL DEFAULT 0;");
 
             migrationBuilder.AddColumn<DateTime>(
                 name: "LockoutEnd",
@@ -38,12 +34,8 @@ namespace RROMS.Migrations
                 type: "datetime2",
                 nullable: true);
 
-            migrationBuilder.AddColumn<string>(
-                name: "PasswordHash",
-                table: "Customers",
-                type: "nvarchar(256)",
-                maxLength: 256,
-                nullable: true);
+            // Both branches added this field; preserve either existing schema.
+            migrationBuilder.Sql("IF COL_LENGTH('dbo.Customers', 'PasswordHash') IS NULL ALTER TABLE [Customers] ADD [PasswordHash] nvarchar(256) NULL;");
 
             migrationBuilder.AddColumn<string>(
                 name: "Role",
@@ -52,6 +44,8 @@ namespace RROMS.Migrations
                 maxLength: 30,
                 nullable: false,
                 defaultValue: "Customer");
+
+            migrationBuilder.Sql("ALTER TABLE [Customers] ALTER COLUMN [PasswordHash] nvarchar(256) NULL;");
 
             migrationBuilder.CreateTable(
                 name: "Announcements",

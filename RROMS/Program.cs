@@ -5,23 +5,40 @@ using RROMS.Models;
 using RROMS.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorPages();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
-        options.LoginPath = "/Account/Login";
-        options.AccessDeniedPath = "/AccessDenied";
+    .AddCookie(options => {
+        options.LoginPath = "/Account/Login"; options.AccessDeniedPath = "/Account/Denied";
+        options.Cookie.HttpOnly = true; options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.ExpireTimeSpan = TimeSpan.FromHours(8); options.SlidingExpiration = true;
+        options.EventsType = typeof(CustomerCookieEvents);
     });
+
+builder.Services.AddScoped<IPasswordHasher<Customer>, PasswordHasher<Customer>>();
+builder.Services.AddScoped<CustomerAccountService>();
+builder.Services.AddScoped<IPasswordHasher<StaffAccount>, PasswordHasher<StaffAccount>>();
+builder.Services.AddScoped<StaffAccountService>();
+builder.Services.AddScoped<CustomerCookieEvents>();
+builder.Services.AddRateLimiter(options => {
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("accounts", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 15, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+    options.AddPolicy("staff-accounts", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 15, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+});
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("Customer", p => p.RequireRole("Customer"));
     options.AddPolicy("Staff", p => p.RequireRole("Restaurant Staff", "Staff", "Administrator"));
     options.AddPolicy("Admin", p => p.RequireRole("Administrator"));
 });
-builder.Services.AddSingleton<IPasswordHasher<Customer>, PasswordHasher<Customer>>();
 builder.Services.AddScoped<ReservationOrderBillingSource, OrderBillingSource>();
 builder.Services.AddScoped<OrderBillingIntegrationService>();
 builder.Services.AddScoped<TableAllocationService>();
@@ -35,10 +52,9 @@ builder.Services.AddScoped<ReservationEmailService>();
 builder.Services.AddHostedService<ReservationEmailWorker>();
 builder.Services.AddHostedService<ReservationExpiryWorker>();
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-    ));
+var databaseConnection = await DevelopmentLocalDb.Resolve(
+    builder.Configuration.GetConnectionString("DefaultConnection"), builder.Environment.IsDevelopment());
+builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(databaseConnection));
 
 // Session holds each signed-in customer's menu basket until the order is placed.
 builder.Services.AddDistributedMemoryCache();
@@ -58,6 +74,8 @@ using (var scope = app.Services.CreateScope())
         .GetRequiredService<ApplicationDbContext>();
 
     DbInitializer.Initialize(context, app.Environment.IsDevelopment());
+    if (app.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("DemoData:Enabled"))
+        await DevelopmentDataSeeder.Seed(context, builder.Configuration);
 }
 
 if (!app.Environment.IsDevelopment())
@@ -71,6 +89,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+app.UseRateLimiter();
 
 app.UseSession();
 

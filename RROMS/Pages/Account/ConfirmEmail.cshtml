@@ -1,0 +1,8 @@
+@page
+@model RROMS.Pages.Account.ConfirmEmailModel
+@{ ViewData["Title"] = "Email confirmation"; }
+<section class="account-compact card">
+    <h1>@(Model.Confirmed ? "Your email is verified" : "This link is unavailable")</h1>
+    <p>@(Model.Confirmed ? "Thank you. You can now sign in and make a reservation." : "The link may have expired, already been used or been replaced by a newer link.")</p>
+    <a class="button" asp-page="@(Model.Confirmed ? "Login" : "VerifyEmail")">@(Model.Confirmed ? "Sign in" : "Request a new link")</a>
+</section>

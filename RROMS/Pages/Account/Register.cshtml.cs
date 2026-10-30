@@ -1,4 +1,4 @@
-// Customer self-registration: creates a Customer account with a hashed password and signs the new customer in.
+// Customer self-registration: creates a Customer account with a hashed password and requests email confirmation.
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +10,7 @@ using RROMS.Services;
 
 namespace RROMS.Pages.Account;
 
-public class RegisterModel(ApplicationDbContext db, IPasswordHasher<Customer> hasher) : PageModel
+public class RegisterModel(CustomerAccountService accounts) : PageModel
 {
     [BindProperty, Required, StringLength(100)]
     public string FullName { get; set; } = "";
@@ -37,23 +37,17 @@ public class RegisterModel(ApplicationDbContext db, IPasswordHasher<Customer> ha
     {
         foreach (var problem in CustomerAuth.PasswordProblems(Password))
             ModelState.AddModelError(nameof(Password), problem);
-        var email = Email?.Trim() ?? "";
-        if (ModelState.IsValid && await db.Customers.AnyAsync(c => c.Email == email))
-            ModelState.AddModelError(nameof(Email), "An account with this email already exists.");
-        if (!ModelState.IsValid)
-            return Page();
-        var customer = new Customer
+        if (!ModelState.IsValid) return Page();
+        try
         {
-            CustomerName = FullName.Trim(),
-            Email = email,
-            PhoneNo = PhoneNo?.Trim() ?? "",
-            Role = Customer.CustomerRole,
-            CreatedAt = ReservationPolicy.Now
-        };
-        customer.PasswordHash = hasher.HashPassword(customer, Password);
-        db.Customers.Add(customer);
-        await db.SaveChangesAsync();
-        await CustomerAuth.SignInAsync(HttpContext, customer);
-        return Url.IsLocalUrl(ReturnUrl) ? LocalRedirect(ReturnUrl!) : RedirectToPage("/Reservations/Index");
+            var customer = await accounts.Register(FullName, Email, PhoneNo ?? "", Password);
+            await accounts.SendVerification(customer, HttpContext.RequestAborted);
+            return RedirectToPage("VerifyEmail", new { email = customer.Email });
+        }
+        catch (InvalidOperationException ex)
+        {
+            ModelState.AddModelError("", ex.Message);
+            return Page();
+        }
     }
 }

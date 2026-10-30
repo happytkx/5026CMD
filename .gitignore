@@ -402,13 +402,10 @@ ASALocalRun/
 
 # MSBuild Binary and Structured Log
 *.binlog
-<<<<<<< HEAD
-=======
 MSBuild_Logs/
 
 # AWS SAM Build and Temporary Artifacts folder
 .aws-sam
->>>>>>> 0c249c655735e80d4f890fb8bf5e7b63498b2a9f
 
 # NVidia Nsight GPU debugger configuration file
 *.nvuser
@@ -462,3 +459,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Local integration tools and verification output
+/report-work/

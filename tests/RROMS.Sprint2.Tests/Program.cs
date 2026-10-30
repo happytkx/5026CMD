@@ -1,6 +1,7 @@
 // Console verification runner: checks policy boundaries and, with --integration, creates an isolated temporary SQL database to verify migrations and workflows. SMTP uses a fake sender.
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using RROMS.Data;
 using RROMS.Models;
 using RROMS.Services;
@@ -22,7 +23,30 @@ async Task Reject(Func<Task> operation, string name)
     catch (InvalidOperationException) { Check(true, name); return; }
     throw new Exception("FAIL: expected rejection: " + name);
 }
+// Reservation details must use the same staff-role hierarchy as the application's Staff policy.
+foreach (var role in new[] { "Administrator", "Restaurant Staff", "Staff", "Customer" })
+{
+ var details = new RROMS.Pages.Reservations.DetailsModel(null!, null!, null!, new ConfigurationBuilder().Build());
+ details.PageContext = new Microsoft.AspNetCore.Mvc.RazorPages.PageContext {
+  HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext { User = new System.Security.Claims.ClaimsPrincipal(
+   new System.Security.Claims.ClaimsIdentity(new[] { new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, role) }, "Test")) }
+ };
+ Check(details.IsStaff == (role != "Customer"), role + " reservation management access");
+}
 var now = ReservationPolicy.Now;
+foreach (var area in new[] { "Indoor", "Outdoor", "VIP Room" }) {
+ var hours = area == "VIP Room" ? 24 : 2;
+ Check(ReservationPolicy.MeetsAdvance(area, now.AddHours(hours), now), area + " exact advance boundary allowed");
+ Check(!ReservationPolicy.MeetsAdvance(area, now.AddHours(hours).AddTicks(-1), now), area + " below advance boundary rejected");
+ Check(ReservationPolicy.MeetsAdvance(area, now.AddHours(hours).AddTicks(1), now), area + " above advance boundary allowed");
+}
+SimulatedDeposit.Validate("TNG", "0123456789", null, null, null, null, null);
+SimulatedDeposit.Validate("Card", null, "Demo Guest", "4242424242424242", "12/30", "123", null);
+SimulatedDeposit.Validate("Bank Transfer", null, null, null, null, null, "DEMO-123");
+await Reject(() => { SimulatedDeposit.Validate("Card", null, "Demo", "1111111111111111", "12/30", "123", null); return Task.CompletedTask; }, "Non-demo card rejected");
+await Reject(() => { SimulatedDeposit.Validate("Bank Transfer", null, null, null, null, null, ""); return Task.CompletedTask; }, "Missing bank reference rejected");
+await Reject(() => { SimulatedDeposit.Validate("TNG", "", null, null, null, null, null); return Task.CompletedTask; }, "Missing TNG phone rejected");
+
 Check(ReservationPolicy.Areas(1).SequenceEqual(new[] { "Indoor", "Outdoor" }), "1 guest area filter");
 Check(ReservationPolicy.Areas(3).Length == 2 && ReservationPolicy.Areas(4).Length == 2 && ReservationPolicy.Areas(5).Length == 2 && ReservationPolicy.Areas(6).Length == 3 && ReservationPolicy.Areas(8).Length == 3, "3/4/5/6/8 guest boundaries");
 Check(ReservationPolicy.Areas(9).SequenceEqual(new[] { "VIP Room" }) && ReservationPolicy.Areas(12).Length == 1, "9–12 VIP only");
@@ -44,7 +68,9 @@ Check(ReservationPolicy.End(start, "Indoor", TimeSpan.FromHours(22)) == start.Ad
 Check(ReservationPolicy.End(start, "VIP Room", TimeSpan.FromHours(22)) == start.Date.AddHours(22), "VIP ends at closing");
 Check(!ReservationPolicy.Overlaps(start, start.AddHours(2), start.AddHours(2), start.AddHours(4)), "Adjacent bookings allowed");
 Check(ReservationPolicy.Overlaps(start, start.AddHours(2), start.AddMinutes(119), start.AddHours(4)), "Partial overlap rejected");
-Check(ReservationPolicy.CanModify(now.AddHours(168), 0, now) && !ReservationPolicy.CanModify(now.AddHours(168).AddTicks(-1), 0, now), "Exact 168-hour boundary");
+Check(ReservationPolicy.CanModify(now.AddHours(168).AddTicks(1), 0, now), "Modification allowed outside the final 168 hours");
+Check(!ReservationPolicy.CanModify(now.AddHours(168), 0, now), "Modification blocked at exactly 168 hours");
+Check(!ReservationPolicy.CanModify(now.AddHours(168).AddTicks(-1), 0, now), "Modification blocked inside the final 168 hours");
 Check(!ReservationPolicy.CanModify(now.AddDays(20), 1, now), "Second modification rejected");
 Check(ReservationPolicy.IsExpired(now.AddMinutes(-10), false, now) && !ReservationPolicy.IsExpired(now.AddMinutes(-10), true, now), "Normal 10-minute expiry");
 Check(ReservationPolicy.IsExpired(now.AddMinutes(-30), true, now), "Notified 30-minute expiry");
@@ -81,7 +107,7 @@ try
     await service.Change(booking.ReservationID, customer.CustomerID, false, "Pay");
     Check(booking.ReservationStatus == "Confirmed" && booking.DepositStatus == "Paid", "Successful simulated deposit confirms booking");
     Check(await db.ReservationEmails.CountAsync() == 1, "Successful deposit atomically queues one confirmation email");
-    Check(await db.Payments.AnyAsync(p => p.ReservationID == booking.ReservationID && p.PaymentStatus == "Paid" && p.PaymentMethod == "Simulation" && p.PaymentReference.StartsWith("SIM-")), "Simulated payment receipt stores method and reference");
+    Check(await db.Payments.AnyAsync(p => p.ReservationID == booking.ReservationID && p.PaymentStatus == "Paid" && p.PaymentMethod == "Card" && p.PaymentReference.StartsWith("SIM-")), "Deposit receipt stores configured method and reference");
     await Reject(() => service.Change(booking.ReservationID, customer.CustomerID, false, "Pay"), "Duplicate successful payment rejected");
     Check(await db.Payments.CountAsync() == 2, "Duplicate payment adds no record");
     await Reject(() => service.Change(booking.ReservationID, customer.CustomerID, false, "CheckIn"), "Customer cannot check in themselves");
@@ -210,6 +236,249 @@ try
         "Staff exception succeeds and records reason");
     Check(!(await allocation.Available(1, "Indoor", capacityStart, capacityStart.AddHours(2), allowLargerTable: true)).Any(t => t.TableID == "TEST-LARGE"),
         "Capacity exception still excludes conflicting tables");
+    var accountSender = new FakeEmailSender();
+    var accountConfig = new Microsoft.Extensions.Configuration.ConfigurationBuilder().AddInMemoryCollection(
+        new Dictionary<string, string?> { ["Accounts:PublicBaseUrl"] = "https://localhost:7096" }).Build();
+    var accounts = new CustomerAccountService(db, new Microsoft.AspNetCore.Identity.PasswordHasher<Customer>(), accountSender,
+        accountConfig, Microsoft.Extensions.Logging.Abstractions.NullLogger<CustomerAccountService>.Instance);
+    const string accountPassword = "A-test-passphrase-2026";
+    var registered = await accounts.Register("Registered Customer", "New.Account@example.test", "0123456789", accountPassword);
+    Check(registered.CustomerID > 0 && registered.PasswordHash != accountPassword && registered.NormalizedEmail == "NEW.ACCOUNT@EXAMPLE.TEST",
+        "Registration creates reservation-compatible customer with hashed password and normalized email");
+    await Reject(() => accounts.Register("Duplicate", "new.account@EXAMPLE.test", "000", accountPassword), "Case-insensitive duplicate registration rejected");
+    await Reject(() => accounts.Register("Legacy takeover", customer.Email, "000", accountPassword), "Signup cannot take over existing reservation customer");
+    Check(await accounts.Authenticate(registered.Email, accountPassword) == null, "Unverified account cannot log in");
+    Check(await accounts.SendVerification(registered, CancellationToken.None), "Verification email sent through fake transport");
+    var confirmationUrl = new Uri(accountSender.Bodies.Last().Split('\n').Single(line => line.StartsWith("https://")));
+    var confirmationQuery = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(confirmationUrl.Query);
+    var accountToken = confirmationQuery["token"].ToString();
+    Check(registered.VerificationTokenHash != accountToken && accountToken.Length == 64 && confirmationUrl.Host == "localhost",
+        "Verification stores token hash and uses configured origin");
+    Check(!await accounts.SendVerification(registered, CancellationToken.None), "Verification resend has cooldown");
+    Check(!await accounts.Confirm(registered.CustomerID, "invalid"), "Malformed verification token rejected");
+    registered.VerificationExpiresUtc = DateTime.UtcNow.AddMinutes(-1); await db.SaveChangesAsync();
+    Check(!await accounts.Confirm(registered.CustomerID, accountToken), "Expired verification link rejected");
+    registered.VerificationSentUtc = DateTime.UtcNow.AddMinutes(-2);
+    await db.SaveChangesAsync(); await accounts.SendVerification(registered, CancellationToken.None);
+    confirmationUrl = new Uri(accountSender.Bodies.Last().Split('\n').Single(line => line.StartsWith("https://")));
+    var replacementToken = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(confirmationUrl.Query)["token"].ToString();
+    Check(!await accounts.Confirm(registered.CustomerID, accountToken), "Resending invalidates previous verification token");
+    Check(await accounts.Confirm(registered.CustomerID, replacementToken), "Valid verification confirms customer email");
+    Check(!await accounts.Confirm(registered.CustomerID, replacementToken), "Verification link is single-use");
+    db.ChangeTracker.Clear();
+    Check(await accounts.Authenticate("new.account@EXAMPLE.test", accountPassword) != null, "Confirmed account signs in case-insensitively");
+    for (var attempt = 0; attempt < 5; attempt++) await accounts.Authenticate(registered.Email, "IncorrectPassword");
+    Check(await accounts.Authenticate(registered.Email, accountPassword) == null, "Repeated failed passwords lock the account temporarily");
+    var lockedCustomer = await db.Customers.SingleAsync(c => c.CustomerID == registered.CustomerID);
+    lockedCustomer.LockedUntilUtc = DateTime.UtcNow.AddMinutes(-1); await db.SaveChangesAsync();
+    Check(await accounts.Authenticate(registered.Email, accountPassword) != null, "Correct password works after lockout expires");
+    var registeredBooking = await service.Create(registered.CustomerID, 2, "Indoor", start.AddDays(90), "Account integration test");
+    Check(registeredBooking.CustomerID == registered.CustomerID, "New account can own a reservation without changing existing records");
+    var resetAccount = await accounts.Register("Reset Customer", "reset-check@example.test", "0123456789", accountPassword);
+    resetAccount.EmailConfirmed = true; await db.SaveChangesAsync();
+    Check(!await accounts.SendPasswordReset("unknown@example.test", CancellationToken.None)
+        && !await accounts.SendPasswordReset(customer.Email, CancellationToken.None), "Reset does not claim unknown or legacy accounts");
+    Check(await accounts.SendPasswordReset(resetAccount.Email, CancellationToken.None), "Verified account receives password reset link through fake sender");
+    string LastResetToken() => Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(new Uri(accountSender.Bodies.Last()
+        .Split('\n').Single(line => line.StartsWith("https://"))).Query)["token"].ToString();
+    var oldResetToken = LastResetToken();
+    Check(resetAccount.PasswordResetTokenHash != oldResetToken && oldResetToken.Length == 64, "Password reset stores only a cryptographic token hash");
+    Check(!await accounts.SendPasswordReset(resetAccount.Email, CancellationToken.None), "Password reset requests have resend cooldown");
+    Check(!await accounts.CanResetPassword(resetAccount.CustomerID, "bad-token")
+        && !await accounts.CanResetPassword(registered.CustomerID, oldResetToken), "Invalid and cross-account reset tokens rejected");
+    resetAccount.PasswordResetExpiresUtc = DateTime.UtcNow.AddMinutes(-1); await db.SaveChangesAsync();
+    Check(!await accounts.ResetPassword(resetAccount.CustomerID, oldResetToken, "New-test-passphrase-2026"), "Expired reset token cannot change password");
+    resetAccount.PasswordResetSentUtc = DateTime.UtcNow.AddMinutes(-2); await db.SaveChangesAsync();
+    await accounts.SendPasswordReset(resetAccount.Email, CancellationToken.None);
+    var newResetToken = LastResetToken();
+    Check(!await accounts.CanResetPassword(resetAccount.CustomerID, oldResetToken), "New reset request invalidates previous reset link");
+    Check(!await accounts.ResetPassword(resetAccount.CustomerID, newResetToken, "short"), "Reset enforces password length on server");
+    Check(await accounts.ResetPassword(resetAccount.CustomerID, newResetToken, "New-test-passphrase-2026"), "Valid reset replaces password");
+    Check(!await accounts.ResetPassword(resetAccount.CustomerID, newResetToken, accountPassword), "Password reset link cannot be reused");
+    db.ChangeTracker.Clear();
+    Check(await accounts.Authenticate(resetAccount.Email, accountPassword) == null
+        && await accounts.Authenticate(resetAccount.Email, "New-test-passphrase-2026") != null, "Only new password signs in after reset");
+    Check(await db.Customers.AnyAsync(c => c.CustomerID == resetAccount.CustomerID && c.SessionVersion == 1 && c.PasswordResetTokenHash == null),
+        "Reset consumes token and increments cookie session version");
+    // Exercise the actual Razor endpoints and cookie/antiforgery integration against this test database.
+    var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+    listener.Start(); var webPort = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port; listener.Stop();
+    var startInfo = new System.Diagnostics.ProcessStartInfo("dotnet") { UseShellExecute = false };
+    foreach (var argument in new[] { typeof(ReservationService).Assembly.Location, "--contentRoot", Path.GetFullPath("RROMS"),
+        "--urls", $"https://localhost:{webPort}", "--ConnectionStrings:DefaultConnection", connection,
+        "--Email:Enabled", "false", "--DemoData:Enabled", "false", "--Logging:LogLevel:Default", "Critical" }) startInfo.ArgumentList.Add(argument);
+    startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
+    using var webServer = System.Diagnostics.Process.Start(startInfo)!;
+    try
+    {
+        using var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, CookieContainer = new System.Net.CookieContainer() })
+            { BaseAddress = new Uri($"https://localhost:{webPort}"), Timeout = TimeSpan.FromSeconds(10) };
+        HttpResponseMessage? loginResponse = null;
+        for (var retry = 0; retry < 40; retry++)
+        {
+            try { loginResponse = await http.GetAsync("/Account/Login"); break; }
+            catch (HttpRequestException) { if (webServer.HasExited) throw; await Task.Delay(250); }
+        }
+        Check(loginResponse?.StatusCode == System.Net.HttpStatusCode.OK, "Login Razor page starts over HTTPS");
+        var loginHtml = await loginResponse!.Content.ReadAsStringAsync();
+        string Antiforgery(string html) => System.Net.WebUtility.HtmlDecode(System.Text.RegularExpressions.Regex.Match(html,
+            "name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value);
+        var registerPage = await http.GetAsync("/Account/Register");
+        var registerHtml = await registerPage.Content.ReadAsStringAsync();
+        Check(registerPage.IsSuccessStatusCode && registerHtml.Contains("FullName"), "Registration page renders fields and restaurant styling");
+        var invalidSignup = await http.PostAsync("/Account/Register", new FormUrlEncodedContent(new Dictionary<string, string> {
+            ["FullName"] = "Web Customer", ["Email"] = "http-account@example.test", ["PhoneNo"] = "0123456789",
+            ["Password"] = accountPassword, ["ConfirmPassword"] = "Different password",
+            ["__RequestVerificationToken"] = Antiforgery(registerHtml) }));
+        Check(invalidSignup.IsSuccessStatusCode && !await db.Customers.AnyAsync(c => c.Email == "http-account@example.test"),
+            "Registration rejects mismatched passwords without creating account");
+        registerHtml = await (await http.GetAsync("/Account/Register")).Content.ReadAsStringAsync();
+        var signup = await http.PostAsync("/Account/Register", new FormUrlEncodedContent(new Dictionary<string, string> {
+            ["FullName"] = "Web Customer", ["Email"] = "http-account@example.test", ["PhoneNo"] = "0123456789",
+            ["Password"] = accountPassword, ["ConfirmPassword"] = accountPassword,
+            ["__RequestVerificationToken"] = Antiforgery(registerHtml) }));
+        Check(signup.StatusCode == System.Net.HttpStatusCode.Redirect && signup.Headers.Location!.ToString().Contains("VerifyEmail")
+            && await db.Customers.AnyAsync(c => c.Email == "http-account@example.test" && !c.EmailConfirmed),
+            "Signup saves unverified account and provides recovery when SMTP is disabled");
+        Check((await http.GetAsync("/css/reservations.css")).IsSuccessStatusCode && (await http.GetAsync("/images/celeste-indoor.jpg")).IsSuccessStatusCode,
+            "Account stylesheet and restaurant photograph load");
+        var protectedPage = await http.GetAsync("/Reservations/Index");
+        Check(protectedPage.StatusCode == System.Net.HttpStatusCode.Redirect && protectedPage.Headers.Location!.ToString().Contains("/Account/Login"),
+            "Unauthenticated reservations redirect to real login");
+        Check((await http.PostAsync("/Account/Login", new FormUrlEncodedContent(new Dictionary<string, string> {
+            ["Email"] = registered.Email, ["Password"] = accountPassword }))).StatusCode == System.Net.HttpStatusCode.BadRequest,
+            "Login submission without antiforgery token rejected");
+        var loginPost = await http.PostAsync("/Account/Login", new FormUrlEncodedContent(new Dictionary<string, string> {
+            ["Email"] = registered.Email, ["Password"] = accountPassword,
+            ["ReturnUrl"] = "https://example.test/untrusted", ["__RequestVerificationToken"] = Antiforgery(loginHtml) }));
+        Check(loginPost.StatusCode == System.Net.HttpStatusCode.Redirect && loginPost.Headers.Location!.ToString() == "/Reservations",
+            "Login issues customer cookie and rejects external return URL");
+        var ownList = await http.GetAsync("/Reservations/Index");
+        var ownHtml = await ownList.Content.ReadAsStringAsync();
+        Check(ownList.IsSuccessStatusCode && ownHtml.Contains(registeredBooking.BookingReference), "Authenticated customer sees own reservation");
+        Check((await http.GetAsync($"/Reservations/Details/{booking.ReservationID}")).StatusCode == System.Net.HttpStatusCode.NotFound,
+            "Customer cookie cannot access another customer's booking");
+        var staffPage = await http.GetAsync("/Staff");
+        Check(staffPage.StatusCode == System.Net.HttpStatusCode.Redirect && staffPage.Headers.Location!.ToString().Contains("/Account/Denied"),
+            "Public registration cannot grant staff access");
+        var forgotPage = await http.GetAsync("/Account/ForgotPassword");
+        var forgotHtml = await forgotPage.Content.ReadAsStringAsync();
+        Check(forgotPage.IsSuccessStatusCode && loginHtml.Contains("Forgot your password?"), "Forgot-password page and login link are available");
+        var unknownReset = await http.PostAsync("/Account/ForgotPassword", new FormUrlEncodedContent(new Dictionary<string, string> {
+            ["Email"] = "nobody@example.test", ["__RequestVerificationToken"] = Antiforgery(forgotHtml) }));
+        var knownReset = await http.PostAsync("/Account/ForgotPassword", new FormUrlEncodedContent(new Dictionary<string, string> {
+            ["Email"] = registered.Email, ["__RequestVerificationToken"] = Antiforgery(forgotHtml) }));
+        Check(unknownReset.IsSuccessStatusCode && knownReset.IsSuccessStatusCode
+            && (await unknownReset.Content.ReadAsStringAsync()).Contains("If this email belongs to a verified account")
+            && (await knownReset.Content.ReadAsStringAsync()).Contains("If this email belongs to a verified account"),
+            "Forgot-password response does not disclose whether an email is registered");
+        db.ChangeTracker.Clear();
+        await accounts.SendPasswordReset(registered.Email, CancellationToken.None);
+        var webResetToken = LastResetToken();
+        var resetPage = await http.GetAsync($"/Account/ResetPassword?id={registered.CustomerID}&token={webResetToken}");
+        var resetHtml = await resetPage.Content.ReadAsStringAsync();
+        Check(resetPage.IsSuccessStatusCode && resetHtml.Contains("Choose a new password")
+            && resetPage.Headers.CacheControl!.NoStore, "Valid reset page renders without caching");
+        var badReset = await http.PostAsync("/Account/ResetPassword", new FormUrlEncodedContent(new Dictionary<string, string> {
+            ["Id"] = registered.CustomerID.ToString(), ["Token"] = webResetToken,
+            ["Password"] = "Reset-through-form-2026", ["ConfirmPassword"] = "Mismatch-password",
+            ["__RequestVerificationToken"] = Antiforgery(resetHtml) }));
+        Check(badReset.IsSuccessStatusCode && await accounts.CanResetPassword(registered.CustomerID, webResetToken),
+            "Mismatched reset passwords do not consume valid link");
+        var validReset = await http.PostAsync("/Account/ResetPassword", new FormUrlEncodedContent(new Dictionary<string, string> {
+            ["Id"] = registered.CustomerID.ToString(), ["Token"] = webResetToken,
+            ["Password"] = "Reset-through-form-2026", ["ConfirmPassword"] = "Reset-through-form-2026",
+            ["__RequestVerificationToken"] = Antiforgery(resetHtml) }));
+        Check(validReset.StatusCode == System.Net.HttpStatusCode.Redirect && validReset.Headers.Location!.ToString().Contains("Login"),
+            "Successful password reset redirects to sign in");
+        Check((await http.GetAsync("/Reservations/Index")).StatusCode == System.Net.HttpStatusCode.Redirect,
+            "Password reset invalidates existing signed-in customer cookie");
+        loginHtml = await (await http.GetAsync("/Account/Login")).Content.ReadAsStringAsync();
+        var newPasswordLogin = await http.PostAsync("/Account/Login", new FormUrlEncodedContent(new Dictionary<string, string> {
+            ["Email"] = registered.Email, ["Password"] = "Reset-through-form-2026",
+            ["__RequestVerificationToken"] = Antiforgery(loginHtml) }));
+        Check(newPasswordLogin.StatusCode == System.Net.HttpStatusCode.Redirect, "Customer can sign in with reset password through login page");
+        // Verify the merged Sprint 3 workflow against a Sprint 2 reservation.
+        var menuResponse = await http.GetAsync("/Menu");
+        var menuHtml = await menuResponse.Content.ReadAsStringAsync();
+        Check(menuResponse.IsSuccessStatusCode, "Merged digital menu renders for reservation customer");
+        var menuItem = await db.MenuItems.FirstAsync(i => i.IsAvailable);
+        await http.PostAsync("/Menu?handler=Add", new FormUrlEncodedContent(new Dictionary<string, string> {
+            ["itemId"] = menuItem.MenuItemID.ToString(), ["__RequestVerificationToken"] = Antiforgery(menuHtml) }));
+        var checkoutHtml = await (await http.GetAsync("/Orders/Checkout")).Content.ReadAsStringAsync();
+        var beforeOrders = await db.Orders.CountAsync();
+        await http.PostAsync("/Orders/Checkout?handler=Place", new FormUrlEncodedContent(new Dictionary<string, string> {
+            ["ReservationId"] = registeredBooking.ReservationID.ToString(), ["__RequestVerificationToken"] = Antiforgery(checkoutHtml) }));
+        Check(await db.Orders.CountAsync() == beforeOrders, "Ordering before staff check-in is rejected");
+        await db.Reservations.Where(r => r.ReservationID == registeredBooking.ReservationID)
+            .ExecuteUpdateAsync(x => x.SetProperty(r => r.ReservationStatus, "Seated"));
+        checkoutHtml = await (await http.GetAsync("/Orders/Checkout")).Content.ReadAsStringAsync();
+        var placeOrder = await http.PostAsync("/Orders/Checkout?handler=Place", new FormUrlEncodedContent(new Dictionary<string, string> {
+            ["ReservationId"] = registeredBooking.ReservationID.ToString(), ["__RequestVerificationToken"] = Antiforgery(checkoutHtml) }));
+        Check(placeOrder.StatusCode == System.Net.HttpStatusCode.Redirect && await db.Orders.AnyAsync(o =>
+            o.ReservationID == registeredBooking.ReservationID && o.CustomerID == registered.CustomerID),
+            "Checked-in reservation can place a linked dine-in order");
+        Check((await http.GetAsync("/Orders")).IsSuccessStatusCode, "Customer order history renders after placing order");
+        using var staffHttp = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, CookieContainer = new System.Net.CookieContainer() })
+            { BaseAddress = http.BaseAddress };
+        var staffLoginHtml = await (await staffHttp.GetAsync("/Account/Login")).Content.ReadAsStringAsync();
+        var staffLogin = await staffHttp.PostAsync("/Account/Login", new FormUrlEncodedContent(new Dictionary<string, string> {
+            ["Email"] = "staff@celeste.local", ["Password"] = "Staff123!", ["__RequestVerificationToken"] = Antiforgery(staffLoginHtml) }));
+        Check(staffLogin.StatusCode == System.Net.HttpStatusCode.Redirect && (await staffHttp.GetAsync("/Staff")).IsSuccessStatusCode,
+            "Incoming staff account can sign in and view reservation dashboard");
+        Check((await staffHttp.GetAsync("/Staff/Orders")).IsSuccessStatusCode, "Staff can view the merged dine-in order queue");
+        Check((await staffHttp.GetAsync("/Admin")).StatusCode == System.Net.HttpStatusCode.Redirect, "Staff cannot access administrator dashboard");
+        ownHtml = await (await http.GetAsync("/Reservations/Index")).Content.ReadAsStringAsync();
+        var logout = await http.PostAsync("/Access?handler=Logout", new FormUrlEncodedContent(new Dictionary<string, string> {
+            ["__RequestVerificationToken"] = Antiforgery(ownHtml) }));
+        Check(logout.StatusCode == System.Net.HttpStatusCode.Redirect && (await http.GetAsync("/Reservations/Index")).StatusCode == System.Net.HttpStatusCode.Redirect,
+            "Logout clears the customer authentication cookie");
+
+        var staffAccount = new StaffAccount { StaffName = "Shared Login Staff", Email = "shared-staff@example.test",
+            NormalizedEmail = "SHARED-STAFF@EXAMPLE.TEST", IsActive = true };
+        staffAccount.PasswordHash = new Microsoft.AspNetCore.Identity.PasswordHasher<StaffAccount>().HashPassword(staffAccount, accountPassword);
+        db.StaffAccounts.Add(staffAccount);
+        await db.SaveChangesAsync();
+        var legacyLogin = await http.GetAsync("/Account/StaffLogin?ReturnUrl=%2FStaff");
+        Check(legacyLogin.StatusCode == System.Net.HttpStatusCode.Redirect &&
+            legacyLogin.Headers.Location!.ToString().Contains("/Account/Login") &&
+            legacyLogin.Headers.Location.ToString().Contains("ReturnUrl="), "Old staff sign-in redirects to shared login preserving return URL");
+        loginHtml = await (await http.GetAsync("/Account/Login")).Content.ReadAsStringAsync();
+        var invalidStaffLogin = await http.PostAsync("/Account/Login", new FormUrlEncodedContent(new Dictionary<string, string> {
+            ["Email"] = staffAccount.Email, ["Password"] = "Wrong-password",
+            ["__RequestVerificationToken"] = Antiforgery(loginHtml) }));
+        Check(invalidStaffLogin.IsSuccessStatusCode && (await invalidStaffLogin.Content.ReadAsStringAsync()).Contains("Invalid email or password."),
+            "Shared login rejects invalid staff credentials");
+        var sharedStaffLogin = await http.PostAsync("/Account/Login", new FormUrlEncodedContent(new Dictionary<string, string> {
+            ["Email"] = staffAccount.Email, ["Password"] = accountPassword, ["RememberMe"] = "true",
+            ["ReturnUrl"] = "https://example.test/untrusted", ["__RequestVerificationToken"] = Antiforgery(loginHtml) }));
+        Check(sharedStaffLogin.StatusCode == System.Net.HttpStatusCode.Redirect && sharedStaffLogin.Headers.Location!.ToString() == "/Staff",
+            "Shared login sends staff to dashboard and rejects external return URL");
+        Check(sharedStaffLogin.Headers.GetValues("Set-Cookie").Any(value => value.Contains("expires=", StringComparison.OrdinalIgnoreCase)),
+            "Shared login honors remember me for staff");
+        Check((await http.GetAsync("/Staff")).IsSuccessStatusCode, "Shared login issues a valid staff session");
+        Check((await http.GetAsync("/Admin")).StatusCode == System.Net.HttpStatusCode.Redirect,
+            "Staff sign-in does not grant administrator access");
+    }
+    finally { if (!webServer.HasExited) { webServer.Kill(entireProcessTree: true); await webServer.WaitForExitAsync(); } }
+    db.ChangeTracker.Clear();
+    await DevelopmentDataSeeder.Seed(db, new ConfigurationBuilder().Build());
+    var demoCustomers = await db.Customers.CountAsync(c => c.IsDemo);
+    var demoBookings = await db.Reservations.CountAsync(r => r.BookingReference.StartsWith("DEMO-RES-"));
+    Check(demoCustomers == 4 && demoBookings > 0 && await db.StaffAccounts.AnyAsync(s => s.IsDemo),
+        "Development seed creates fictional staff, customers and bookings");
+    var annualBookings = await db.Reservations.Include(r => r.Customer)
+        .Where(r => r.BookingReference.StartsWith("DEMO-RES-YEAR-")).ToListAsync();
+    Check(annualBookings.Select(r => r.ReservationDate.Month).Distinct().Count() == 12 &&
+        annualBookings.All(r => r.ReservationDate.Year == ReservationPolicy.Now.Year && r.Customer.IsDemo),
+        "Annual reservation samples cover every month and only demo customers");
+    Check(annualBookings.All(r => r.CreatedDate <= ReservationPolicy.Now) &&
+        annualBookings.Where(r => r.ReservationDate.Add(r.StartTime) > ReservationPolicy.Now).All(r => r.ReservationStatus == "Confirmed"),
+        "Annual bookings have valid creation dates and confirmed future visits");
+    await DevelopmentDataSeeder.Seed(db, new ConfigurationBuilder().Build());
+    Check(await db.Customers.CountAsync(c => c.IsDemo) == demoCustomers &&
+        await db.Reservations.CountAsync(r => r.BookingReference.StartsWith("DEMO-RES-")) == demoBookings,
+        "Repeated development seeding preserves existing records without duplicates");
     Console.WriteLine($"All {passed} checks passed against SQL Server.");
 }
 
