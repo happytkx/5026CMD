@@ -5,10 +5,11 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using RROMS.Data;
 using RROMS.Models;
+using RROMS.Services;
 
 namespace RROMS.Pages.Staff;
 
-[Authorize(Policy = "Staff")]
+[Authorize]
 public class PaymentReceiptModel : PageModel
 {
     private readonly ApplicationDbContext _db;
@@ -20,12 +21,16 @@ public class PaymentReceiptModel : PageModel
 
     public Payment? Payment { get; private set; }
 
+    public bool IsStaff => User.IsInRole("Restaurant Staff") || User.IsInRole("Staff") || User.IsInRole("Administrator");
+
     public async Task<IActionResult> OnGetAsync(int id)
     {
         if (id <= 0)
         {
             return NotFound();
         }
+
+        var customerId = ReservationIdentity.CustomerId(User);
 
         // Only successful, supported payment records
         // are eligible for a receipt.
@@ -35,6 +40,7 @@ public class PaymentReceiptModel : PageModel
                 .ThenInclude(r => r.Customer)
             .SingleOrDefaultAsync(p =>
                 p.PaymentID == id &&
+                (IsStaff || p.Reservation.CustomerID == customerId) &&
                 p.PaymentStatus == "Paid" &&
                 (p.PaymentType == "Deposit" ||
                  p.PaymentType == "DiningBill"));

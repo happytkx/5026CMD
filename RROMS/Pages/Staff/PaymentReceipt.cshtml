@@ -12,10 +12,14 @@
 
 <div class="receipt-actions">
     <p>
-        <a asp-page="/Staff/BillDetails"
-           asp-route-id="@booking.ReservationID">
-            Back to Bill Details
-        </a>
+        @if (Model.IsStaff)
+        {
+            <a asp-page="/Staff/BillDetails" asp-route-id="@booking.ReservationID">Back to Bill Details</a>
+        }
+        else
+        {
+            <a asp-page="/MyBill" asp-route-id="@booking.ReservationID">Back to My Bill</a>
+        }
     </p>
 
     <button type="button"

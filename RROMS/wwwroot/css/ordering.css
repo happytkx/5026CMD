@@ -648,3 +648,11 @@
 .celeste-payment-form select, .celeste-payment-form input { width: 100%; max-width: 480px; }
 .celeste-payment-form button { display: block; margin: 20px 0 10px; }
 .celeste-payment-form .muted { margin: 0; font-size: 12px; }
+
+/* Customer running bill */
+.mybill-selector { display: flex; flex-wrap: wrap; align-items: end; gap: 14px; margin-bottom: 24px; }
+.mybill-selector label { width: 100%; }
+.mybill-selector select { flex: 1 1 320px; max-width: 620px; }
+.mybill-selector button { margin: 0; }
+.celeste-customer-bill { margin-bottom: 28px; }
+.celeste-customer-bill .celeste-bill-heading { margin-bottom: 18px; }

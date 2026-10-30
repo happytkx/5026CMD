@@ -133,6 +133,9 @@
                     </a>
                     @if (User.IsInRole("Customer"))
                     {
+                        <a asp-page="/MyBill" class="@(currentPage == "/MyBill" ? "active" : "")">
+                            My bill
+                        </a>
                         <a asp-page="/Reservations/Index" class="@(currentPage == "/Reservations/Index" ? "active" : "")">
                             My reservations
                         </a>
