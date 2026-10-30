@@ -368,31 +368,32 @@
     transition: background-color .18s, border-color .18s, color .18s;
 }
 
+/* Destructive actions are outlined red; positive actions match the Publish button. */
 .menu-toggle-row button.quiet.danger
 {
-    background: #835444;
-    border-color: #835444;
-    color: #fff;
+    background: transparent;
+    border-color: #A04B4B;
+    color: #A04B4B;
 }
 
 .menu-toggle-row button.quiet.danger:hover
 {
-    background: #704738;
-    border-color: #704738;
-    color: #fff;
+    background: #FCF2F0;
+    border-color: #A04B4B;
+    color: #8A3434;
 }
 
 .menu-toggle-row button.quiet.secondary
 {
-    background: transparent;
+    background: var(--olive-deep);
     border-color: var(--olive-deep);
-    color: var(--olive-deep);
+    color: #fff;
 }
 
 .menu-toggle-row button.quiet.secondary:hover
 {
-    background: var(--olive-deep);
-    border-color: var(--olive-deep);
+    background: #54583D;
+    border-color: #54583D;
     color: #fff;
 }
 
