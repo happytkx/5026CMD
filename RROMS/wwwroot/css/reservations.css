@@ -2867,3 +2867,23 @@ td small
     }
     .guest-view .site-header nav > a.nav-icon-link { display: inline-flex; }
 }
+
+/* Customer navigation: identical olive hover feedback for text links and Sign out. */
+.guest-view .site-header nav > a:not(.button):not(.nav-icon-link) {
+    transition: color .16s ease;
+}
+.guest-view .site-header nav > a:not(.button):not(.nav-icon-link):hover,
+.guest-view .site-header nav > a:not(.button):not(.nav-icon-link):focus-visible,
+.guest-view .site-header nav > form.nav-signout .quiet:hover,
+.guest-view .site-header nav > form.nav-signout .quiet:focus-visible {
+    color: var(--olive-deep);
+}
+.guest-view .site-header nav > form.nav-signout {
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+.guest-view .site-header nav > form.nav-signout .quiet {
+    white-space: nowrap;
+    transition: color .16s ease;
+}

@@ -17,6 +17,8 @@ public class MyBillModel(ApplicationDbContext db) : PageModel
     public List<Payment> Payments { get; private set; } = [];
     public List<Reservation> MyReservations { get; private set; } = [];
 
+    public string ActiveTab { get; private set; } = "summary";
+
     public bool IsPaid => FinalBill?.BillStatus == "Paid";
     // The saved unpaid bill is final only while it matches all served dish totals.
     public bool IsFinalBillReady => !IsPaid && FinalBill?.BillStatus == "Draft" &&
@@ -35,8 +37,9 @@ public class MyBillModel(ApplicationDbContext db) : PageModel
     public decimal Outstanding => IsPaid ? 0m : Math.Max(0m, GrandTotal - DepositApplied);
     public decimal Shortfall => Math.Max(0m, (Booking?.MinimumSpend ?? 0m) - FoodSubtotal);
 
-    public async Task<IActionResult> OnGetAsync(int? id)
+    public async Task<IActionResult> OnGetAsync(int? id, string? tab)
     {
+        ActiveTab = string.Equals(tab, "payments", StringComparison.OrdinalIgnoreCase) ? "payments" : "summary";
         var customerId = ReservationIdentity.CustomerId(User);
         MyReservations = await db.Reservations.AsNoTracking()
             .Where(r => r.CustomerID == customerId)

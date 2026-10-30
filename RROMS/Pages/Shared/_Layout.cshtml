@@ -55,6 +55,9 @@
                         <a class="@(currentPage == "/Admin/PaymentCollections" ? "active" : "")" asp-page="/Admin/PaymentCollections">
                             Payment Collections
                         </a>
+                        <a class="@(currentPage == "/Admin/MenuManagement" ? "active" : "")" asp-page="/Admin/MenuManagement">
+                            Menu Management
+                        </a>
                         <a class="@(currentPage == "/Admin/Occupancy" ? "active" : "")" asp-page="/Admin/Occupancy">
                             Table Utilisation
                         </a>
@@ -134,9 +137,6 @@
                 }
                 else
                 {
-                    <a asp-page="/Reservations/Create" class="@(currentPage == "/Reservations/Create" ? "active" : "")">
-                        Reservation
-                    </a>
                     <a asp-page="/Menu" class="@(currentPage == "/Menu" ? "active" : "")">
                         Menu
                     </a>
@@ -179,7 +179,13 @@
                 }
                 @if (User.Identity?.IsAuthenticated == true)
                 {
-                    <form method="post" asp-page="/Account/Logout">
+                    @if (!staff)
+                    {
+                        <a class="button nav-book" asp-page="/Reservations/Create">
+                            Book a table
+                        </a>
+                    }
+                    <form method="post" asp-page="/Account/Logout" class="nav-signout">
                         <button class="quiet">Sign out</button>
                     </form>
                 }
@@ -191,12 +197,12 @@
                     <a asp-page="/Account/Register" class="@(currentPage == "/Account/Register" ? "active" : "")">
                         Join us
                     </a>
-                }
-                @if (!staff)
-                {
-                    <a class="button nav-book" asp-page="/Reservations/Create">
-                        Book a table
-                    </a>
+                    @if (!staff)
+                    {
+                        <a class="button nav-book" asp-page="/Reservations/Create">
+                            Book a table
+                        </a>
+                    }
                 }
             </nav>
         </header>

@@ -297,6 +297,27 @@ namespace RROMS.Migrations
                     b.ToTable("DiningAreas");
                 });
 
+            modelBuilder.Entity("RROMS.Models.MenuCategory", b =>
+                {
+                    b.Property<int>("MenuCategoryID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MenuCategoryID"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.HasKey("MenuCategoryID");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("MenuCategories");
+                });
+
             modelBuilder.Entity("RROMS.Models.MenuItem", b =>
                 {
                     b.Property<int>("MenuItemID")

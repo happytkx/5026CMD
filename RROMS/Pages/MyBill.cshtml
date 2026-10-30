@@ -32,6 +32,7 @@ else if (Model.Booking is { } booking)
                 }
             </select>
         </div>
+        <input type="hidden" name="tab" value="@Model.ActiveTab" />
         <button type="submit">View This Bill</button>
     </form>
 
@@ -62,11 +63,17 @@ else if (Model.Booking is { } booking)
         <a class="button secondary mybill-progress-action" asp-page="/Orders/Index">My Orders</a>
     </div>
 
-    <nav class="mybill-jump-links" aria-label="Bill page sections">
-        <a href="#bill-summary">Bill summary</a>
-        <a href="#payment-history">Payments &amp; receipts</a>
+    <nav class="mybill-jump-links mybill-tabs" aria-label="My Bill sections">
+        <a asp-page="/MyBill" asp-route-id="@booking.ReservationID" asp-route-tab="summary"
+           class="@(Model.ActiveTab == "summary" ? "active" : "")"
+           aria-current="@(Model.ActiveTab == "summary" ? "page" : null)">Bill summary</a>
+        <a asp-page="/MyBill" asp-route-id="@booking.ReservationID" asp-route-tab="payments"
+           class="@(Model.ActiveTab == "payments" ? "active" : "")"
+           aria-current="@(Model.ActiveTab == "payments" ? "page" : null)">Payments &amp; receipts</a>
     </nav>
 
+    @if (Model.ActiveTab == "summary")
+    {
     <section class="card celeste-customer-bill">
         <div class="celeste-bill-heading">
             <div>
@@ -156,7 +163,9 @@ else if (Model.Booking is { } booking)
             </aside>
         </div>
     </section>
-
+    }
+    else
+    {
     <section class="card mybill-history" id="payment-history">
         <h2>Payments &amp; Receipts</h2>
         <p class="muted">Your reservation deposit and any final dining payment are listed here. A receipt becomes available after each successful payment.</p>
@@ -195,6 +204,7 @@ else if (Model.Booking is { } booking)
             </div>
         }
     </section>
+    }
 }
 @section Scripts {
     @if (Model.Booking is { ReservationStatus: "Seated" } && !Model.IsPaid)

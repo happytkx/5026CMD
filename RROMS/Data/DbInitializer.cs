@@ -145,6 +145,10 @@ namespace RROMS.Data
                 context.SaveChanges();
             }
 
+            // Seed the catalogue only once. Never overwrite administrator changes
+            // to names, descriptions, prices, categories, images or availability.
+            if (!context.MenuItems.Any())
+            {
             // Seed the official Céleste menu.
             // Previous sample dishes are hidden, not deleted,
             // to preserve historical orders and billing records.
@@ -416,6 +420,17 @@ namespace RROMS.Data
             }
 
             context.SaveChanges();
+
+            }
+
+            // Fresh databases receive menu categories after the catalogue is seeded.
+            // Migrated databases are backfilled by the AddMenuCategories migration.
+            if (!context.MenuCategories.Any())
+            {
+                var categories = context.MenuItems.Select(i => i.Category).Distinct().ToList();
+                context.MenuCategories.AddRange(categories.Select(name => new MenuCategory { Name = name }));
+                context.SaveChanges();
+            }
 
             // Seed welcome announcement
             if (!context.Announcements.Any())

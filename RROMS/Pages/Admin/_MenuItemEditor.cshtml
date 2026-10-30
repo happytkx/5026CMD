@@ -1,0 +1,71 @@
+@model RROMS.Models.MenuItem
+<input type="hidden" name="Dish.MenuItemID" value="@Model.MenuItemID" />
+<div class="menu-editor-grid">
+    <div class="menu-form-field">
+        <label for="dish-name-@Model.MenuItemID">Dish name</label>
+        <input id="dish-name-@Model.MenuItemID" name="Dish.Name" value="@Model.Name"
+               maxlength="100" required />
+    </div>
+    <div class="menu-form-field">
+        <label for="dish-category-@Model.MenuItemID">Category</label>
+        <select id="dish-category-@Model.MenuItemID" name="Dish.Category" required>
+            @foreach (var category in ViewData["MenuCategories"] as List<RROMS.Models.MenuCategory> ?? new())
+            {
+                <option value="@category.Name" selected="@(category.Name == Model.Category)">@category.Name</option>
+            }
+        </select>
+    </div>
+    <div class="menu-form-field">
+        <label for="dish-price-@Model.MenuItemID">Price (RM)</label>
+        <input id="dish-price-@Model.MenuItemID" type="number" name="Dish.Price"
+               value="@Model.Price.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)"
+               min="0.01" max="100000" step="0.01" required />
+    </div>
+    <div class="menu-form-field">
+        <label for="dish-protein-@Model.MenuItemID">Protein type</label>
+        <select id="dish-protein-@Model.MenuItemID" name="Dish.ProteinType">
+            @foreach (var protein in new[] { "Vegetarian", "Chicken", "Beef", "Lamb", "Duck", "Seafood", "Molluscs" })
+            {
+                <option value="@protein" selected="@(protein == Model.ProteinType)">@protein</option>
+            }
+        </select>
+    </div>
+    <div class="menu-form-field menu-form-wide">
+        <label for="dish-description-@Model.MenuItemID">Description</label>
+        <textarea id="dish-description-@Model.MenuItemID" name="Dish.Description" rows="2"
+                  maxlength="600">@Model.Description</textarea>
+    </div>
+    <div class="menu-form-field menu-form-wide">
+        <label for="dish-image-@Model.MenuItemID">Image URL or local /images/ path</label>
+        <input id="dish-image-@Model.MenuItemID" name="Dish.ImageUrl" value="@Model.ImageUrl"
+               maxlength="400" placeholder="/images/menu/your-dish.png" />
+    </div>
+    <div class="menu-form-field">
+        <label for="dish-dietary-@Model.MenuItemID">Dietary tags (comma separated)</label>
+        <input id="dish-dietary-@Model.MenuItemID" name="Dish.DietaryTags"
+               value="@Model.DietaryTags" maxlength="250" placeholder="Vegetarian, No pork" />
+    </div>
+    <div class="menu-form-field">
+        <label for="dish-allergens-@Model.MenuItemID">Allergens</label>
+        <input id="dish-allergens-@Model.MenuItemID" name="Dish.Allergens"
+               value="@Model.Allergens" maxlength="300" placeholder="Milk, Nuts" />
+    </div>
+    <div class="menu-form-field">
+        <label for="dish-spice-@Model.MenuItemID">Spice level (0–5)</label>
+        <input id="dish-spice-@Model.MenuItemID" type="number" name="Dish.SpiceLevel"
+               value="@Model.SpiceLevel" min="0" max="5" step="1" required />
+    </div>
+    <div class="menu-editor-options">
+        <label class="menu-check">
+            <input type="checkbox" name="Dish.IsPopular" value="true" checked="@Model.IsPopular" />
+            <input type="hidden" name="Dish.IsPopular" value="false" />
+            Mark as popular
+        </label>
+        <label class="menu-check">
+            <input type="checkbox" name="Dish.IsAvailable" value="true" checked="@Model.IsAvailable" />
+            <input type="hidden" name="Dish.IsAvailable" value="false" />
+            Available to order
+        </label>
+    </div>
+</div>
+<button type="submit">@(Model.MenuItemID == 0 ? "Add Dish" : "Save Changes")</button>

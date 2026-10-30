@@ -1172,3 +1172,130 @@ form.card.mybill-selector {
     .staff-round-heading .order-update { width: 100%; grid-template-columns: minmax(0, 1fr) auto; }
     .order-details > summary span, .staff-session-details > summary span { display: none; }
 }
+
+/* Consistent column tracks for every round within a reservation. */
+.order-detail-table {
+    table-layout: fixed;
+}
+.order-detail-table:not(.staff-detail-table) th:nth-child(1) { width: 34%; }
+.order-detail-table:not(.staff-detail-table) th:nth-child(2) { width: 10%; }
+.order-detail-table:not(.staff-detail-table) th:nth-child(3) { width: 19%; }
+.order-detail-table:not(.staff-detail-table) th:nth-child(4) { width: 19%; }
+.order-detail-table:not(.staff-detail-table) th:nth-child(5) { width: 18%; }
+.staff-detail-table th:nth-child(1) { width: 26%; }
+.staff-detail-table th:nth-child(2) { width: 8%; }
+.staff-detail-table th:nth-child(3) { width: 16%; }
+.staff-detail-table th:nth-child(4) { width: 16%; }
+.staff-detail-table th:nth-child(5) { width: 16%; }
+.staff-detail-table th:nth-child(6) { width: 18%; }
+.order-detail-table th:nth-child(n+2),
+.order-detail-table td:nth-child(n+2) { text-align: center; }
+.order-detail-table td:first-child { overflow-wrap: anywhere; }
+
+/* Section tabs replace the former scroll-to-section links. */
+.mybill-tabs a {
+    padding: 11px 18px;
+    font-weight: 600;
+    border-bottom: 2px solid transparent;
+}
+.mybill-tabs a.active {
+    background: #EBEEE3;
+    border-color: var(--olive-deep);
+    color: var(--olive-deep);
+}
+.mybill-tabs a:focus-visible { outline: 2px solid var(--olive-deep); outline-offset: 2px; }
+
+/* Admin-only category and dish editor. */
+.menu-management-card { margin-top: 26px; }
+.menu-manager-heading {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.menu-manager-heading h2 { margin: 0 0 8px; }
+.menu-manager-heading .eyebrow { margin-bottom: 8px; }
+.menu-manager-heading .muted { margin-bottom: 0; }
+.menu-manager-heading .badge { flex-shrink: 0; }
+.menu-category-create { margin: 0 0 22px; padding: 20px; background: var(--paper); border: 1px solid var(--line); }
+.menu-category-create label, .menu-category-rename label { display: block; margin-bottom: 8px; font-size: 12px; color: var(--muted); }
+.menu-category-create > div,
+.menu-category-rename > div { display: flex; gap: 12px; }
+.menu-category-create input,
+.menu-category-rename input { flex: 1 1 auto; min-width: 0; width: 100%; }
+.menu-category-create button,
+.menu-category-rename button { flex-shrink: 0; margin: 0; }
+.menu-category-list { display: grid; gap: 12px; }
+.menu-category-row {
+    display: flex;
+    align-items: end;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+}
+.menu-category-row:last-child { border-bottom: 0; }
+.menu-category-row form { margin: 0; padding: 0; border: 0; }
+.menu-category-rename { flex: 1 1 auto; min-width: 0; }
+.menu-category-row > form:last-child button {
+    margin: 0;
+    min-height: 44px;
+    border: 1px solid #A04B4B;
+    border-radius: 3px;
+    color: #A04B4B;
+    background: transparent;
+    padding: 8px 16px;
+}
+.menu-category-row > form:last-child button:hover:not(:disabled) { background: #FCF2F0; }
+.menu-category-row > form:last-child button:disabled { opacity: .4; cursor: not-allowed; }
+.menu-editor-panel { margin: 0; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.menu-editor-panel > summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 18px;
+    color: var(--olive-deep);
+    cursor: pointer;
+    font-weight: 600;
+    list-style: none;
+}
+.menu-editor-panel > summary::-webkit-details-marker { display: none; }
+.menu-editor-panel > summary:hover { background: var(--paper); }
+.menu-editor-new { border-color: #D1D8C1; background: #F2F4EB; margin-bottom: 24px; }
+.menu-editor-inner { padding: 22px; border-top: 1px solid var(--line); background: #FCFBF9; }
+.menu-editor-inner form { margin: 0; padding: 0; border: 0; }
+.menu-editor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.menu-form-field { min-width: 0; }
+.menu-form-wide { grid-column: 1 / -1; }
+.menu-form-field label { display: block; margin: 0 0 6px; font-size: 12px; font-weight: 600; }
+.menu-form-field input,
+.menu-form-field select,
+.menu-form-field textarea { width: 100%; min-width: 0; }
+.menu-editor-options { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.menu-check { display: inline-flex; align-items: center; gap: 9px; font-size: 12px; }
+.menu-check input[type="checkbox"] { width: auto; min-height: auto; }
+.menu-editor-inner form > button { margin: 22px 0 0; }
+.menu-admin-items { display: grid; gap: 12px; }
+.menu-admin-item { border: 1px solid var(--line); border-radius: 4px; }
+.menu-admin-item-bar {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px;
+}
+.menu-admin-item-bar > div:first-child { flex: 1 1 auto; min-width: 0; }
+.menu-admin-item-bar strong { font-size: 14px; }
+.menu-admin-item-bar p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+.menu-admin-item-bar form { flex-shrink: 0; margin: 0; padding: 0; border: 0; }
+.menu-admin-item-bar form button { margin: 0; min-height: 40px; }
+.menu-unavailable { background: #F8ECE9; color: #994A40; }
+.menu-admin-item .menu-editor-panel { border: 0; border-top: 1px solid var(--line); border-radius: 0; }
+@media (max-width: 700px) {
+    .menu-editor-grid { grid-template-columns: 1fr; }
+    .menu-form-wide { grid-column: auto; }
+    .menu-category-create > div,
+    .menu-category-rename > div { flex-wrap: wrap; }
+    .menu-admin-item-bar { flex-wrap: wrap; }
+}

@@ -88,21 +88,11 @@
         </div>
     </section>
     <section class="card">
-        <h2>Manage menu availability</h2>
-        <p class="muted">Turn dishes on or off without deleting historical order records.</p>
-        @foreach (var m in Model.Menu)
-        {
-            <div class="menu-toggle-row">
-                <div>
-                    <strong>@m.Name</strong>
-                    <small>@m.Category · RM @m.Price.ToString("0.00")</small>
-                </div>
-                <form method="post" asp-page-handler="ToggleMenu">
-                    <input type="hidden" name="itemId" value="@m.MenuItemID" />
-                    <button type="submit" class="quiet @(m.IsAvailable ? "danger" : "secondary")">@(m.IsAvailable ? "Disable" : "Enable")</button>
-                </form>
-            </div>
-        }
+        <p class="eyebrow">MENU OPERATIONS</p>
+        <h2>Manage the Céleste menu</h2>
+        <p class="muted">Create and edit categories and dishes, set prices, and control availability for customers.</p>
+        <p>All changes are saved to the live restaurant menu. Previously placed orders retain their original dish names and prices.</p>
+        <a class="button" asp-page="/Admin/MenuManagement">Open Menu Management</a>
     </section>
 </div>
 @if (Model.Insights is { } insights)

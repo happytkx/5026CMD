@@ -1,0 +1,111 @@
+@page
+@model RROMS.Pages.Admin.MenuManagementModel
+@{
+    ViewData["Title"] = "Menu Management";
+    ViewData["MenuCategories"] = Model.Categories;
+    var emptyDish = new RROMS.Models.MenuItem { Category = Model.Categories.FirstOrDefault()?.Name ?? "", IsAvailable = true };
+}
+<p class="eyebrow">ADMINISTRATOR / MENU</p>
+<h1>Menu Management</h1>
+<p>Organise categories, update menu items and prices, and decide which dishes customers can order.</p>
+<p><a asp-page="/Admin/Index">← Back to Admin Dashboard</a></p>
+@if (TempData["Success"] is string ok)
+{
+    <p class="success">@ok</p>
+}
+@if (TempData["Error"] is string err)
+{
+    <p class="error">@err</p>
+}
+<section class="card menu-management-card">
+    <div class="menu-manager-heading">
+        <div>
+            <p class="eyebrow">MENU STRUCTURE</p>
+            <h2>Dish Categories</h2>
+            <p class="muted">Create a category first, then assign dishes to it. Rename a category to move all its dishes together.</p>
+        </div>
+        <span class="badge">@Model.Categories.Count categories</span>
+    </div>
+    <form method="post" asp-page-handler="CreateCategory" class="menu-category-create">
+        <label for="new-category">New category name</label>
+        <div>
+            <input id="new-category" name="name" maxlength="120" placeholder="e.g. Chef's Specials" required />
+            <button type="submit">Add Category</button>
+        </div>
+    </form>
+    <div class="menu-category-list">
+        @foreach (var category in Model.Categories)
+        {
+            var dishCount = Model.Items.Count(i => i.Category == category.Name);
+            <article class="menu-category-row">
+                <form method="post" asp-page-handler="RenameCategory" class="menu-category-rename">
+                    <input type="hidden" name="categoryId" value="@category.MenuCategoryID" />
+                    <label for="category-@category.MenuCategoryID">@dishCount dish@(dishCount == 1 ? "" : "es")</label>
+                    <div>
+                        <input id="category-@category.MenuCategoryID" name="name" value="@category.Name" maxlength="120" required />
+                        <button type="submit" class="secondary">Rename</button>
+                    </div>
+                </form>
+                <form method="post" asp-page-handler="DeleteCategory"
+                      onsubmit="return confirm('Delete this empty category?');">
+                    <input type="hidden" name="categoryId" value="@category.MenuCategoryID" />
+                    <button type="submit" class="quiet danger" disabled="@(dishCount > 0)"
+                            title="@(dishCount > 0 ? "Move its dishes before deleting" : "Delete empty category")">Delete</button>
+                </form>
+            </article>
+        }
+    </div>
+</section>
+<section class="card menu-management-card">
+    <div class="menu-manager-heading">
+        <div>
+            <p class="eyebrow">CUSTOMER-FACING MENU</p>
+            <h2>Menu Items &amp; Prices</h2>
+            <p class="muted">Changes take effect on the digital menu. Historical orders keep their recorded item names and prices.</p>
+        </div>
+        <span class="badge">@Model.Items.Count dishes</span>
+    </div>
+    @if (Model.Categories.Count == 0)
+    {
+        <p class="notice">Create at least one dish category before adding menu items.</p>
+    }
+    else
+    {
+        <details class="menu-editor-panel menu-editor-new">
+            <summary>Add New Dish <span>＋</span></summary>
+            <div class="menu-editor-inner">
+                <form method="post" asp-page-handler="SaveItem">
+                    <partial name="_MenuItemEditor" model="emptyDish" />
+                </form>
+            </div>
+        </details>
+    }
+    <div class="menu-admin-items">
+        @foreach (var item in Model.Items)
+        {
+            <article class="menu-admin-item">
+                <div class="menu-admin-item-bar">
+                    <div>
+                        <strong>@item.Name</strong>
+                        <p>@item.Category · RM @item.Price.ToString("N2")</p>
+                    </div>
+                    <span class="badge @(item.IsAvailable ? "" : "menu-unavailable")">
+                        @(item.IsAvailable ? "Available" : "Unavailable")
+                    </span>
+                    <form method="post" asp-page-handler="ToggleAvailability">
+                        <input type="hidden" name="itemId" value="@item.MenuItemID" />
+                        <button type="submit" class="secondary">@(item.IsAvailable ? "Disable" : "Enable")</button>
+                    </form>
+                </div>
+                <details class="menu-editor-panel">
+                    <summary>Edit Item Details <span>⌄</span></summary>
+                    <div class="menu-editor-inner">
+                        <form method="post" asp-page-handler="SaveItem">
+                            <partial name="_MenuItemEditor" model="item" />
+                        </form>
+                    </div>
+                </details>
+            </article>
+        }
+    </div>
+</section>
