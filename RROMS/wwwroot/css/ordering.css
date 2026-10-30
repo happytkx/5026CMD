@@ -337,9 +337,69 @@
     display: block;
 }
 
-.menu-toggle-row button
+.menu-toggle-row > div
 {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.menu-toggle-row form
+{
+    flex: 0 0 auto;
     margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.menu-toggle-row button.quiet
+{
+    min-width: 112px;
+    min-height: 42px;
+    margin: 0;
+    padding: 10px 17px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transition: background-color .18s, border-color .18s, color .18s;
+}
+
+.menu-toggle-row button.quiet.danger
+{
+    background: #835444;
+    border-color: #835444;
+    color: #fff;
+}
+
+.menu-toggle-row button.quiet.danger:hover
+{
+    background: #704738;
+    border-color: #704738;
+    color: #fff;
+}
+
+.menu-toggle-row button.quiet.secondary
+{
+    background: transparent;
+    border-color: var(--olive-deep);
+    color: var(--olive-deep);
+}
+
+.menu-toggle-row button.quiet.secondary:hover
+{
+    background: var(--olive-deep);
+    border-color: var(--olive-deep);
+    color: #fff;
+}
+
+.menu-toggle-row button.quiet:focus-visible
+{
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
 }
 
 .order-update {
