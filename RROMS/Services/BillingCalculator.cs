@@ -3,6 +3,8 @@ namespace RROMS.Services;
 
 // Stores the result of a billing calculation.
 public record BillingCalculation(
+    decimal FoodSubtotal,
+    decimal TaxAmount,
     decimal TotalBill,
     decimal DepositApplied,
     decimal MinShortFall,
@@ -46,32 +48,44 @@ public static class BillingCalculator
     }
 
     public static BillingCalculation Calculate(
-        decimal totalBill,
+        decimal foodSubtotal,
+        decimal taxAmount,
         decimal minSpend,
         decimal deposit,
         bool depositPaid)
     {
-        ValidateMoney(totalBill, nameof(totalBill));
+        ValidateMoney(foodSubtotal, nameof(foodSubtotal));
+        ValidateMoney(taxAmount, nameof(taxAmount));
         ValidateMoney(minSpend, nameof(minSpend));
         ValidateMoney(deposit, nameof(deposit));
 
-        // Determine whether minimum spending is met.
-        decimal shortfall = Math.Max(
-            0m, minSpend - totalBill);
+        // Reuse the tax amounts already recorded by the ordering module.
+        decimal totalBill = checked(foodSubtotal + taxAmount);
+        ValidateMoney(totalBill, nameof(totalBill));
 
-        // Deduct only the successfully paid deposit.
+        // Minimum spending excludes tax and the advance deposit.
+        decimal shortfall = Math.Max(0m, minSpend - foodSubtotal);
+
+        // A successfully paid deposit is applied once, never as a discount.
         decimal depositApplied = depositPaid
             ? Math.Min(deposit, totalBill)
             : 0m;
 
-        // Calculate the remaining checkout amount.
-        decimal balanceToPay =
-            totalBill - depositApplied;
-
         return new BillingCalculation(
+            foodSubtotal,
+            taxAmount,
             totalBill,
             depositApplied,
             shortfall,
-            balanceToPay);
+            totalBill - depositApplied);
     }
+
+    // Keep older zero-tax callers compatible. New order billing must use
+    // the overload with the saved subtotal and tax.
+    public static BillingCalculation Calculate(
+        decimal foodSubtotal,
+        decimal minSpend,
+        decimal deposit,
+        bool depositPaid)
+        => Calculate(foodSubtotal, 0m, minSpend, deposit, depositPaid);
 }

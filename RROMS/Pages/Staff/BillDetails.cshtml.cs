@@ -46,7 +46,7 @@ public class BillDetailsModel : PageModel
     public decimal MinimumSpendShortfall =>
         Bill == null
             ? 0m
-            : Math.Max(0m, Bill.MinSpend - Bill.TotalBill);
+            : Math.Max(0m, Bill.MinSpend - Bill.FoodSubtotal);
 
     // Build or refresh the draft bill from the reservation's
     // served dining orders. Blocked until every order is served.

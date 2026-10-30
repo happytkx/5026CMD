@@ -72,11 +72,17 @@ namespace RROMS.Migrations
                     b.Property<decimal>("DepositApplied")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<decimal>("FoodSubtotal")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal>("MinSpend")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ReservationID")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TotalBill")
                         .HasColumnType("decimal(18,2)");

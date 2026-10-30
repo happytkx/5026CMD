@@ -11,11 +11,13 @@ public sealed record OrderBillingLine(
 public sealed record OrderBillingSnapshot(
     int ReservationID,
     bool IsReadyForBilling,
-    IReadOnlyList<OrderBillingLine> Lines);
+    IReadOnlyList<OrderBillingLine> Lines,
+    decimal? FoodSubtotal = null,
+    decimal? TaxAmount = null,
+    decimal? OrderTotal = null);
 
 // Provides order information to Sprint 4 Billing.
-// Sprint 3 will implement this interface using
-// its actual Order and OrderItem database records.
+// Sprint 3 provides these totals from its saved dine-in order records.
 public interface ReservationOrderBillingSource
 {
     Task<OrderBillingSnapshot?> GetSnapshotAsync(

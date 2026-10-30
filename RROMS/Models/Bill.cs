@@ -11,6 +11,12 @@ public class Bill
     public int ReservationID {  get; set; }
 
     [Column(TypeName = "decimal(18,2)")]
+    public decimal FoodSubtotal { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal TaxAmount { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
     public decimal TotalBill {  get; set; }
 
     [Column(TypeName = "decimal(18,2)")]

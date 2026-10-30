@@ -25,7 +25,8 @@ public class BillingService
     // Calculate and create a draft bill in memory
     public Bill CreateDraft(
         Reservation reservation,
-        decimal totalBill)
+        decimal foodSubtotal,
+        decimal taxAmount)
     {
         ArgumentNullException.ThrowIfNull(reservation);
 
@@ -43,7 +44,8 @@ public class BillingService
 
         BillingCalculation calculation =
             BillingCalculator.Calculate(
-                totalBill,
+                foodSubtotal,
+                taxAmount,
                 reservation.MinimumSpend,
                 reservation.DepositAmount,
                 true);
@@ -51,6 +53,8 @@ public class BillingService
         Bill bill = new Bill
         {
             ReservationID = reservation.ReservationID,
+            FoodSubtotal = calculation.FoodSubtotal,
+            TaxAmount = calculation.TaxAmount,
             TotalBill = calculation.TotalBill,
             MinSpend = reservation.MinimumSpend,
             DepositApplied = calculation.DepositApplied,
@@ -61,10 +65,16 @@ public class BillingService
         return bill;
     }
 
+    // Preserve the old zero-tax entry point for existing callers.
+    // Final bills from Sprint 3 must use the tax-aware overload.
+    public Bill CreateDraft(Reservation reservation, decimal foodSubtotal)
+        => CreateDraft(reservation, foodSubtotal, 0m);
+
     // Save a new draft or update an existing draft bill
     public async Task<Bill> SaveDraftAsync(
         int reservationId,
-        decimal orderTotal)
+        decimal foodSubtotal,
+        decimal taxAmount)
     {
         if (reservationId <= 0)
         {
@@ -72,11 +82,11 @@ public class BillingService
                 nameof(reservationId));
         }
 
-        if (orderTotal < 0m)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(orderTotal));
-        }
+        if (foodSubtotal < 0m)
+            throw new ArgumentOutOfRangeException(nameof(foodSubtotal));
+
+        if (taxAmount < 0m)
+            throw new ArgumentOutOfRangeException(nameof(taxAmount));
 
         Reservation reservation = await _db.Reservations
             .SingleOrDefaultAsync(r => r.ReservationID == reservationId)
@@ -92,7 +102,7 @@ public class BillingService
                 "Only draft bills can be updated.");
         }
 
-        Bill draft = CreateDraft(reservation, orderTotal);
+        Bill draft = CreateDraft(reservation, foodSubtotal, taxAmount);
 
         if (existingBill == null)
         {
@@ -103,6 +113,8 @@ public class BillingService
             return draft;
         }
 
+        existingBill.FoodSubtotal = draft.FoodSubtotal;
+        existingBill.TaxAmount = draft.TaxAmount;
         existingBill.TotalBill = draft.TotalBill;
         existingBill.MinSpend = draft.MinSpend;
         existingBill.DepositApplied = draft.DepositApplied;
@@ -112,6 +124,11 @@ public class BillingService
 
         return existingBill;
     }
+
+    // Legacy zero-tax callers remain compatible; settlement still verifies
+    // the bill against actual stored orders.
+    public Task<Bill> SaveDraftAsync(int reservationId, decimal foodSubtotal)
+        => SaveDraftAsync(reservationId, foodSubtotal, 0m);
 
     // Retrieve a saved bill by reservation ID
     public async Task<Bill?> GetBillAsync(int reservationId)
@@ -200,7 +217,9 @@ public class BillingService
                 0m, bill.BalanceToPay);
         }
 
-        if (bill.TotalBill < 0m ||
+        if (bill.FoodSubtotal < 0m ||
+            bill.TaxAmount < 0m ||
+            bill.TotalBill < 0m ||
             bill.MinSpend < 0m ||
             bill.DepositApplied < 0m ||
             bill.BalanceToPay < 0m)
@@ -210,14 +229,62 @@ public class BillingService
                 0m, 0m);
         }
 
+        // Check the source orders again before accepting money.
+        // This also stops old draft bills from being settled until
+        // they have been regenerated with the recorded tax.
+        var activeOrders = await _db.Orders
+            .AsNoTracking()
+            .Include(o => o.Lines)
+            .Where(o => o.ReservationID == reservationId &&
+                        o.Status != "Cancelled")
+            .ToListAsync();
+
+        if (activeOrders.Count == 0 ||
+            activeOrders.Any(o => o.Status is not ("Served" or "Completed")))
+        {
+            return new BillSettlementCheck(
+                false, "All active dining orders must be served before settlement.",
+                0m, bill.BalanceToPay);
+        }
+
+        if (activeOrders.Any(o =>
+            o.Lines.Count == 0 ||
+            o.Subtotal < 0m || o.Tax < 0m ||
+            o.Total != o.Subtotal + o.Tax ||
+            o.Subtotal != o.Lines.Sum(l => l.LineTotal) ||
+            o.Lines.Any(l => l.Quantity <= 0 ||
+                             l.UnitPrice < 0m ||
+                             l.LineTotal != l.Quantity * l.UnitPrice)))
+        {
+            return new BillSettlementCheck(
+                false, "A dining order has inconsistent amounts. Recheck the orders.",
+                0m, bill.BalanceToPay);
+        }
+
+        decimal storedSubtotal = activeOrders.Sum(o => o.Subtotal);
+        decimal storedTax = activeOrders.Sum(o => o.Tax);
+        decimal storedTotal = activeOrders.Sum(o => o.Total);
+
+        if (bill.FoodSubtotal != storedSubtotal ||
+            bill.TaxAmount != storedTax ||
+            bill.TotalBill != storedTotal)
+        {
+            return new BillSettlementCheck(
+                false, "Dining orders and the draft bill differ. Regenerate the draft.",
+                Math.Max(0m, reservation.MinimumSpend - storedSubtotal),
+                bill.BalanceToPay);
+        }
+
         BillingCalculation calculation =
             BillingCalculator.Calculate(
-                bill.TotalBill,
+                bill.FoodSubtotal,
+                bill.TaxAmount,
                 reservation.MinimumSpend,
                 reservation.DepositAmount,
                 true);
 
         if (bill.MinSpend != reservation.MinimumSpend ||
+            bill.TotalBill != calculation.TotalBill ||
             bill.DepositApplied != calculation.DepositApplied ||
             bill.BalanceToPay != calculation.BalanceToPay)
         {

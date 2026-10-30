@@ -19,6 +19,23 @@ public class OrderBillingSource(ApplicationDbContext db) : ReservationOrderBilli
         if (orders.Count == 0)
             return null;
 
+        // Each order contains a snapshot of its original prices and
+        // separately rounded tax. Do not recalculate tax at bill time.
+        foreach (var order in orders)
+        {
+            if (order.Subtotal < 0m || order.Tax < 0m ||
+                order.Total != order.Subtotal + order.Tax ||
+                order.Subtotal != order.Lines.Sum(l => l.LineTotal) ||
+                order.Lines.Any(l =>
+                    l.Quantity <= 0 ||
+                    l.UnitPrice < 0m ||
+                    l.LineTotal != l.Quantity * l.UnitPrice))
+            {
+                throw new InvalidOperationException(
+                    "An order contains inconsistent stored billing amounts.");
+            }
+        }
+
         var lines = orders
             .SelectMany(o => o.Lines)
             .Select(l => new OrderBillingLine(l.ItemName, l.Quantity, l.UnitPrice))
@@ -27,6 +44,9 @@ public class OrderBillingSource(ApplicationDbContext db) : ReservationOrderBilli
         return new OrderBillingSnapshot(
             reservationId,
             orders.All(o => o.Status is "Served" or "Completed"),
-            lines);
+            lines,
+            orders.Sum(o => o.Subtotal),
+            orders.Sum(o => o.Tax),
+            orders.Sum(o => o.Total));
     }
 }
