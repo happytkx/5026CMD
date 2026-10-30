@@ -350,10 +350,19 @@ else
                 @if (Model.IsStaff && r.ReservationStatus=="Seated")
                 {
                     <section class="card">
-                        <form method="post" asp-page-handler="Action">
-                            <button name="action" value="Complete">Complete dining session</button>
-                        </form>
-                        <p>Final billing and payment recording belong to Sprint 4.</p>
+                        <h3>Dining Checkout</h3>
+                        @if (Model.FinalBillPaid)
+                        {
+                            <form method="post" asp-page-handler="Action">
+                                <button name="action" value="Complete">Complete dining session</button>
+                            </form>
+                            <p>The final bill has been paid. Staff may now complete the reservation.</p>
+                        }
+                        else
+                        {
+                            <p>Complete the final bill payment before closing this dining session.</p>
+                            <a class="button" asp-page="/Staff/BillDetails" asp-route-id="@r.ReservationID">Open Billing</a>
+                        }
                     </section>
                 }
                 <button class="secondary" type="button" onclick="window.print()">Print booking / receipt</button>

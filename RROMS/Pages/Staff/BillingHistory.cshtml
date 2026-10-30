@@ -124,7 +124,7 @@
                             <th>Reservation Status</th>
                             <th>Bill Total</th>
                             <th>Deposit Applied</th>
-                            <th>Checkout Amount</th>
+                            <th>Outstanding Balance</th>
                             <th>Bill Status</th>
                             <th>Details</th>
                         </tr>
@@ -167,7 +167,7 @@
                                 </td>
 
                                 <td>
-                                    RM @bill.BalanceToPay.ToString("N2")
+                                    RM @(bill.BillStatus == "Paid" ? (0m).ToString("N2") : bill.BalanceToPay.ToString("N2"))
                                 </td>
 
                                 <td>

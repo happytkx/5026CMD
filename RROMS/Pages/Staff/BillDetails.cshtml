@@ -283,16 +283,38 @@
                     </p>
                 </div>
 
-                <p class="notice">
-                    Staff payment confirmation is not yet available on this screen.
-                </p>
+                <form method="post" class="celeste-payment-form"
+                      asp-page-handler="RecordFinalPayment"
+                      asp-route-id="@Model.Booking!.ReservationID"
+                      onsubmit="return confirm('Confirm that the full amount has been received? This cannot be undone.');">
+                    @if (check.BalanceToPay > 0m)
+                    {
+                        <label for="paymentMethod">Payment Method</label>
+                        <select id="paymentMethod" name="paymentMethod" required>
+                            <option value="Cash">Cash</option>
+                            <option value="Card">Credit / Debit Card</option>
+                            <option value="EWallet">E-Wallet</option>
+                        </select>
+                        <label for="paymentReference">Payment Reference (optional)</label>
+                        <input id="paymentReference" name="paymentReference"
+                               maxlength="40" placeholder="Transaction reference" />
+                    }
+                    else
+                    {
+                        <input type="hidden" name="paymentMethod" value="Cash" />
+                        <p>No additional payment is due after applying the deposit.</p>
+                    }
+                    <button type="submit">
+                        @(check.BalanceToPay > 0m ? "Confirm Payment Received" : "Mark Bill Fully Settled")
+                    </button>
+                    <p class="muted">Record payment only after the customer has paid at the restaurant.</p>
+                </form>
             }
         }
 
         <p>
             <small>
-                This panel checks settlement readiness only.
-                It does not collect or record payments.
+                Payment is confirmed by authorised staff. The form records the payment received onsite.
             </small>
         </p>
     </section>

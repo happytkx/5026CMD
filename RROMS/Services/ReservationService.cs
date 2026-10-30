@@ -198,6 +198,10 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
             case "Complete":
                 if (!staff || r.ReservationStatus != "Seated")
                     throw new InvalidOperationException("Only seated reservations can be completed.");
+                var finalBillPaid = await db.Bills.AsNoTracking()
+                    .AnyAsync(b => b.ReservationID == id && b.BillStatus == "Paid");
+                if (!finalBillPaid)
+                    throw new InvalidOperationException("Settle the final dining bill before completing the reservation.");
                 r.ReservationStatus = "Completed";
                 message = "Dining session completed. Ordering is closed.";
                 break;

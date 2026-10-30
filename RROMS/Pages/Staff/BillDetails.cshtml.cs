@@ -74,6 +74,34 @@ public class BillDetailsModel : PageModel
         return RedirectToPage(new { id });
     }
 
+    // Staff confirms payment only after collecting the full amount onsite.
+    public async Task<IActionResult> OnPostRecordFinalPaymentAsync(
+        int id, string paymentMethod, string? paymentReference)
+    {
+        try
+        {
+            await _billingService.RecordFinalPaymentAsync(
+                id, paymentMethod, paymentReference);
+            TempData["BillMessage"] =
+                "Final payment confirmed. The bill is now paid.";
+        }
+        catch (ArgumentException ex)
+        {
+            TempData["BillError"] = ex.Message;
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["BillError"] = ex.Message;
+        }
+        catch (DbUpdateException)
+        {
+            TempData["BillError"] =
+                "The payment could not be saved. Please refresh and check the payment history before retrying.";
+        }
+
+        return RedirectToPage(new { id });
+    }
+
     public async Task<IActionResult> OnGetAsync(int id)
     {
         if (id <= 0)

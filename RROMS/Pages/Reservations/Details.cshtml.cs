@@ -25,6 +25,7 @@ public class DetailsModel(ApplicationDbContext db, ReservationService service, T
     public bool EmailEnabled => config.GetValue<bool>("Email:Enabled");
     public List<RestaurantTable> AvailableTables { get; set; } = [];
     public List<Reservation> CustomerHistory { get; set; } = [];
+    public bool FinalBillPaid { get; private set; }
     public List<DateTime> ModifySlots { get; set; } = [];
     [BindProperty(SupportsGet = true)] public string? View { get; set; } = "Details";
     [BindProperty(SupportsGet = true)] public DateTime NewDate { get; set; } = ReservationPolicy.Now.Date.AddDays(8);
@@ -37,6 +38,9 @@ public class DetailsModel(ApplicationDbContext db, ReservationService service, T
             .SingleOrDefaultAsync(r => r.ReservationID == id && (IsStaff || r.CustomerID == customerId));
         if (Booking == null)
             return false;
+        if (IsStaff && Booking.ReservationStatus == "Seated")
+            FinalBillPaid = await db.Bills.AsNoTracking()
+                .AnyAsync(b => b.ReservationID == id && b.BillStatus == "Paid");
         Notifications = await db.Notifications.Where(n => n.ReservationID == id).OrderByDescending(n => n.SentDate).ToListAsync();
         EmailMessages = await db.ReservationEmails.AsNoTracking().Where(e => e.ReservationID == id)
             .OrderByDescending(e => e.ReservationEmailID).ToListAsync();

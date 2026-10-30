@@ -641,3 +641,10 @@
         gap: 8px;
     }
 }
+
+/* Staff onsite checkout */
+.celeste-payment-form { margin-top: 20px; padding: 22px; border: 1px solid var(--line); background: var(--paper); border-radius: 4px; }
+.celeste-payment-form label { display: block; margin: 16px 0 7px; }
+.celeste-payment-form select, .celeste-payment-form input { width: 100%; max-width: 480px; }
+.celeste-payment-form button { display: block; margin: 20px 0 10px; }
+.celeste-payment-form .muted { margin: 0; font-size: 12px; }
