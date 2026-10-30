@@ -117,7 +117,7 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
                     message = $"Confirmed {r.BookingReference}: {start:dd MMM yyyy HH:mm}, {r.PartySize} guests, {r.PreferredDiningOption}. Deposit RM{r.DepositAmount:0.00} paid. Minimum spend RM{r.MinimumSpend:0.00}. All cancellations forfeit the full deposit.";
                 }
                 else
-                    message = "Simulated payment failed. Retry before the payment hold expires.";
+                    message = "Payment failed. Retry before the payment hold expires.";
                 break;
             // Preserve party size, area, paid deposit and original deadline; allocate a table for the new time.
             case "Modify":
