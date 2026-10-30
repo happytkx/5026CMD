@@ -56,7 +56,7 @@ public class MyBillModel(ApplicationDbContext db) : PageModel
             .OrderBy(o => o.CreatedAt).ThenBy(o => o.OrderID)
             .ToListAsync();
         Payments = await db.Payments.AsNoTracking()
-            .Where(p => p.ReservationID == selectedId.Value && p.PaymentStatus == "Paid" &&
+            .Where(p => p.ReservationID == selectedId.Value &&
                 (p.PaymentType == "Deposit" || p.PaymentType == "DiningBill"))
             .OrderByDescending(p => p.PaymentDate).ThenByDescending(p => p.PaymentID)
             .ToListAsync();
