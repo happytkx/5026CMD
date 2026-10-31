@@ -1,17 +1,19 @@
 @page
-@* Customer order history with live status streamed without page reloads and a review form for completed orders. *@
+@* Reservations appear as one dining session, with each placed round available in View Details. *@
 @model RROMS.Pages.Orders.IndexModel
 @{
     ViewData["Title"] = "My orders";
+    var sessions = Model.Items.GroupBy(o => o.ReservationID)
+        .OrderByDescending(g => g.Max(o => o.CreatedAt)).ToList();
 }
 <section class="account-heading">
     <p class="eyebrow">YOUR CÉLESTE ORDERS</p>
     <h1>My orders</h1>
-    <p>Order status refreshes automatically while this page is open. Orders are settled with your final bill.</p>
+    <p>Follow the dishes ordered during each reservation. Status updates refresh while this page is open.</p>
 </section>
-<div class="section-heading">
-    <span></span>
-    <a class="button" asp-page="/Menu">Order something</a>
+<div class="order-history-actions">
+    <a class="button secondary" asp-page="/MyBill">View Bill</a>
+    <a class="button" asp-page="/Menu">Order</a>
 </div>
 @if (TempData["Success"] is string ok)
 {
@@ -21,53 +23,101 @@
 {
     <p class="error">@err</p>
 }
-@foreach (var o in Model.Items)
+@foreach (var session in sessions)
 {
-    <article class="card order-card" data-order-id="@o.OrderID">
+    var rounds = session.OrderBy(o => o.CreatedAt).ThenBy(o => o.OrderID).ToList();
+    var booking = rounds[0].Reservation;
+    <article class="card order-card dining-session-card" data-reservation-id="@booking.ReservationID">
         <div class="order-head">
             <div>
-                <p class="reference">ORDER REF · @o.Reference</p>
-                <h2>@o.CreatedAt.ToString("dd MMM yyyy, h:mm tt")</h2>
-                <small>@string.Join(", ", o.Lines.Select(x => $"{x.ItemName} × {x.Quantity}"))</small>
-                <small>Reservation @o.Reservation.BookingReference · Table @o.Reservation.TableID</small>
-                @if (!string.IsNullOrWhiteSpace(o.Notes))
-                {
-                    <small>Preparation request: @o.Notes</small>
-                }
+                <p class="reference">RESERVATION · @booking.BookingReference</p>
+                <h2>@booking.ReservationDate.ToString("dd MMM yyyy") · Table @booking.TableID</h2>
+                <p class="order-card-meta">
+                    <span data-session-count>@DiningOrderPresentation.ActiveItemCount(rounds)</span> items ·
+                    @rounds.Count ordering round@(rounds.Count == 1 ? "" : "s")
+                </p>
             </div>
             <div class="order-side">
-                <span class="badge" data-order-status aria-live="polite">@o.Status</span>
-                <p class="price">RM @o.Total.ToString("0.00")</p>
+                <span class="badge" data-session-status aria-live="polite">@DiningOrderPresentation.Status(rounds)</span>
+                <p class="price" data-session-total>RM @DiningOrderPresentation.Total(rounds).ToString("N2")</p>
+                <small>Food and tax, before deposit</small>
             </div>
         </div>
-        @if (!Model.ReviewedOrderIds.Contains(o.OrderID))
-        {
-            <form method="post" asp-page-handler="Review" class="review-form" hidden="@(o.Status != "Completed")">
-                <input type="hidden" name="orderId" value="@o.OrderID" />
-                <div>
-                    <label for="rating-@o.OrderID">Rating</label>
-                    <select id="rating-@o.OrderID" name="rating">
-                        <option value="5">5 - Excellent</option>
-                        <option value="4">4 - Good</option>
-                        <option value="3">3 - Okay</option>
-                        <option value="2">2 - Poor</option>
-                        <option value="1">1 - Bad</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="comment-@o.OrderID">Feedback</label>
-                    <textarea id="comment-@o.OrderID" name="comment" rows="2" maxlength="800" placeholder="Tell us about your experience" required></textarea>
-                </div>
-                <button type="submit" class="secondary">Submit review</button>
-            </form>
-        }
-        else if (Model.ReviewedOrderIds.Contains(o.OrderID))
-        {
-            <small>Review submitted — thank you for dining with us.</small>
-        }
+        <details class="order-details">
+            <summary>
+                <strong>View Details</strong>
+                <span>Dishes, quantities and status</span>
+            </summary>
+            <div class="order-details-body">
+                @foreach (var o in rounds)
+                {
+                    <div class="order-round" data-order-id="@o.OrderID">
+                        <div class="order-round-heading">
+                            <strong>Ordered @o.CreatedAt.ToString("dd MMM, h:mm tt")</strong>
+                            <span class="badge" data-order-status aria-live="polite">@DiningOrderPresentation.RoundStatus(o)</span>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(o.Notes))
+                        {
+                            <p class="order-notes">Special request: @o.Notes</p>
+                        }
+                        <div class="table-wrap">
+                            <table class="order-detail-table">
+                                <thead>
+                                    <tr>
+                                        <th>Dish</th>
+                                        <th>Qty</th>
+                                        <th>Unit Price</th>
+                                        <th>Total Price</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                @foreach (var line in o.Lines.OrderBy(l => l.OrderLineID))
+                                {
+                                    var cancelled = line.IsCancelled || o.Status == "Cancelled";
+                                    <tr data-line-id="@line.OrderLineID" class="@(cancelled ? "cancelled-line" : "")">
+                                        <td>@line.ItemName</td>
+                                        <td>@line.Quantity</td>
+                                        <td>RM @line.UnitPrice.ToString("N2")</td>
+                                        <td data-line-total>@(cancelled ? "Excluded" : $"RM {line.LineTotal:N2}")</td>
+                                        <td><span data-line-status class="@(cancelled ? "dish-cancelled" : "dish-active")">@(cancelled ? "Cancelled" : line.KitchenStatus)</span></td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                        @if (!Model.ReviewedOrderIds.Contains(o.OrderID))
+                        {
+                            <form method="post" asp-page-handler="Review" class="review-form" hidden="@(o.Status != "Completed")">
+                                <input type="hidden" name="orderId" value="@o.OrderID" />
+                                <div>
+                                    <label for="rating-@o.OrderID">Rating</label>
+                                    <select id="rating-@o.OrderID" name="rating">
+                                        <option value="5">5 - Excellent</option>
+                                        <option value="4">4 - Good</option>
+                                        <option value="3">3 - Okay</option>
+                                        <option value="2">2 - Poor</option>
+                                        <option value="1">1 - Bad</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="comment-@o.OrderID">Feedback</label>
+                                    <textarea id="comment-@o.OrderID" name="comment" rows="2" maxlength="800" placeholder="Tell us about your experience" required></textarea>
+                                </div>
+                                <button type="submit" class="secondary">Submit review</button>
+                            </form>
+                        }
+                        else if (Model.ReviewedOrderIds.Contains(o.OrderID))
+                        {
+                            <small class="order-review-note">Review submitted. Thank you for dining with us.</small>
+                        }
+                    </div>
+                }
+            </div>
+        </details>
     </article>
 }
-@if (!Model.Items.Any())
+@if (!sessions.Any())
 {
     <section class="card empty-state">You haven't placed an order yet.</section>
 }
@@ -83,7 +133,20 @@
                 for (const order of JSON.parse(event.data)) {
                     const card = document.querySelector('[data-order-id="' + order.orderId + '"]');
                     if (!card) continue;
-                    card.querySelector('[data-order-status]').textContent = order.status;
+                    card.querySelector('[data-order-status]').textContent = order.roundStatus;
+                    const session = card.closest('[data-reservation-id]');
+                    session.querySelector('[data-session-status]').textContent = order.sessionStatus;
+                    session.querySelector('[data-session-count]').textContent = order.sessionCount;
+                    session.querySelector('[data-session-total]').textContent = 'RM ' + order.sessionTotal.toFixed(2);
+                    for (const line of order.lines) {
+                        const row = card.querySelector('[data-line-id="' + line.lineId + '"]');
+                        if (!row) continue;
+                        row.classList.toggle('cancelled-line', line.cancelled);
+                        const badge = row.querySelector('[data-line-status]');
+                        badge.textContent = line.status;
+                        badge.className = line.cancelled ? 'dish-cancelled' : 'dish-active';
+                        row.querySelector('[data-line-total]').textContent = line.cancelled ? 'Excluded' : 'RM ' + line.total.toFixed(2);
+                    }
                     const review = card.querySelector('.review-form');
                     if (review) review.hidden = order.status !== 'Completed';
                 }

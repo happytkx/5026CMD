@@ -47,6 +47,7 @@
             <p>Deposit @r.DepositStatus: RM @r.DepositAmount.ToString("N2")</p>
         </div>
         <div class="row-actions">
+            <a asp-page="/MyBill" asp-route-id="@r.ReservationID">View bill</a>
             <a class="button secondary" asp-page="Details" asp-route-id="@r.ReservationID">
                 View details →
             </a>

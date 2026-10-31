@@ -1,0 +1,214 @@
+@page "{id:int?}"
+@model RROMS.Pages.MyBillModel
+@{
+    ViewData["Title"] = "My bill";
+}
+<section class="account-heading">
+    <p class="eyebrow">YOUR CÉLESTE DINING EXPERIENCE</p>
+    <h1>My Bill &amp; Receipts</h1>
+    <p>Follow your dining spending, see tax and deposit deductions, and find your receipt after staff confirms payment.</p>
+</section>
+
+@if (Model.MyReservations.Count == 0)
+{
+    <section class="card empty-state">
+        <p>You do not have any reservations yet.</p>
+        <a class="button" asp-page="/Reservations/Create">Make a reservation</a>
+    </section>
+}
+else if (Model.Booking is { } booking)
+{
+    <form method="get" class="card mybill-selector" aria-label="Choose reservation to view">
+        <div class="mybill-select-field">
+            <label for="id">Choose a reservation</label>
+            <select id="id" name="id">
+                @foreach (var reservation in Model.MyReservations)
+                {
+                    <option value="@reservation.ReservationID"
+                            selected="@(reservation.ReservationID == booking.ReservationID)">
+                        @reservation.ReservationDate.ToString("dd MMM yyyy") · @reservation.BookingReference
+                        (@reservation.ReservationStatus)
+                    </option>
+                }
+            </select>
+        </div>
+        <input type="hidden" name="tab" value="@Model.ActiveTab" />
+        <button type="submit">View This Bill</button>
+    </form>
+
+    <div class="mybill-progress" role="status">
+        <div class="mybill-progress-symbol" aria-hidden="true">@(Model.IsPaid ? "✓" : booking.ReservationStatus == "Seated" ? "●" : "○")</div>
+        <div class="mybill-progress-content">
+            @if (Model.IsPaid)
+            {
+                <strong>Payment complete</strong>
+                <p>Your bill has been settled. The receipt and payment details are available below.</p>
+            }
+            else if (Model.IsFinalBillReady)
+            {
+                <strong>Final bill prepared</strong>
+                <p>Your final bill is ready for staff to verify and record onsite payment.</p>
+            }
+            else if (booking.ReservationStatus == "Seated")
+            {
+                <strong>Dining in progress</strong>
+                <p>Your running bill updates as orders are placed. Staff will prepare the final bill and take payment at the restaurant.</p>
+            }
+            else
+            {
+                <strong>Reservation @booking.ReservationStatus</strong>
+                <p>Your running bill will show charges once staff checks you in and you begin ordering. Final payment is handled by staff.</p>
+            }
+        </div>
+        <a class="button secondary mybill-progress-action" asp-page="/Orders/Index">My Orders</a>
+    </div>
+
+    <nav class="mybill-jump-links mybill-tabs" aria-label="My Bill sections">
+        <a asp-page="/MyBill" asp-route-id="@booking.ReservationID" asp-route-tab="summary"
+           class="@(Model.ActiveTab == "summary" ? "active" : "")"
+           aria-current="@(Model.ActiveTab == "summary" ? "page" : null)">Bill summary</a>
+        <a asp-page="/MyBill" asp-route-id="@booking.ReservationID" asp-route-tab="payments"
+           class="@(Model.ActiveTab == "payments" ? "active" : "")"
+           aria-current="@(Model.ActiveTab == "payments" ? "page" : null)">Payments &amp; receipts</a>
+    </nav>
+
+    @if (Model.ActiveTab == "summary")
+    {
+    <section class="card celeste-customer-bill">
+        <div class="celeste-bill-heading">
+            <div>
+                <p class="eyebrow">CÉLESTE FINE DINING</p>
+                <h2>@(Model.IsPaid ? "Paid Final Bill" : Model.IsFinalBillReady ? "Final Bill · Awaiting Payment" : booking.ReservationStatus == "Seated" ? "Live Running Bill" : "Current Bill Estimate")</h2>
+                <p class="muted">Reservation @booking.BookingReference · @booking.PartySize guests</p>
+            </div>
+            @if (Model.IsPaid)
+            {
+                <span class="celeste-bill-status celeste-bill-status-paid">Paid</span>
+            }
+        </div>
+
+        @if (!Model.IsPaid)
+        {
+            <p class="notice">
+                @(Model.IsFinalBillReady
+                    ? "Your final bill has been prepared and is awaiting onsite payment. The paid reservation deposit is already deducted."
+                    : booking.ReservationStatus == "Seated"
+                        ? "This is a live estimate from your placed orders, including tax and deposit deductions. Staff verifies the final bill before taking payment."
+                        : "No final payment is due here. Your spending estimate begins when you check in and place dining orders.")
+            </p>
+        }
+
+        <div class="celeste-bill-grid">
+            <div>
+                <h3>Ordered Dishes</h3>
+                @if (Model.Orders.Count == 0)
+                {
+                    <p>No active dining orders have been placed for this reservation.</p>
+                }
+                else
+                {
+                    <div class="table-wrap celeste-bill-lines">
+                        <table>
+                            <thead>
+                                <tr><th>Dish</th><th>Qty</th><th>Unit Price</th><th>Total Price</th></tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var dish in Model.Orders.SelectMany(o => o.Lines.Where(l => !l.IsCancelled))
+                                .GroupBy(l => new { l.ItemName, l.UnitPrice }).OrderBy(g => g.Key.ItemName))
+                            {
+                                <tr>
+                                    <td>@dish.Key.ItemName</td>
+                                    <td>@dish.Sum(l => l.Quantity)</td>
+                                    <td>RM @dish.Key.UnitPrice.ToString("N2")</td>
+                                    <td>RM @dish.Sum(l => l.LineTotal).ToString("N2")</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+
+            <aside class="celeste-bill-summary" id="bill-summary" aria-label="Bill charges and payments">
+                <h3>Bill Summary</h3>
+                <dl>
+                    <div><dt>Food &amp; Beverage Subtotal</dt><dd>RM @Model.FoodSubtotal.ToString("N2")</dd></div>
+                    <div><dt>Tax (6%)</dt><dd>RM @Model.TaxAmount.ToString("N2")</dd></div>
+                    <div class="celeste-bill-grand"><dt>Grand Total</dt><dd>RM @Model.GrandTotal.ToString("N2")</dd></div>
+                    <div><dt>Minimum Spending</dt><dd>RM @booking.MinimumSpend.ToString("N2")</dd></div>
+                    <div><dt>Paid Deposit Applied</dt><dd>− RM @Model.DepositApplied.ToString("N2")</dd></div>
+                    @if (Model.IsPaid)
+                    {
+                        <div><dt>Final Payment Received</dt><dd>− RM @(Model.Payments.Where(p => p.PaymentType == "DiningBill" && p.PaymentStatus == "Paid").Sum(p => p.Amount).ToString("N2"))</dd></div>
+                    }
+                    <div class="celeste-bill-balance">
+                        <dt>@(Model.IsPaid ? "Outstanding Balance" : "Estimated Balance")</dt>
+                        <dd>RM @Model.Outstanding.ToString("N2")</dd>
+                    </div>
+                </dl>
+                @if (!Model.IsPaid && Model.Shortfall > 0m)
+                {
+                    <p class="celeste-bill-alert">
+                        RM @Model.Shortfall.ToString("N2") more in food and beverage orders is needed to meet the minimum spending requirement (before tax).
+                    </p>
+                }
+                else if (Model.IsPaid)
+                {
+                    <p class="celeste-bill-paid-note">Your final bill is paid. Thank you for dining with us.</p>
+                }
+                else
+                {
+                    <p class="celeste-bill-paid-note">Minimum spending requirement met.</p>
+                }
+            </aside>
+        </div>
+    </section>
+    }
+    else
+    {
+    <section class="card mybill-history" id="payment-history">
+        <h2>Payments &amp; Receipts</h2>
+        <p class="muted">Your reservation deposit and any final dining payment are listed here. A receipt becomes available after each successful payment.</p>
+        @if (Model.Payments.Count == 0)
+        {
+            <p>No payment transactions are recorded for this reservation yet.</p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Date</th><th>Payment</th><th>Method</th><th>Amount</th><th>Status</th><th>Receipt</th></tr></thead>
+                    <tbody>
+                    @foreach (var payment in Model.Payments)
+                    {
+                        <tr>
+                            <td>@payment.PaymentDate.ToString("dd MMM yyyy, h:mm tt")</td>
+                            <td>@(payment.PaymentType == "Deposit" ? "Reservation Deposit" : "Final Dining Payment")</td>
+                            <td>@payment.PaymentMethod</td>
+                            <td>RM @payment.Amount.ToString("N2")</td>
+                            <td><span class="badge">@payment.PaymentStatus</span></td>
+                            <td>
+                                @if (payment.PaymentStatus == "Paid")
+                                {
+                                    <a asp-page="/Staff/PaymentReceipt" asp-route-id="@payment.PaymentID">View / Print Receipt</a>
+                                }
+                                else
+                                {
+                                    <span class="muted">No receipt</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+    }
+}
+@section Scripts {
+    @if (Model.Booking is { ReservationStatus: "Seated" } && !Model.IsPaid)
+    {
+        <script>setTimeout(function () { if (!document.hidden) window.location.reload(); }, 30000);</script>
+    }
+}

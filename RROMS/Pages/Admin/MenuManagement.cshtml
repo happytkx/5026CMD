@@ -1,0 +1,183 @@
+@page
+@model RROMS.Pages.Admin.MenuManagementModel
+@{
+    ViewData["Title"] = "Menu Management";
+    ViewData["MenuCategories"] = Model.Categories;
+    ViewData["DietaryOptions"] = Model.DietaryOptions;
+    ViewData["AllergenOptions"] = Model.AllergenOptions;
+    var emptyDish = new RROMS.Models.MenuItem { Category = Model.Categories.FirstOrDefault()?.Name ?? "", IsAvailable = true };
+}
+<p class="eyebrow">ADMINISTRATOR / MENU</p>
+<h1>Menu Management</h1>
+<p>Organise categories, update menu items and prices, and decide which dishes customers can order.</p>
+@if (TempData["Success"] is string ok)
+{
+    <p class="success">@ok</p>
+}
+@if (TempData["Error"] is string err)
+{
+    <p class="error">@err</p>
+}
+<form method="get" class="menu-management-filters" role="search">
+    <div class="menu-filter-field menu-filter-search">
+        <label for="menu-search">Search dishes</label>
+        <input id="menu-search" type="search" name="Search" value="@Model.Search" placeholder="Dish name or description" />
+    </div>
+    <div class="menu-filter-field">
+        <label for="menu-category-filter">Category</label>
+        <select id="menu-category-filter" name="FilterCategory">
+            <option value="">All categories</option>
+            @foreach (var category in Model.Categories)
+            {
+                <option value="@category.Name" selected="@(Model.FilterCategory == category.Name)">@category.Name</option>
+            }
+        </select>
+    </div>
+    <div class="menu-filter-field">
+        <label for="menu-availability-filter">Availability</label>
+        <select id="menu-availability-filter" name="FilterAvailability">
+            <option value="">All availability</option>
+            <option value="Available" selected="@(Model.FilterAvailability == "Available")">Available</option>
+            <option value="Unavailable" selected="@(Model.FilterAvailability == "Unavailable")">Unavailable</option>
+        </select>
+    </div>
+    <button type="submit">Apply Filters</button>
+    <a asp-page="/Admin/MenuManagement" class="button secondary">Clear</a>
+</form>
+<details class="menu-category-tools">
+    <summary>Manage categories <span class="badge">@Model.Categories.Count categories</span></summary>
+    <div class="menu-category-tools-body">
+        <p class="muted">Add or rename categories, and delete categories that contain no dishes.</p>
+    <form method="post" asp-page-handler="CreateCategory" class="menu-category-create">
+        <label for="new-category">New category name</label>
+        <div>
+            <input id="new-category" name="name" maxlength="120" placeholder="e.g. Chef's Specials" required />
+            <button type="submit">Add Category</button>
+        </div>
+    </form>
+    <div class="menu-category-list">
+        @foreach (var category in Model.Categories)
+        {
+            var dishCount = Model.AllItems.Count(i => i.Category == category.Name);
+            <article class="menu-category-row">
+                <form method="post" asp-page-handler="RenameCategory" class="menu-category-rename">
+                    <input type="hidden" name="categoryId" value="@category.MenuCategoryID" />
+                    <label for="category-@category.MenuCategoryID">@dishCount dish@(dishCount == 1 ? "" : "es")</label>
+                    <div>
+                        <input id="category-@category.MenuCategoryID" name="name" value="@category.Name" maxlength="120" required />
+                        <button type="submit" class="secondary">Rename</button>
+                    </div>
+                </form>
+                <form method="post" asp-page-handler="DeleteCategory"
+                      onsubmit="return confirm('Delete this empty category?');">
+                    <input type="hidden" name="categoryId" value="@category.MenuCategoryID" />
+                    <button type="submit" class="quiet danger" disabled="@(dishCount > 0)"
+                            title="@(dishCount > 0 ? "Move its dishes before deleting" : "Delete empty category")">Delete</button>
+                </form>
+            </article>
+        }
+    </div>
+    </div>
+</details>
+<section class="card menu-management-card">
+    <div class="menu-manager-heading">
+        <div>
+            <p class="eyebrow">CUSTOMER-FACING MENU</p>
+            <h2>Menu Items &amp; Prices</h2>
+            <p class="muted">Changes take effect on the digital menu. Historical orders keep their recorded item names and prices.</p>
+        </div>
+        <span class="badge">@Model.Items.Count of @Model.AllItems.Count dishes</span>
+    </div>
+    @if (Model.Categories.Count == 0)
+    {
+        <p class="notice">Create at least one dish category before adding menu items.</p>
+    }
+    else
+    {
+        <details class="menu-editor-panel menu-editor-new">
+            <summary>Add New Dish <span>＋</span></summary>
+            <div class="menu-editor-inner">
+                <form method="post" asp-page-handler="SaveItem" enctype="multipart/form-data">
+                    <partial name="_MenuItemEditor" model="emptyDish" />
+                </form>
+            </div>
+        </details>
+    }
+    @if (Model.Items.Count == 0)
+    {
+        <p class="notice">No dishes match your search and filters.</p>
+    }
+    <div class="menu-admin-items">
+        @foreach (var item in Model.Items)
+        {
+            <article class="menu-admin-item">
+                <div class="menu-admin-item-bar">
+                    <div>
+                        <strong>@item.Name</strong>
+                        <p>@item.Category · RM @item.Price.ToString("N2")</p>
+                    </div>
+                    <span class="badge @(item.IsAvailable ? "" : "menu-unavailable")">
+                        @(item.IsAvailable ? "Available" : "Unavailable")
+                    </span>
+                    <form method="post" asp-page-handler="ToggleAvailability">
+                        <input type="hidden" name="itemId" value="@item.MenuItemID" />
+                        <button type="submit" class="secondary">@(item.IsAvailable ? "Disable" : "Enable")</button>
+                    </form>
+                </div>
+                <details class="menu-editor-panel">
+                    <summary>Edit Item Details <span>⌄</span></summary>
+                    <div class="menu-editor-inner">
+                        <form method="post" asp-page-handler="SaveItem" enctype="multipart/form-data">
+                            <partial name="_MenuItemEditor" model="item" />
+                        </form>
+                    </div>
+                </details>
+            </article>
+        }
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.menu-tag-select').forEach(select => {
+            if (!window.TomSelect || select.tomselect) return;
+            new TomSelect(select, {
+                plugins: ['remove_button'],
+                create: false,
+                maxItems: null,
+                closeAfterSelect: false,
+                placeholder: select.dataset.placeholder || 'Choose options'
+            });
+        });
+
+        document.querySelectorAll('[data-upload-zone]').forEach(zone => {
+            const input = zone.querySelector('[data-upload-input]');
+            const name = zone.querySelector('[data-upload-name]');
+            const preview = zone.querySelector('[data-upload-preview]');
+            let temporaryUrl = null;
+
+            function updateFile(file) {
+                if (!file) return;
+                name.textContent = file.name;
+                if (temporaryUrl) URL.revokeObjectURL(temporaryUrl);
+                temporaryUrl = URL.createObjectURL(file);
+                preview.src = temporaryUrl;
+                preview.hidden = false;
+            }
+
+            input.addEventListener('change', () => updateFile(input.files[0]));
+            zone.addEventListener('dragover', event => {
+                event.preventDefault();
+                zone.classList.add('dragover');
+            });
+            zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+            zone.addEventListener('drop', event => {
+                event.preventDefault();
+                zone.classList.remove('dragover');
+                if (!event.dataTransfer.files.length) return;
+                input.files = event.dataTransfer.files;
+                updateFile(input.files[0]);
+            });
+        });
+    </script>
+}

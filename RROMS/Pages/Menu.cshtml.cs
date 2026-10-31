@@ -1,4 +1,4 @@
-// Digital menu: filters available dishes by name, category, dietary tag, protein and spice level, and adds dishes to the signed-in customer's basket.
+// Digital menu: filters available dishes by name, category, dietary tag and protein, and adds dishes to the signed-in customer's basket.
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -32,11 +32,6 @@ public class MenuModel(ApplicationDbContext db) : PageModel
     {
         get; set;
     }
-    [BindProperty(SupportsGet = true)]
-    public int? Spice
-    {
-        get; set;
-    }
 
     public async Task OnGetAsync()
     {
@@ -49,8 +44,6 @@ public class MenuModel(ApplicationDbContext db) : PageModel
             query = query.Where(i => i.DietaryTags.Contains(Dietary));
         if (!string.IsNullOrWhiteSpace(Protein))
             query = query.Where(i => i.ProteinType == Protein);
-        if (Spice.HasValue)
-            query = query.Where(i => i.SpiceLevel <= Spice.Value);
         Items = await query.OrderByDescending(i => i.IsPopular).ThenBy(i => i.Category).ThenBy(i => i.Name).ToListAsync();
         Categories = await db.MenuItems.Where(i => i.IsAvailable).Select(i => i.Category).Distinct().OrderBy(c => c).ToListAsync();
     }
@@ -70,6 +63,6 @@ public class MenuModel(ApplicationDbContext db) : PageModel
         basket[itemId] = Math.Min(Basket.MaxQuantity, basket.GetValueOrDefault(itemId) + 1);
         Basket.Write(HttpContext.Session, basket);
         TempData["Success"] = $"{item.Name} added to your order.";
-        return RedirectToPage(new { q = Q, category = Category, dietary = Dietary, protein = Protein, spice = Spice });
+        return RedirectToPage(new { q = Q, category = Category, dietary = Dietary, protein = Protein });
     }
 }

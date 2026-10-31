@@ -50,7 +50,7 @@ public class OrderBillingIntegrationService
         if (!snapshot.IsReadyForBilling)
         {
             throw new InvalidOperationException(
-                "The order is not ready for billing.");
+                "All active dishes must be served before preparing the final bill.");
         }
 
         if (snapshot.Lines == null ||
@@ -90,11 +90,34 @@ public class OrderBillingIntegrationService
                 line.Quantity * line.UnitPrice);
         }
 
-        // Reuse the existing Sprint 4 billing service.
-        // This calculates the deposit deduction,
-        // balance to pay and minimum spending rules.
+        // Sprint 3 stores tax per order. Sum those recorded amounts
+        // rather than charging tax again on the combined subtotal.
+        if (snapshot.FoodSubtotal is not decimal foodSubtotal ||
+            snapshot.TaxAmount is not decimal taxAmount ||
+            snapshot.OrderTotal is not decimal recordedTotal)
+        {
+            throw new InvalidOperationException(
+                "The dining orders do not contain complete billing totals.");
+        }
+
+        if (foodSubtotal != orderTotal)
+        {
+            throw new InvalidOperationException(
+                "The saved order subtotal does not match its line items.");
+        }
+
+        if (foodSubtotal < 0m || taxAmount < 0m ||
+            recordedTotal != checked(foodSubtotal + taxAmount))
+        {
+            throw new InvalidOperationException(
+                "The saved order subtotal, tax and total do not agree.");
+        }
+
+        // Minimum spending uses the food subtotal; the amount to pay
+        // includes the existing tax and deducts the paid deposit.
         return await _billingService.SaveDraftAsync(
             reservationId,
-            orderTotal);
+            foodSubtotal,
+            taxAmount);
     }
 }

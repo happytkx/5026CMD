@@ -7,11 +7,15 @@
 <section class="account-heading">
     <p class="eyebrow">FRESH FROM OUR KITCHEN</p>
     <h1>Your order</h1>
-    <p>Dine-in ordering is available only after staff check you in and mark your reservation as Seated.</p>
+    <p>Review your dishes before placing a dine-in order. Staff must check you in and mark your reservation as Seated before you can submit.</p>
 </section>
 @if (TempData["Error"] is string err)
 {
-    <p class="error">@err</p>
+    <p class="error" role="alert">@err</p>
+}
+@if (TempData["BasketMessage"] is string basketMessage)
+{
+    <p class="success" role="status">@basketMessage</p>
 }
 @if (Model.Lines.Count == 0)
 {
@@ -20,55 +24,74 @@
         <a class="button" asp-page="/Menu">Explore the menu</a>
     </section>
 }
-else if (Model.EligibleReservations.Count == 0)
-{
-    <section class="card">
-        <h2>No active seated reservation</h2>
-        <p>You can browse the menu and prepare a basket, but you cannot submit a dine-in order until staff check you in and update your reservation status to <strong>Seated</strong>.</p>
-        <a class="button" asp-page="/Reservations/Index">View my reservations</a>
-    </section>
-}
 else
 {
     <div class="checkout-layout">
-        <section class="card">
+        <section class="card checkout-items">
+            <div class="checkout-items-heading">
+                <div>
+                    <h2>Selected Dishes</h2>
+                    <p>Use + or − to change quantities, or × to remove an item. Your total updates each time.</p>
+                </div>
+                <a asp-page="/Menu" class="button secondary">Add More Dishes</a>
+            </div>
+
             @foreach (var l in Model.Lines)
             {
                 <div class="basket-line">
-                    <div>
+                    <div class="basket-item-info">
                         <strong>@l.Name</strong>
                         <small>RM @l.Price.ToString("0.00") each</small>
                     </div>
-                    <form method="post" asp-page-handler="Change" class="basket-qty">
+                    <form method="post" asp-page-handler="Change" class="basket-qty" aria-label="Quantity for @l.Name">
                         <input type="hidden" name="itemId" value="@l.Id" />
-                        <input type="number" name="quantity" min="0" max="20" value="@l.Quantity" aria-label="Quantity of @l.Name" />
-                        <button type="submit" class="secondary quiet">Update</button>
+                        <button class="basket-step" type="submit" name="quantity" value="@(l.Quantity - 1)"
+                                disabled="@(l.Quantity <= 1)" aria-label="Decrease quantity of @l.Name">−</button>
+                        <output class="basket-count" aria-label="Current quantity">@l.Quantity</output>
+                        <button class="basket-step" type="submit" name="quantity" value="@(l.Quantity + 1)"
+                                disabled="@(l.Quantity >= RROMS.Services.Basket.MaxQuantity)" aria-label="Increase quantity of @l.Name">+</button>
                     </form>
-                    <strong>RM @((l.Price * l.Quantity).ToString("0.00"))</strong>
+                    <strong class="basket-line-total">RM @((l.Price * l.Quantity).ToString("0.00"))</strong>
+                    <form method="post" asp-page-handler="Remove" class="basket-remove-form">
+                        <input type="hidden" name="itemId" value="@l.Id" />
+                        <button type="submit" class="basket-remove" title="Remove @l.Name"
+                                aria-label="Remove @l.Name from basket">×</button>
+                    </form>
                 </div>
             }
         </section>
-        <section class="card">
-            <h2>Summary</h2>
-            <form method="post" asp-page-handler="Place">
-                <div asp-validation-summary="All" class="error"></div>
-                <label asp-for="ReservationId">Active seated reservation</label>
-                <select asp-for="ReservationId" required>
-                    @foreach (var r in Model.EligibleReservations)
-                    {
-                        <option value="@r.ReservationID">@r.BookingReference · @r.ReservationDate.ToString("dd MMM") @DateTime.Today.Add(r.StartTime).ToString("h:mm tt") · @r.TableID</option>
-                    }
-                </select>
-                <dl class="order-totals">
-                    <div><dt>Subtotal</dt><dd>RM @Model.Subtotal.ToString("0.00")</dd></div>
-                    <div><dt>Service tax (6%)</dt><dd>RM @Model.Tax.ToString("0.00")</dd></div>
-                    <div class="grand"><dt>Total</dt><dd>RM @Model.Total.ToString("0.00")</dd></div>
-                </dl>
-                <label asp-for="Notes">Special preparation request <span class="optional">(optional)</span></label>
-                <textarea asp-for="Notes" rows="3" maxlength="500" placeholder="e.g. less spicy, sauce on the side"></textarea>
-                <p class="fine-print">Please tell staff directly about severe allergies. Do not rely on order notes alone. Your orders are added to your final bill and settled at the end of your meal.</p>
-                <button type="submit" class="wide-button">Place dine-in order</button>
-            </form>
+
+        <section class="card checkout-summary-card">
+            <p class="eyebrow">BEFORE YOU ORDER</p>
+            <h2>Order Summary</h2>
+            <p class="checkout-summary-subtitle">Charges for the dishes in this basket. Your paid reservation deposit is deducted from the final dining bill.</p>
+            <dl class="order-totals">
+                <div><dt>Subtotal</dt><dd>RM @Model.Subtotal.ToString("0.00")</dd></div>
+                <div><dt>Tax (6%)</dt><dd>RM @Model.Tax.ToString("0.00")</dd></div>
+                <div class="grand"><dt>Order Total</dt><dd>RM @Model.Total.ToString("0.00")</dd></div>
+            </dl>
+            @if (Model.EligibleReservations.Count == 0)
+            {
+                <p class="notice">Your basket is saved. A dine-in order can only be placed once staff has checked you in and your reservation is Seated.</p>
+                <a class="button" asp-page="/Reservations/Index">View My Reservations</a>
+            }
+            else
+            {
+                <form method="post" asp-page-handler="Place">
+                    <div asp-validation-summary="All" class="error"></div>
+                    <label asp-for="ReservationId">Active seated reservation</label>
+                    <select asp-for="ReservationId" required>
+                        @foreach (var r in Model.EligibleReservations)
+                        {
+                            <option value="@r.ReservationID">@r.BookingReference · @r.ReservationDate.ToString("dd MMM") @DateTime.Today.Add(r.StartTime).ToString("h:mm tt") · @r.TableID</option>
+                        }
+                    </select>
+                    <label asp-for="Notes">Special preparation request <span class="optional">(optional)</span></label>
+                    <textarea asp-for="Notes" rows="3" maxlength="500" placeholder="e.g. less spicy, sauce on the side"></textarea>
+                    <p class="fine-print">Please tell staff directly about severe allergies. Do not rely on order notes alone. Your orders are added to your final bill and settled at the end of your meal.</p>
+                    <button type="submit" class="wide-button">Place dine-in order</button>
+                </form>
+            }
         </section>
     </div>
 }

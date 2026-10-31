@@ -1,6 +1,6 @@
 ﻿
 @page
-@model RROMS.Pages.Staff.OccupancyModel
+@model RROMS.Pages.Admin.OccupancyModel
 
 @{
     ViewData["Title"] = "Table Utilisation Analytics";
@@ -15,6 +15,17 @@
     and reservation arrival patterns.
 </p>
 
+@{
+    var quickToday = ReservationPolicy.Now.Date;
+    var quickWeek = quickToday.AddDays(-(((int)quickToday.DayOfWeek + 6) % 7));
+    var quickMonth = new DateTime(quickToday.Year, quickToday.Month, 1);
+}
+<div class="report-period-presets">
+    <span>Quick periods:</span>
+    <a asp-page="/Admin/Occupancy" asp-route-StartDate="@quickToday.ToString("yyyy-MM-dd")" asp-route-EndDate="@quickToday.ToString("yyyy-MM-dd")">Today</a>
+    <a asp-page="/Admin/Occupancy" asp-route-StartDate="@quickWeek.ToString("yyyy-MM-dd")" asp-route-EndDate="@quickToday.ToString("yyyy-MM-dd")">This Week</a>
+    <a asp-page="/Admin/Occupancy" asp-route-StartDate="@quickMonth.ToString("yyyy-MM-dd")" asp-route-EndDate="@quickToday.ToString("yyyy-MM-dd")">This Month</a>
+</div>
 <form method="get" class="report-period-form">
     <section class="card report-period-card">
         <h2>Select Reporting Period</h2>
@@ -60,10 +71,15 @@
     </p>
 
     <section class="staff-stats">
-        <article class="card">
+        <a class="card occupancy-stat-link" asp-page="/Admin/ReportReservations"
+           asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+           asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
+           asp-route-Status="Scheduled"
+           aria-label="View all scheduled reservations in Reservation Reports">
             <small>SCHEDULED RESERVATIONS</small>
             <h2>@report.ReservationCount</h2>
-        </article>
+            <p class="stat-link-hint">View reservations →</p>
+        </a>
 
         <article class="card">
             <small>RESERVED GUESTS</small>

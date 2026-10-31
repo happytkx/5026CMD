@@ -7,31 +7,34 @@
 
 <p class="eyebrow">BILLING & PAYMENTS</p>
 
-<h1>Billing</h1>
+<h1>Billing &amp; Checkout</h1>
+<p>Choose a seated reservation, prepare its final bill, review the total with tax and deposit, then record the full payment received onsite.</p>
 
-<p>
-    View seated reservations, minimum spending,
-    deposits and saved dining bills.
-</p>
+<div class="billing-toolbar">
+    <a class="button secondary" asp-page="/Staff/Orders">Check Dining Orders</a>
+    <a class="button secondary" asp-page="/Staff/BillingHistory">Paid Bills &amp; History</a>
+</div>
 
-<p>
-    <a class="button secondary"
-       asp-page="/Staff/BillingHistory">
-        View Billing History
-    </a>
-</p>
+<section class="billing-workflow" aria-label="Staff billing steps">
+    <div><span>01</span><strong>Serve orders</strong><small>Finish all active dining orders.</small></div>
+    <div><span>02</span><strong>Prepare final bill</strong><small>Review items, tax, minimum and deposit.</small></div>
+    <div><span>03</span><strong>Take payment</strong><small>Record Cash, Card or E-Wallet in full.</small></div>
+    <div><span>04</span><strong>Complete dining</strong><small>Close the reservation after settlement.</small></div>
+</section>
 
-
-<section class="card">
-    <h2>Seated Reservations</h2>
+<section class="card billing-reservations">
+    <div class="billing-list-heading">
+        <div>
+            <h2>Seated Dining Sessions</h2>
+            <p>Only checked-in (Seated) reservations appear here. Open a booking to prepare the final bill and record payment.</p>
+        </div>
+        <a class="button secondary" asp-page="/Staff/Index">Daily Reservations</a>
+    </div>
 
     @if (Model.SeatedReservations.Count == 0)
     {
-        <p>No seated reservations found.</p>
-
-        <a asp-page="/Staff/Index">
-            View Daily Reservations
-        </a>
+        <p>No seated reservations are available yet. Check in a confirmed guest from Daily Reservations to begin billing.</p>
+        <a class="button" asp-page="/Staff/Index">Open Daily Reservations</a>
     }
     else
     {
@@ -48,7 +51,7 @@
                         <th>Bill Total</th>
                         <th>Balance to Pay</th>
                         <th>Bill Status</th>
-                        <th>Action</th>
+                        <th>Next Step</th>
                     </tr>
                 </thead>
 
@@ -88,23 +91,21 @@
                                     RM @bill.TotalBill.ToString("N2")
                                 </td>
 
-                                <td>
-                                    RM @bill.BalanceToPay.ToString("N2")
-                                </td>
+                                <td>RM @(bill.BillStatus == "Paid" ? "0.00" : bill.BalanceToPay.ToString("N2"))</td>
 
-                                <td>@bill.BillStatus</td>
+                                <td><span class="celeste-bill-status @(bill.BillStatus == "Paid" ? "celeste-bill-status-paid" : "celeste-bill-status-draft")">@(bill.BillStatus == "Draft" ? "Awaiting Payment" : bill.BillStatus)</span></td>
                             }
 
                             
-                            <td>
-                                <a asp-page="/Staff/BillDetails"
-                                   asp-route-id="@reservation.ReservationID">
-                                    View Bill & Payments
+                            <td class="billing-actions">
+                                <a class="button @(bill?.BillStatus == "Paid" ? "secondary" : "")"
+                                   asp-page="/Staff/BillDetails"
+                                   asp-route-id="@reservation.ReservationID"
+                                   asp-fragment="dining-bill">
+                                    @(bill == null ? "Prepare Final Bill" : bill.BillStatus == "Paid" ? "View Paid Bill" : "Review & Take Payment")
                                 </a>
-
-                                <a asp-page="/Reservations/Details"
-                                   asp-route-id="@reservation.ReservationID">
-                                    View Reservation
+                                <a asp-page="/Reservations/Details" asp-route-id="@reservation.ReservationID">
+                                    @(bill?.BillStatus == "Paid" ? "Complete Reservation" : "View Reservation")
                                 </a>
                             </td>
 
@@ -115,12 +116,7 @@
         </div>
 
         <p class="notice">
-            Bill totals will be generated from actual
-            food and beverage orders after integration
-            with the ordering module.
-
-            A saved draft bill can be displayed here,
-            but this page does not process payments.
+            Payment is recorded inside each reservation's Bill Details page. Customers can only view estimates and their receipts; staff handles onsite checkout.
         </p>
     }
 </section>

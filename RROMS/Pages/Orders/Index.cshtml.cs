@@ -24,7 +24,7 @@ public class IndexModel(ApplicationDbContext db) : PageModel
     }
 
     // Authenticated SSE snapshots catch changes and reconnects without reloading review forms.
-    public async Task OnGetUpdatesAsync(CancellationToken cancellationToken)
+    public async Task<IActionResult> OnGetUpdatesAsync(CancellationToken cancellationToken)
     {
         Response.ContentType = "text/event-stream";
         Response.Headers.CacheControl = "no-store";
@@ -35,14 +35,29 @@ public class IndexModel(ApplicationDbContext db) : PageModel
             // End periodically so reconnect revalidates the authentication cookie.
             for (var tick = 0; tick < 30 && !cancellationToken.IsCancellationRequested; tick++)
             {
-                var statuses = await db.Orders.AsNoTracking().Where(o => o.CustomerID == id)
-                    .Select(o => new { orderId = o.OrderID, status = o.Status }).ToListAsync(cancellationToken);
+                var orders = await db.Orders.AsNoTracking().Include(o => o.Lines)
+                    .Where(o => o.CustomerID == id).ToListAsync(cancellationToken);
+                var statuses = orders.GroupBy(o => o.ReservationID).SelectMany(session =>
+                    session.Select(o => new {
+                        orderId = o.OrderID, status = o.Status,
+                        roundStatus = DiningOrderPresentation.RoundStatus(o),
+                        sessionStatus = DiningOrderPresentation.Status(session),
+                        sessionCount = DiningOrderPresentation.ActiveItemCount(session),
+                        sessionTotal = DiningOrderPresentation.Total(session),
+                        lines = o.Lines.Select(line => new {
+                            lineId = line.OrderLineID,
+                            cancelled = line.IsCancelled || o.Status == "Cancelled",
+                            status = line.IsCancelled || o.Status == "Cancelled" ? "Cancelled" : line.KitchenStatus,
+                            total = line.LineTotal
+                        })
+                    }));
                 await Response.WriteAsync("data: " + System.Text.Json.JsonSerializer.Serialize(statuses) + "\n\n", cancellationToken);
                 await Response.Body.FlushAsync(cancellationToken);
                 await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+        return new EmptyResult();
     }
 
     public async Task<IActionResult> OnPostReviewAsync(int orderId, int rating, string? comment)

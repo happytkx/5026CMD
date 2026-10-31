@@ -1,0 +1,103 @@
+@model RROMS.Models.MenuItem
+@{
+    var dietaryOptions = ViewData["DietaryOptions"] as List<string> ?? new();
+    var allergenOptions = ViewData["AllergenOptions"] as List<string> ?? new();
+    var currentDietary = (Model.DietaryTags ?? "").Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    var currentAllergens = (Model.Allergens ?? "").Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+}
+<input type="hidden" name="Dish.MenuItemID" value="@Model.MenuItemID" />
+<div class="menu-editor-grid">
+    <div class="menu-form-field">
+        <label for="dish-name-@Model.MenuItemID">Dish name</label>
+        <input id="dish-name-@Model.MenuItemID" name="Dish.Name" value="@Model.Name"
+               maxlength="100" required />
+    </div>
+    <div class="menu-form-field">
+        <label for="dish-category-@Model.MenuItemID">Category</label>
+        <select id="dish-category-@Model.MenuItemID" name="Dish.Category" required>
+            @foreach (var category in ViewData["MenuCategories"] as List<RROMS.Models.MenuCategory> ?? new())
+            {
+                <option value="@category.Name" selected="@(category.Name == Model.Category)">@category.Name</option>
+            }
+        </select>
+    </div>
+    <div class="menu-form-field">
+        <label for="dish-price-@Model.MenuItemID">Price (RM)</label>
+        <input id="dish-price-@Model.MenuItemID" type="number" name="Dish.Price"
+               value="@Model.Price.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)"
+               min="0.01" max="100000" step="0.01" required />
+    </div>
+    <div class="menu-form-field">
+        <label for="dish-protein-@Model.MenuItemID">Protein type</label>
+        <select id="dish-protein-@Model.MenuItemID" name="Dish.ProteinType">
+            @foreach (var protein in new[] { "Vegetarian", "Chicken", "Beef", "Lamb", "Duck", "Seafood", "Molluscs" })
+            {
+                <option value="@protein" selected="@(protein == Model.ProteinType)">@protein</option>
+            }
+        </select>
+    </div>
+    <div class="menu-form-field menu-form-wide">
+        <label for="dish-description-@Model.MenuItemID">Description</label>
+        <textarea id="dish-description-@Model.MenuItemID" name="Dish.Description" rows="2"
+                  maxlength="600">@Model.Description</textarea>
+    </div>
+    <div class="menu-form-field menu-form-wide">
+        <label for="dish-image-@Model.MenuItemID">Dish image</label>
+        <label class="menu-image-dropzone" data-upload-zone>
+            <input id="dish-image-@Model.MenuItemID" type="file" name="DishImage"
+                   accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" data-upload-input />
+            <span class="menu-upload-icon" aria-hidden="true">↑</span>
+            <strong>Drag an image here or click to choose a file</strong>
+            <small data-upload-name>JPG, PNG or WebP · Maximum 5 MB</small>
+            @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+            {
+                <img src="@Model.ImageUrl" alt="Current image for @Model.Name" class="menu-upload-preview" data-upload-preview />
+            }
+            else
+            {
+                <img alt="Selected dish image preview" class="menu-upload-preview" data-upload-preview hidden />
+            }
+        </label>
+        @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+        {
+            <small class="menu-current-image">Leave the image unchanged to keep the current photo.</small>
+        }
+    </div>
+    <div class="menu-form-field">
+        <label for="dish-dietary-@Model.MenuItemID">Dietary tags</label>
+        <select id="dish-dietary-@Model.MenuItemID" name="DietarySelections" class="menu-tag-select"
+                multiple data-placeholder="Select dietary tags">
+            @foreach (var tag in dietaryOptions)
+            {
+                <option value="@tag" selected="@currentDietary.Contains(tag)">@tag</option>
+            }
+        </select>
+        <small class="menu-field-help">Select any that apply.</small>
+    </div>
+    <div class="menu-form-field">
+        <label for="dish-allergens-@Model.MenuItemID">Allergens</label>
+        <select id="dish-allergens-@Model.MenuItemID" name="AllergenSelections" class="menu-tag-select"
+                multiple data-placeholder="Select allergens">
+            @foreach (var allergen in allergenOptions)
+            {
+                <option value="@allergen" selected="@currentAllergens.Contains(allergen)">@allergen</option>
+            }
+        </select>
+        <small class="menu-field-help">Select all allergens present in the dish.</small>
+    </div>
+    <div class="menu-editor-options">
+        <label class="menu-check">
+            <input type="checkbox" name="Dish.IsPopular" value="true" checked="@Model.IsPopular" />
+            <input type="hidden" name="Dish.IsPopular" value="false" />
+            Mark as popular
+        </label>
+        <label class="menu-check">
+            <input type="checkbox" name="Dish.IsAvailable" value="true" checked="@Model.IsAvailable" />
+            <input type="hidden" name="Dish.IsAvailable" value="false" />
+            Available to order
+        </label>
+    </div>
+</div>
+<button type="submit">@(Model.MenuItemID == 0 ? "Add Dish" : "Save Changes")</button>

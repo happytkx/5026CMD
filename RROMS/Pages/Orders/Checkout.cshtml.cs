@@ -50,14 +50,32 @@ public class CheckoutModel(ApplicationDbContext db) : PageModel
 
     public async Task OnGetAsync() => await Load();
 
+    // Quantity stepper changes only items already in this customer's session basket.
     public IActionResult OnPostChange(int itemId, int quantity)
     {
         var basket = Basket.Read(HttpContext.Session);
+        if (!basket.ContainsKey(itemId))
+            return RedirectToPage();
+
         if (quantity <= 0)
             basket.Remove(itemId);
         else
-            basket[itemId] = Math.Min(Basket.MaxQuantity, quantity);
+            basket[itemId] = Math.Clamp(quantity, 1, Basket.MaxQuantity);
+
         Basket.Write(HttpContext.Session, basket);
+        return RedirectToPage();
+    }
+
+    // Removing a dish changes the session basket, never an already placed order.
+    public IActionResult OnPostRemove(int itemId)
+    {
+        var basket = Basket.Read(HttpContext.Session);
+        if (basket.Remove(itemId))
+        {
+            Basket.Write(HttpContext.Session, basket);
+            TempData["BasketMessage"] = "Dish removed from your basket.";
+        }
+
         return RedirectToPage();
     }
 
@@ -75,6 +93,14 @@ public class CheckoutModel(ApplicationDbContext db) : PageModel
         if (reservation == null)
         {
             TempData["Error"] = "Dine-in orders can only be placed through your active reservation after staff have checked you in and marked you Seated.";
+            return RedirectToPage();
+        }
+        // A paid dining session is closed to new dishes, even if staff have
+        // not yet marked the reservation Completed.
+        if (await db.Bills.AnyAsync(b =>
+            b.ReservationID == reservation.ReservationID && b.BillStatus == "Paid"))
+        {
+            TempData["Error"] = "This dining session has already been paid. New dishes cannot be added.";
             return RedirectToPage();
         }
         if (!ModelState.IsValid)
@@ -97,14 +123,14 @@ public class CheckoutModel(ApplicationDbContext db) : PageModel
         {
             CustomerID = CustomerId,
             Title = "Order received",
-            Message = $"Your order {order.Reference} for table {reservation.TableID} has been received. Total: RM {order.Total:0.00}.",
+            Message = $"New dishes were added to reservation {reservation.BookingReference}, table {reservation.TableID}. This round totals RM {order.Total:0.00}.",
             Type = "Order",
             RelatedOrder = order,
             CreatedAt = order.CreatedAt
         });
         await db.SaveChangesAsync();
         Basket.Clear(HttpContext.Session);
-        TempData["Success"] = $"Order {order.Reference} has been placed. Follow its progress in My orders.";
+        TempData["Success"] = $"Dishes added to reservation {reservation.BookingReference}. Follow their progress in My orders.";
         return RedirectToPage("/Orders/Index");
     }
 }

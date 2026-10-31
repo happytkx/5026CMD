@@ -42,51 +42,53 @@
                     <span>CÉLESTE</span>
                     <small>FINE DINING</small>
                 </a>
-                <p class="sidebar-label">RESTAURANT OPERATIONS</p>
-                <nav aria-label="Staff navigation">
-                    <a class="@(currentPage=="/Staff/Index" ? "active" : "")" asp-page="/Staff/Index">
+                @if (admin)
+                {
+                    <p class="sidebar-label">ADMINISTRATOR MODULE</p>
+                    <nav aria-label="Administrator navigation">
+                        <a class="@(currentPage == "/Admin/Index" ? "active" : "")" asp-page="/Admin/Index">
+                            Admin Dashboard
+                        </a>
+                        <a class="@(currentPage == "/Admin/Reports" || currentPage == "/Admin/ReportReservations" ? "active" : "")" asp-page="/Admin/Reports">
+                            Reservation Reports
+                        </a>
+                        <a class="@(currentPage == "/Admin/PaymentCollections" ? "active" : "")" asp-page="/Admin/PaymentCollections">
+                            Payment Collections
+                        </a>
+                        <a class="@(currentPage == "/Admin/MenuManagement" ? "active" : "")" asp-page="/Admin/MenuManagement">
+                            Menu Management
+                        </a>
+                        <a class="@(currentPage == "/Admin/Occupancy" ? "active" : "")" asp-page="/Admin/Occupancy">
+                            Table Utilisation
+                        </a>
+                    </nav>
+                    <p class="sidebar-label sidebar-group-divider">SHARED STAFF OPERATIONS</p>
+                    <p class="sidebar-group-description">Admin access to daily restaurant operations</p>
+                }
+                else
+                {
+                    <p class="sidebar-label">RESTAURANT STAFF MODULE</p>
+                }
+                <nav aria-label="Restaurant staff operations">
+                    <a class="@(currentPage == "/Staff/Index" ? "active" : "")" asp-page="/Staff/Index">
                         Daily Reservations
                     </a>
-                    <a class="@(currentPage=="/Staff/Seating" ? "active" : "")" asp-page="/Staff/Seating">
+                    <a class="@(currentPage == "/Staff/Seating" ? "active" : "")" asp-page="/Staff/Seating">
                         Seating &amp; Allocation
                     </a>
                     <a class="@(currentPage == "/Staff/Orders" ? "active" : "")" asp-page="/Staff/Orders">
                         Dining Orders
                     </a>
-                    <a class="@(currentPage == "/Staff/Billing" ? "active" : "")" asp-page="/Staff/Billing">
-                        Billing
-                    </a>
-
-                    <a class="@(currentPage == "/Staff/Reports" ? "active" : "")" asp-page="/Staff/Reports">
-                        Reports &amp; Analytics
-                    </a>
-
-                    <a class="@(currentPage == "/Staff/PaymentCollections" ? "active" : "")"
-                       asp-page="/Staff/PaymentCollections">
-                        Payment Collections
-                    </a>
-
-                    <a class="@(currentPage == "/Staff/Occupancy" ? "active" : "")"
-                       asp-page="/Staff/Occupancy">
-                        Table Utilisation
-                    </a>
-
-
-                    @if (admin)
-                    {
-                        <a class="@(currentPage == "/Admin/Index" ? "active" : "")" asp-page="/Admin/Index">
-                            Admin Dashboard
-                        </a>
-                    }
-                    <a asp-page="/Index">
-                        Customer Website
-                    </a>
-                    <a asp-page="/Account/Login">
-                        Sign in
+                    <a class="@(currentPage == "/Staff/Billing" || currentPage == "/Staff/BillDetails" || currentPage == "/Staff/BillingHistory" || currentPage == "/Staff/PaymentReceipt" ? "active" : "")" asp-page="/Staff/Billing">
+                        Billing &amp; Checkout
                     </a>
                 </nav>
+                <p class="sidebar-label sidebar-group-divider">QUICK LINKS</p>
+                <nav aria-label="Other pages">
+                    <a asp-page="/Index">View Customer Website</a>
+                </nav>
                 <div class="staff-account">
-                    <strong>STAFF ACCOUNT</strong>
+                    <strong>@(admin ? "ADMIN ACCOUNT" : "STAFF ACCOUNT")</strong>
                     <p>@(User.Identity?.Name ?? "Restaurant Staff")</p>
                     <form method="post" asp-page="/Account/Logout">
                         <button class="quiet">Sign out</button>
@@ -95,7 +97,7 @@
             </aside>
             <div class="workspace-bar">
                 CÉLESTE / RESERVATION MANAGEMENT
-                <span>Restaurant Staff</span>
+                <span>@(admin ? "Administrator · Shared staff access" : "Restaurant Staff")</span>
             </div>
         }
         <div class="welcome-bar">
@@ -111,26 +113,43 @@
                 <span>CÉLESTE</span>
                 <small>FINE DINING</small>
             </a>
-            <nav aria-label="Main navigation">
+            <button type="button" class="mobile-menu-toggle" aria-label="Open navigation menu" aria-controls="main-navigation" aria-expanded="false">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </button>
+            <nav id="main-navigation" aria-label="Main navigation">
                 <a asp-page="/Index" class="@(currentPage == "/Index" ? "active" : "")" aria-current="@(currentPage == "/Index" ? "page" : null)">
                     Home
                 </a>
                 @if (staff)
                 {
-                    <a asp-page="/Staff/Index" class="@(currentPage.StartsWith("/Staff") ? "active" : "")">
-                        Daily reservations
-                    </a>
+                    @if (admin)
+                    {
+                        <a asp-page="/Admin/Index" class="@(currentPage.StartsWith("/Admin") ? "active" : "")">
+                            Admin dashboard
+                        </a>
+                        <a asp-page="/Staff/Index" class="@(currentPage.StartsWith("/Staff") || currentPage == "/Reservations/Details" ? "active" : "")">
+                            Staff operations
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-page="/Staff/Index" class="@(currentPage.StartsWith("/Staff") ? "active" : "")">
+                            Staff workspace
+                        </a>
+                    }
                 }
                 else
                 {
-                    <a asp-page="/Reservations/Create" class="@(currentPage == "/Reservations/Create" ? "active" : "")">
-                        Reservation
-                    </a>
                     <a asp-page="/Menu" class="@(currentPage == "/Menu" ? "active" : "")">
                         Menu
                     </a>
                     @if (User.IsInRole("Customer"))
                     {
+                        <a asp-page="/MyBill" class="@(currentPage == "/MyBill" ? "active" : "")">
+                            My bill
+                        </a>
                         <a asp-page="/Reservations/Index" class="@(currentPage == "/Reservations/Index" ? "active" : "")">
                             My reservations
                         </a>
@@ -140,17 +159,38 @@
                         <a asp-page="/Orders/Index" class="@(currentPage.StartsWith("/Orders") ? "active" : "")">
                             My orders
                         </a>
-                        <a asp-page="/Notifications" class="@(currentPage == "/Notifications" ? "active" : "")">
-                            Notifications
+                        <a asp-page="/Notifications"
+                           class="nav-icon-link @(currentPage == "/Notifications" ? "active" : "")"
+                           aria-label="Notifications" title="Notifications"
+                           aria-current="@(currentPage == "/Notifications" ? "page" : null)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+                                <path d="M10 21h4" />
+                            </svg>
                         </a>
-                        <a asp-page="/Account/Profile" class="@(currentPage == "/Account/Profile" ? "active" : "")">
-                            Profile
+                        <a asp-page="/Account/Profile"
+                           class="nav-icon-link @(currentPage == "/Account/Profile" ? "active" : "")"
+                           aria-label="Profile" title="Profile"
+                           aria-current="@(currentPage == "/Account/Profile" ? "page" : null)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="12" cy="12" r="9" />
+                                <circle cx="12" cy="9" r="3" />
+                                <path d="M6.5 19c.5-3.2 2.8-5 5.5-5s5 1.8 5.5 5" />
+                            </svg>
                         </a>
                     }
                 }
                 @if (User.Identity?.IsAuthenticated == true)
                 {
-                    <form method="post" asp-page="/Account/Logout">
+                    @if (!staff)
+                    {
+                        <a class="button nav-book" asp-page="/Reservations/Create">
+                            Book a table
+                        </a>
+                    }
+                    <form method="post" asp-page="/Account/Logout" class="nav-signout">
                         <button class="quiet">Sign out</button>
                     </form>
                 }
@@ -160,14 +200,14 @@
                         Sign in
                     </a>
                     <a asp-page="/Account/Register" class="@(currentPage == "/Account/Register" ? "active" : "")">
-                        Join us
+                        Register
                     </a>
-                }
-                @if (!staff)
-                {
-                    <a class="button nav-book" asp-page="/Reservations/Create">
-                        Book a table
-                    </a>
+                    @if (!staff)
+                    {
+                        <a class="button nav-book" asp-page="/Reservations/Create">
+                            Book a table
+                        </a>
+                    }
                 }
             </nav>
         </header>
@@ -204,10 +244,12 @@
             <script src="https://cdn.jsdelivr.net/npm/tom-select@@2.6.2/dist/js/tom-select.complete.min.js"></script>
 
             <script>
-                    // Style staff filter dropdowns consistently.
+                    // Apply consistent styling to staff dropdowns.
                     if (window.TomSelect) {
                         document.querySelectorAll(
-                            '.staff-search select, .billing-history-form select'
+                            '.staff-search select, ' +
+                            '.billing-history-form select, ' +
+                            '.order-update select'
                         ).forEach(function (select) {
 
                             if (!select.tomselect) {
@@ -225,6 +267,37 @@
 
         }
 
+        <script>
+            (function () {
+                const header = document.querySelector('.guest-view .site-header');
+                const toggle = header?.querySelector('.mobile-menu-toggle');
+                const menu = header?.querySelector('#main-navigation');
+                if (!header || !toggle || !menu) return;
+
+                function setMenuOpen(open) {
+                    header.classList.toggle('menu-open', open);
+                    toggle.setAttribute('aria-expanded', String(open));
+                    toggle.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
+                }
+
+                toggle.addEventListener('click', () => setMenuOpen(!header.classList.contains('menu-open')));
+                menu.addEventListener('click', event => {
+                    if (event.target.closest('a')) setMenuOpen(false);
+                });
+                document.addEventListener('click', event => {
+                    if (!header.contains(event.target)) setMenuOpen(false);
+                });
+                document.addEventListener('keydown', event => {
+                    if (event.key === 'Escape' && header.classList.contains('menu-open')) {
+                        setMenuOpen(false);
+                        toggle.focus();
+                    }
+                });
+                window.addEventListener('resize', () => {
+                    if (window.innerWidth > 1100) setMenuOpen(false);
+                });
+            })();
+        </script>
         @await RenderSectionAsync("Scripts", required: false)
     </body>
 </html>

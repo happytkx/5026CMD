@@ -127,7 +127,7 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
                     message = $"Confirmed {r.BookingReference}: {start:dd MMM yyyy HH:mm}, {r.PartySize} guests, {r.PreferredDiningOption}. Deposit RM{r.DepositAmount:0.00} paid. Minimum spend RM{r.MinimumSpend:0.00}. All cancellations forfeit the full deposit.";
                 }
                 else
-                    message = "Simulated payment failed. Retry before the payment hold expires.";
+                    message = "Payment failed. Retry before the payment hold expires.";
                 break;
             // Preserve party size, area, paid deposit and original deadline; allocate a table for the new time.
             case "Modify":
@@ -200,8 +200,27 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
             case "Complete":
                 if (!staff || r.ReservationStatus != "Seated")
                     throw new InvalidOperationException("Only seated reservations can be completed.");
-                if (!await db.Bills.AnyAsync(b => b.ReservationID == id && b.BillStatus == "Paid"))
-                    throw new InvalidOperationException("Settle the final dining bill before completing this reservation.");
+                var finalBillPaid = await db.Bills.AsNoTracking()
+                    .AnyAsync(b => b.ReservationID == id && b.BillStatus == "Paid");
+                if (!finalBillPaid)
+                    throw new InvalidOperationException("Settle the final dining bill before completing the reservation.");
+                // The kitchen round and its dishes are completed together when
+                // staff closes a fully paid reservation.
+                var completedOrders = await db.Orders
+                    .Include(o => o.Lines)
+                    .Where(o => o.ReservationID == id && o.Status != "Cancelled")
+                    .ToListAsync();
+                foreach (var completedOrder in completedOrders)
+                {
+                    if (completedOrder.Status is not ("Served" or "Completed") ||
+                        completedOrder.Lines.Where(l => !l.IsCancelled)
+                            .Any(l => l.KitchenStatus is not ("Served" or "Completed")))
+                        throw new InvalidOperationException("All dishes must be served before completing this reservation.");
+
+                    completedOrder.Status = "Completed";
+                    foreach (var line in completedOrder.Lines.Where(l => !l.IsCancelled))
+                        line.KitchenStatus = "Completed";
+                }
                 r.ReservationStatus = "Completed";
                 message = "Dining session completed. Ordering is closed.";
                 break;

@@ -4,13 +4,6 @@
 @{
     ViewData["Title"] = "Fine dining and reservations";
 }
-@foreach (var announcement in Model.Announcements)
-{
-    <aside class="notice announcement">
-        <strong>@announcement.Title</strong>
-        <p>@announcement.Message</p>
-    </aside>
-}
 <section class="home-hero">
     <div class="hero-copy">
         <p class="eyebrow">WELCOME TO CÉLESTE</p>
@@ -87,7 +80,7 @@
                     Reserved from your arrival until closing.
                 </p>
                 <a asp-page="/Reservations/Create" asp-route-Area="VIP Room" asp-route-PartySize="6">
-                    Explore private dining
+                    Reserve VIP room
                     <span aria-hidden="true">→</span>
                 </a>
             </div>

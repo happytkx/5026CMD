@@ -454,6 +454,12 @@ try
             var line = await reader.ReadLineAsync(streamTimeout.Token);
             var ownedOrder = await db.Orders.SingleAsync(o => o.ReservationID == registeredBooking.ReservationID);
             Check(line != null && line.Contains("\"orderId\":" + ownedOrder.OrderID), "Live stream includes owned order");
+            using (var snapshot = System.Text.Json.JsonDocument.Parse(line![6..]))
+            {
+                var streamedOrder = snapshot.RootElement.EnumerateArray().Single(o => o.GetProperty("orderId").GetInt32() == ownedOrder.OrderID);
+                Check(streamedOrder.TryGetProperty("sessionStatus", out _) && streamedOrder.TryGetProperty("sessionTotal", out _), "Live stream includes grouped dining session status and total");
+                Check(streamedOrder.GetProperty("lines").GetArrayLength() > 0, "Live stream includes individual dish statuses");
+            }
             await db.Orders.Where(o => o.OrderID == ownedOrder.OrderID).ExecuteUpdateAsync(s => s.SetProperty(o => o.Status, "Preparing"));
             string? update;
             do { update = await reader.ReadLineAsync(streamTimeout.Token); }

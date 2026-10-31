@@ -40,7 +40,7 @@
             <label asp-for="Status">Bill Status</label>
             <select asp-for="Status">
                 <option value="">All bill statuses</option>
-                <option value="Draft">Draft</option>
+                <option value="Draft">Awaiting Payment</option>
                 <option value="Paid">Paid</option>
             </select>
         </div>
@@ -76,7 +76,7 @@
         </article>
 
         <article class="card">
-            <small>DRAFT BILLS</small>
+            <small>AWAITING PAYMENT</small>
             <h2>@Model.DraftCount</h2>
         </article>
 
@@ -124,7 +124,7 @@
                             <th>Reservation Status</th>
                             <th>Bill Total</th>
                             <th>Deposit Applied</th>
-                            <th>Checkout Amount</th>
+                            <th>Outstanding Balance</th>
                             <th>Bill Status</th>
                             <th>Details</th>
                         </tr>
@@ -167,12 +167,12 @@
                                 </td>
 
                                 <td>
-                                    RM @bill.BalanceToPay.ToString("N2")
+                                    RM @(bill.BillStatus == "Paid" ? (0m).ToString("N2") : bill.BalanceToPay.ToString("N2"))
                                 </td>
 
                                 <td>
                                     <span class="badge">
-                                        @bill.BillStatus
+                                        @(bill.BillStatus == "Draft" ? "Awaiting Payment" : bill.BillStatus)
                                     </span>
                                 </td>
 
@@ -195,7 +195,7 @@
         This page lists saved bills by their scheduled
         dining dates.
 
-        Draft bills are not confirmed payments.
+        Bills awaiting payment have been prepared but are not yet settled.
         For Paid bills, the checkout amount represents
         the amount settled at final payment, not an
         outstanding balance.

@@ -45,6 +45,7 @@ builder.Services.AddScoped<OrderBillingIntegrationService>();
 builder.Services.AddScoped<TableAllocationService>();
 builder.Services.AddScoped<ReservationService>();
 builder.Services.AddScoped<ReportingService>();
+builder.Services.AddScoped<BusinessAnalyticsService>();
 builder.Services.AddScoped<OccupancyReportingService>();
 builder.Services.AddScoped<BillingService>();
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));

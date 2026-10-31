@@ -15,7 +15,18 @@
 {
     <p class="error">@err</p>
 }
-<form method="get" class="filters">
+@{
+    var periodToday = ReservationPolicy.Now.Date;
+    var periodWeek = periodToday.AddDays(-(((int)periodToday.DayOfWeek + 6) % 7));
+    var periodMonth = new DateTime(periodToday.Year, periodToday.Month, 1);
+}
+<div class="report-period-presets">
+    <span>Quick periods:</span>
+    <a asp-page="/Admin/Index" asp-route-from="@periodToday.ToString("yyyy-MM-dd")" asp-route-to="@periodToday.ToString("yyyy-MM-dd")">Today</a>
+    <a asp-page="/Admin/Index" asp-route-from="@periodWeek.ToString("yyyy-MM-dd")" asp-route-to="@periodToday.ToString("yyyy-MM-dd")">This Week</a>
+    <a asp-page="/Admin/Index" asp-route-from="@periodMonth.ToString("yyyy-MM-dd")" asp-route-to="@periodToday.ToString("yyyy-MM-dd")">This Month</a>
+</div>
+<form method="get" class="filters dashboard-filters">
     <label for="from">From</label>
     <input id="from" type="date" name="from" value="@Model.From.ToString("yyyy-MM-dd")" />
     <label for="to">To</label>
@@ -77,23 +88,106 @@
         </div>
     </section>
     <section class="card">
-        <h2>Manage menu availability</h2>
-        <p class="muted">Turn dishes on or off without deleting historical order records.</p>
-        @foreach (var m in Model.Menu)
-        {
-            <div class="menu-toggle-row">
-                <div>
-                    <strong>@m.Name</strong>
-                    <small>@m.Category · RM @m.Price.ToString("0.00")</small>
-                </div>
-                <form method="post" asp-page-handler="ToggleMenu">
-                    <input type="hidden" name="itemId" value="@m.MenuItemID" />
-                    <button type="submit" class="quiet @(m.IsAvailable ? "danger" : "secondary")">@(m.IsAvailable ? "Disable" : "Enable")</button>
-                </form>
-            </div>
-        }
+        <p class="eyebrow">MENU OPERATIONS</p>
+        <h2>Manage the Céleste menu</h2>
+        <p class="muted">Create and edit categories and dishes, set prices, and control availability for customers.</p>
+        <p>All changes are saved to the live restaurant menu. Previously placed orders retain their original dish names and prices.</p>
+        <a class="button" asp-page="/Admin/MenuManagement">Open Menu Management</a>
     </section>
 </div>
+@if (Model.Insights is { } insights)
+{
+    <section class="staff-stats">
+        <article class="card">
+            <small>ACTIVE DINING CUSTOMERS</small>
+            <h2>@insights.ActiveCustomers</h2>
+            <p>Unique customers with active reservations in the period</p>
+        </article>
+        <article class="card">
+            <small>RETURNING CUSTOMERS</small>
+            <h2>@insights.ReturningCustomers</h2>
+            <p>Customers with at least two valid reservations</p>
+        </article>
+        <article class="card">
+            <small>AVERAGE PARTY SIZE</small>
+            <h2>@insights.AveragePartySize.ToString("N1")</h2>
+            <p>Guests per valid reservation</p>
+        </article>
+        <article class="card">
+            <small>SCHEDULED TABLE USE</small>
+            <h2>@(Model.Occupancy == null ? "—" : Model.Occupancy.UtilisationPercent.ToString("N1") + "%")</h2>
+            <p>Planned utilisation (up to 90-day report periods)</p>
+        </article>
+    </section>
+
+    <div class="grid">
+        <section class="card">
+            <h2>Customer Behaviour</h2>
+            <p class="muted">Confirmed, seated and completed reservations scheduled within the period.</p>
+            <div class="analytics-summary-row"><span>First-time customers</span><strong>@insights.NewCustomers</strong></div>
+            <div class="analytics-summary-row"><span>Returning customers</span><strong>@insights.ReturningCustomers</strong></div>
+            <div class="analytics-summary-row"><span>Average party size</span><strong>@insights.AveragePartySize.ToString("N1") guests</strong></div>
+            <div class="analytics-summary-row"><span>Average orders per reservation</span><strong>@insights.OrdersPerReservation.ToString("N2")</strong></div>
+            <p class="muted">Returning means two or more valid reservations up to the selected end date.</p>
+            <a asp-page="/Admin/ReportReservations" asp-route-StartDate="@Model.From.ToString("yyyy-MM-dd")" asp-route-EndDate="@Model.To.ToString("yyyy-MM-dd")">Explore reservations</a>
+        </section>
+        <section class="card">
+            <h2>Least-Ordered Menu Items</h2>
+            <p class="muted">Includes dishes with zero orders during the period.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Dish</th><th>Category</th><th>Qty</th><th>Sales</th></tr></thead>
+                    <tbody>
+                    @foreach (var item in insights.LeastOrdered)
+                    {
+                        <tr><td>@item.Name</td><td>@item.Category</td><td>@item.Quantity</td><td>RM @item.Sales.ToString("N2")</td></tr>
+                    }
+                    </tbody>
+                </table>
+                @if (insights.LeastOrdered.Count == 0)
+                {
+                    <p>No menu items found.</p>
+                }
+            </div>
+        </section>
+    </div>
+
+    <section class="card report-chart">
+        <h2>Menu Category Sales &amp; Ordering Patterns</h2>
+        <p class="muted">Quantities ordered and food/beverage revenue before tax, excluding cancelled orders.</p>
+        @{
+            var categoryMaximum = insights.CategorySales.Count == 0 ? 0m : insights.CategorySales.Max(x => x.Sales);
+        }
+        @if (insights.CategorySales.Count == 0)
+        {
+            <p>No dining orders were placed during this period.</p>
+        }
+        else
+        {
+            @foreach (var category in insights.CategorySales)
+            {
+                var width = categoryMaximum <= 0m ? 0 : (int)Math.Round(category.Sales / categoryMaximum * 100m);
+                <div class="report-status-row">
+                    <div class="report-status-label">
+                        <strong>@category.Category</strong>
+                        <span>@category.Quantity dishes · RM @category.Sales.ToString("N2")</span>
+                    </div>
+                    <div class="report-bar-track" role="progressbar" aria-label="@($"Category sales for {category.Category}")"
+                         aria-valuemin="0" aria-valuemax="@categoryMaximum" aria-valuenow="@category.Sales">
+                        <div class="report-bar-fill" style="width: @(width)%"></div>
+                    </div>
+                </div>
+            }
+        }
+        <p class="muted">Menu category and dish figures are based on recorded order lines; paid collections are reported separately.</p>
+    </section>
+
+    <div class="analytics-links">
+        <a class="button secondary" asp-page="/Admin/Reports">Reservation &amp; Deposit Reports</a>
+        <a class="button secondary" asp-page="/Admin/PaymentCollections">Payment Collections</a>
+        <a class="button secondary" asp-page="/Admin/Occupancy">Occupancy Details</a>
+    </div>
+}
 <section class="card">
     <h2>Announcements</h2>
     @foreach (var a in Model.Announcements)
@@ -105,7 +199,7 @@
             </div>
             <form method="post" asp-page-handler="RetireAnnouncement">
                 <input type="hidden" name="id" value="@a.AnnouncementID" />
-                <button type="submit" class="quiet secondary">Remove</button>
+                <button type="submit" class="quiet danger">Remove</button>
             </form>
         </div>
     }

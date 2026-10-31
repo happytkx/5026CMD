@@ -78,7 +78,7 @@ else if (Model.View=="Confirmation")
             <br/>
             to Welcoming You.
         </h1>
-        <p>Thank you, @r.Customer.CustomerName. Your simulated deposit payment succeeded and your table is reserved.</p>
+        <p>Thank you, @r.Customer.CustomerName. Your deposit payment succeeded and your table is reserved.</p>
     </div>
     <section class="card confirmation-card">
         <div class="section-heading">
@@ -355,20 +355,40 @@ else
                         <p>Check-in is available from the reserved time until the arrival deadline.</p>
                         <form method="post" asp-page-handler="Action">
                             <button name="action" value="CheckIn">Check in &amp; activate dining</button>
-                            <button name="action" value="NoShow" class="secondary">Mark no-show after deadline</button>
                         </form>
                     </section>
                 }
                 @if (Model.IsStaff && r.ReservationStatus=="Seated")
                 {
                     <section class="card">
-                        <form method="post" asp-page-handler="Action">
-                            <button name="action" value="Complete">Complete dining session</button>
-                        </form>
-                        <p>Settle the final bill before completing this dining session.</p><a asp-page="/Staff/BillDetails" asp-route-id="@r.ReservationID">Open final bill</a>
+                        <h3>Dining Checkout</h3>
+                        @if (Model.FinalBillPaid)
+                        {
+                            <form method="post" asp-page-handler="Action">
+                                <button name="action" value="Complete">Complete dining session</button>
+                            </form>
+                            <p>The final bill has been paid. Staff may now complete the reservation.</p>
+                        }
+                        else
+                        {
+                            <p>Complete the final bill payment before closing this dining session.</p>
+                            <a class="button" asp-page="/Staff/BillDetails" asp-route-id="@r.ReservationID">Open Billing</a>
+                        }
                     </section>
                 }
-                <button class="secondary" type="button" onclick="window.print()">Print booking / receipt</button>
+                <div class="booking-receipt-actions">
+                    <a class="button secondary booking-print-button"
+                       asp-page="BookingReceipt" asp-route-id="@r.ReservationID"
+                       asp-route-print="true" target="_blank" rel="noopener">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                            <path d="M6 14h12v7H6zM18 12h.01" />
+                        </svg>
+                        @(r.DepositStatus == "Paid" ? "Print Booking Receipt" : "Print Booking Summary")
+                    </a>
+                    <small>Opens a clean, printable one-page document.</small>
+                </div>
             }
         </div>
         <div>

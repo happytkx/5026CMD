@@ -1,8 +1,8 @@
 ﻿@page
-@model RROMS.Pages.Staff.ReportsModel
+@model RROMS.Pages.Admin.ReportsModel
 
 @{
-	ViewData["Title"] = "Reports & Analytics";
+	ViewData["Title"] = "Reservation Reports";
 }
 
 <p class="eyebrow">REPORTING & ANALYTICS</p>
@@ -16,6 +16,17 @@
 
 
 
+@{
+    var quickToday = ReservationPolicy.Now.Date;
+    var quickWeek = quickToday.AddDays(-(((int)quickToday.DayOfWeek + 6) % 7));
+    var quickMonth = new DateTime(quickToday.Year, quickToday.Month, 1);
+}
+<div class="report-period-presets">
+    <span>Quick periods:</span>
+    <a asp-page="/Admin/Reports" asp-route-StartDate="@quickToday.ToString("yyyy-MM-dd")" asp-route-EndDate="@quickToday.ToString("yyyy-MM-dd")">Today</a>
+    <a asp-page="/Admin/Reports" asp-route-StartDate="@quickWeek.ToString("yyyy-MM-dd")" asp-route-EndDate="@quickToday.ToString("yyyy-MM-dd")">This Week</a>
+    <a asp-page="/Admin/Reports" asp-route-StartDate="@quickMonth.ToString("yyyy-MM-dd")" asp-route-EndDate="@quickToday.ToString("yyyy-MM-dd")">This Month</a>
+</div>
 <form method="get" class="report-period-form">
 
     <section class="card report-period-card">
@@ -89,7 +100,7 @@
 
     <article class="card">
         <a class="text-reset text-decoration-none"
-           asp-page="/Staff/ReportReservations"
+           asp-page="/Admin/ReportReservations"
            asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
            asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")">
             <small>TOTAL RESERVATIONS</small>
@@ -100,7 +111,7 @@
 
     <article class="card">
         <a class="text-reset text-decoration-none"
-           asp-page="/Staff/ReportReservations"
+           asp-page="/Admin/ReportReservations"
            asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
            asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
            asp-route-Status="Confirmed">
@@ -112,7 +123,7 @@
 
     <article class="card">
         <a class="text-reset text-decoration-none"
-           asp-page="/Staff/ReportReservations"
+           asp-page="/Admin/ReportReservations"
            asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
            asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
            asp-route-Status="Seated">
@@ -124,7 +135,7 @@
 
     <article class="card">
         <a class="text-reset text-decoration-none"
-           asp-page="/Staff/ReportReservations"
+           asp-page="/Admin/ReportReservations"
            asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
            asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
            asp-route-Status="Completed">
@@ -140,7 +151,7 @@
 
     <article class="card">
         <a class="text-reset text-decoration-none"
-           asp-page="/Staff/ReportReservations"
+           asp-page="/Admin/ReportReservations"
            asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
            asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
            asp-route-Status="Cancelled">
@@ -152,7 +163,7 @@
 
     <article class="card">
         <a class="text-reset text-decoration-none"
-           asp-page="/Staff/ReportReservations"
+           asp-page="/Admin/ReportReservations"
            asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
            asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
            asp-route-Status="No-show">
@@ -201,7 +212,7 @@
 					<div class="report-status-label">
 
 						<a class="text-reset text-decoration-none"
-						   asp-page="/Staff/ReportReservations"
+						   asp-page="/Admin/ReportReservations"
 						   asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
 						   asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
 						   asp-route-Status="@status.Label">
@@ -261,7 +272,7 @@
 						<div class="report-status-label">
 
 							<a class="text-reset text-decoration-none"
-							   asp-page="/Staff/ReportReservations"
+							   asp-page="/Admin/ReportReservations"
 							   asp-route-StartDate="@day.Date.ToString("yyyy-MM-dd")"
 							   asp-route-EndDate="@day.Date.ToString("yyyy-MM-dd")">
 
@@ -382,4 +393,56 @@
 		Daily deposit collections are grouped by payment date,
 		which may differ from the scheduled reservation date.
 	</p>
+@if (Model.Insights is { } insights)
+{
+    <section class="staff-stats">
+        <article class="card"><small>ACTIVE DINING CUSTOMERS</small><h2>@insights.ActiveCustomers</h2></article>
+        <article class="card"><small>FIRST-TIME CUSTOMERS</small><h2>@insights.NewCustomers</h2></article>
+        <article class="card"><small>RETURNING CUSTOMERS</small><h2>@insights.ReturningCustomers</h2></article>
+        <article class="card"><small>AVERAGE PARTY SIZE</small><h2>@insights.AveragePartySize.ToString("N1")</h2></article>
+    </section>
+
+    <div class="grid">
+        <section class="card">
+            <h2>Customer Activity &amp; Ordering</h2>
+            <p>Average orders per reservation: <strong>@insights.OrdersPerReservation.ToString("N2")</strong></p>
+            <p class="muted">Active customers have confirmed, seated or completed bookings within the selected dates. Returning customers have two or more valid bookings through the end of the period.</p>
+        </section>
+        <section class="card">
+            <h2>Least-Ordered Dishes</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Dish</th><th>Category</th><th>Qty</th><th>Sales (pre-tax)</th></tr></thead>
+                    <tbody>
+                    @foreach (var item in insights.LeastOrdered)
+                    {
+                        <tr><td>@item.Name</td><td>@item.Category</td><td>@item.Quantity</td><td>RM @item.Sales.ToString("N2")</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+    <section class="card">
+        <h2>Sales by Menu Category</h2>
+        <p class="muted">Food and beverage sales from non-cancelled orders, before tax.</p>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Category</th><th>Quantity</th><th>Sales (RM)</th></tr></thead>
+                <tbody>
+                @foreach (var category in insights.CategorySales)
+                {
+                    <tr><td>@category.Category</td><td>@category.Quantity</td><td>RM @category.Sales.ToString("N2")</td></tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        @if (insights.CategorySales.Count == 0)
+        {
+            <p>No orders in this period.</p>
+        }
+        <a asp-page="/Admin/Index" asp-route-from="@Model.StartDate.ToString("yyyy-MM-dd")" asp-route-to="@Model.EndDate.ToString("yyyy-MM-dd")">Open combined dashboard</a>
+    </section>
+}
+
 }

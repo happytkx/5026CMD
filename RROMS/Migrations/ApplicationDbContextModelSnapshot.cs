@@ -72,11 +72,17 @@ namespace RROMS.Migrations
                     b.Property<decimal>("DepositApplied")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<decimal>("FoodSubtotal")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal>("MinSpend")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ReservationID")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TotalBill")
                         .HasColumnType("decimal(18,2)");
@@ -291,6 +297,27 @@ namespace RROMS.Migrations
                     b.ToTable("DiningAreas");
                 });
 
+            modelBuilder.Entity("RROMS.Models.MenuCategory", b =>
+                {
+                    b.Property<int>("MenuCategoryID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MenuCategoryID"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.HasKey("MenuCategoryID");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("MenuCategories");
+                });
+
             modelBuilder.Entity("RROMS.Models.MenuItem", b =>
                 {
                     b.Property<int>("MenuItemID")
@@ -384,6 +411,16 @@ namespace RROMS.Migrations
 
             modelBuilder.Entity("RROMS.Models.OrderLine", b =>
                 {
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CancelledBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsCancelled")
+                        .HasColumnType("bit");
+
                     b.Property<int>("OrderLineID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
@@ -394,6 +431,11 @@ namespace RROMS.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("KitchenStatus")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<decimal>("LineTotal")
                         .HasColumnType("decimal(18,2)");

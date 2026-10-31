@@ -7,15 +7,16 @@ using RROMS.Data;
 using RROMS.Models;
 using RROMS.Services;
 
-namespace RROMS.Pages.Staff;
+namespace RROMS.Pages.Admin;
 
-[Authorize(Policy = "Staff")]
+[Authorize(Policy = "Admin")]
 public class ReportReservationsModel : PageModel
 {
     private readonly ApplicationDbContext _db;
 
     private static readonly string[] AllowedStatuses =
     {
+        "Scheduled",
         "Pending",
         "Confirmed",
         "Seated",
@@ -49,9 +50,11 @@ public class ReportReservationsModel : PageModel
     public string StatusLabel =>
         string.IsNullOrEmpty(Status)
             ? "All Reservations"
+            : Status == "Scheduled"
+                ? "Scheduled Reservations"
             : Status == "Seated"
                 ? "Checked In (Seated)"
-                : Status;
+                : Status == "Expired" ? "Unpaid Hold Expired" : Status;
 
     public async Task<IActionResult> OnGetAsync()
     {
@@ -84,10 +87,14 @@ public class ReportReservationsModel : PageModel
             .Where(r => r.ReservationDate >= from &&
                         r.ReservationDate < endExclusive);
 
-        if (!string.IsNullOrEmpty(Status))
+        if (Status == "Scheduled")
         {
-            query = query.Where(
-                r => r.ReservationStatus == Status);
+            query = query.Where(r => r.ReservationStatus == "Confirmed" ||
+                r.ReservationStatus == "Seated" || r.ReservationStatus == "Completed");
+        }
+        else if (!string.IsNullOrEmpty(Status))
+        {
+            query = query.Where(r => r.ReservationStatus == Status);
         }
 
         if (!string.IsNullOrWhiteSpace(Search))
