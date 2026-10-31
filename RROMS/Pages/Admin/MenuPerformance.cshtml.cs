@@ -24,7 +24,7 @@ public class MenuPerformanceModel(ApplicationDbContext db) : PageModel
     public string? Category { get; set; }
 
     [BindProperty(SupportsGet = true)]
-    public string SortBy { get; set; } = "MostOrdered";
+    public string? SortBy { get; set; } = "MostOrdered";
 
     public List<string> Categories { get; private set; } = [];
     public List<DishRow> Dishes { get; private set; } = [];
@@ -44,12 +44,22 @@ public class MenuPerformanceModel(ApplicationDbContext db) : PageModel
             .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        if (string.IsNullOrWhiteSpace(Category) ||
-            !Categories.Contains(Category, StringComparer.OrdinalIgnoreCase))
-            Category = Categories.FirstOrDefault();
+        // Keep the displayed selections and the report data in sync. Razor's
+        // select tag helpers prefer ModelState attempted values over corrected values.
+        var selectedCategory = Categories.FirstOrDefault(name =>
+            string.Equals(name, Category, StringComparison.OrdinalIgnoreCase))
+            ?? Categories.FirstOrDefault();
+        if (!string.Equals(Category, selectedCategory, StringComparison.Ordinal))
+        {
+            Category = selectedCategory;
+            ModelState.Remove(nameof(Category));
+        }
 
         if (SortBy is not ("MostOrdered" or "LeastOrdered"))
+        {
             SortBy = "MostOrdered";
+            ModelState.Remove(nameof(SortBy));
+        }
 
         if (!HasValidPeriod)
         {
@@ -116,7 +126,7 @@ public class MenuPerformanceModel(ApplicationDbContext db) : PageModel
         Row("Category", Category ?? "No categories");
         Row("Start date", StartDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         Row("End date", EndDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
-        Row("Sort", SortBy);
+        Row("Sort", SortBy ?? "MostOrdered");
         Row();
         Row("Dish", "Quantity ordered", "Sales (RM, pre-tax)");
         foreach (var dish in Dishes)
