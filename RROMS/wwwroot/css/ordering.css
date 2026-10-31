@@ -1666,3 +1666,43 @@ form.card.mybill-selector {
     .menu-management-filters > button, .menu-management-filters > a.button { width: 100%; }
     .menu-category-tools-body { padding: 14px; }
 }
+
+
+
+/* Admin-managed menu options and un-clipped searchable dropdowns. */
+.menu-option-tools { margin-top: 16px; }
+.menu-option-group { border: 1px solid var(--line); border-radius: 4px; margin: 12px 0; }
+.menu-option-group > summary {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    font-weight: 600;
+    color: var(--olive-deep);
+}
+.menu-option-group > .menu-category-create { margin: 14px; }
+.menu-option-group > .menu-category-list { padding: 0 14px 14px; }
+.staff-workspace > .ts-dropdown { z-index: 20000; box-shadow: 0 12px 30px rgba(28, 28, 22, .17); }
+.staff-workspace > .ts-dropdown .ts-dropdown-content { max-height: 230px; overflow-y: auto; }
+.announcement-admin-row { display: flex; justify-content: space-between; gap: 20px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+.announcement-admin-copy { flex: 1 1 42%; min-width: 0; }
+.announcement-admin-copy strong { display: block; margin-bottom: 5px; }
+.announcement-admin-copy p { margin: 0 0 8px; color: var(--muted); white-space: pre-line; }
+.announcement-admin-copy small { display: block; }
+.announcement-expired { color: #a34a3c; }
+.announcement-admin-actions { flex: 1 1 48%; display: flex; align-items: flex-end; gap: 12px; }
+.announcement-admin-actions > form { margin: 0; padding: 0; border: 0; }
+.announcement-duration-form { flex: 1; display: flex; align-items: flex-end; flex-wrap: wrap; gap: 10px; }
+.announcement-duration-form > label:first-of-type { flex-basis: 100%; font-size: 12px; margin: 0; }
+.announcement-duration-form select { flex: 1; min-width: 150px; }
+.announcement-duration-form button, .announcement-admin-actions .quiet { white-space: nowrap; margin: 0; }
+.announcement-duration-fields { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 16px; margin: 10px 0; }
+.announcement-duration-fields > div { flex: 1; min-width: 220px; }
+.announcement-duration-fields select, .announcement-duration-fields input { width: 100%; }
+.announcement-expiry-picker { display: flex; flex-direction: column; gap: 5px; min-width: 160px; }
+.announcement-expiry-picker[hidden] { display: none !important; }
+@media (max-width: 960px) {
+    .announcement-admin-row { flex-direction: column; }
+    .announcement-admin-actions { flex-wrap: wrap; align-items: flex-start; }
+}

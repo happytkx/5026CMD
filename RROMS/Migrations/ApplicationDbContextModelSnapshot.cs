@@ -33,6 +33,9 @@ namespace RROMS.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -316,6 +319,32 @@ namespace RROMS.Migrations
                         .IsUnique();
 
                     b.ToTable("MenuCategories");
+                });
+
+            modelBuilder.Entity("RROMS.Models.MenuOption", b =>
+                {
+                    b.Property<int>("MenuOptionID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MenuOptionID"));
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.HasKey("MenuOptionID");
+
+                    b.HasIndex("Kind", "Name")
+                        .IsUnique();
+
+                    b.ToTable("MenuOptions");
                 });
 
             modelBuilder.Entity("RROMS.Models.MenuItem", b =>

@@ -149,31 +149,96 @@
         <a class="button secondary" asp-page="/Admin/MenuPerformance">Menu Performance</a>
     </div>
 }
-<section class="card">
+<section class="card announcement-admin-panel">
     <h2>Announcements</h2>
+    <p class="muted">Announcements appear on the customer home page while active. They automatically disappear after their expiry date and can also be removed manually.</p>
     @foreach (var a in Model.Announcements)
     {
-        <div class="menu-toggle-row">
-            <div>
+        var expired = a.ExpiresAt.HasValue && a.ExpiresAt.Value <= Model.CurrentTime;
+        <div class="announcement-admin-row">
+            <div class="announcement-admin-copy">
                 <strong>@a.Title</strong>
-                <small>@a.Message</small>
+                <p>@a.Message</p>
+                <small class="@(expired ? "announcement-expired" : "muted")">
+                    @(expired ? "Expired" : "Visible")
+                    · @(a.ExpiresAt.HasValue ? $"Ends {a.ExpiresAt.Value:dd MMM yyyy, h:mm tt}" : "No scheduled expiry")
+                </small>
             </div>
-            <form method="post" asp-page-handler="RetireAnnouncement">
-                <input type="hidden" name="id" value="@a.AnnouncementID" />
-                <button type="submit" class="quiet danger">Remove</button>
-            </form>
+            <div class="announcement-admin-actions">
+                <form method="post" asp-page-handler="SetAnnouncementExpiry"
+                      class="announcement-duration-form" data-announcement-duration-form>
+                    <input type="hidden" name="id" value="@a.AnnouncementID" />
+                    <label for="duration-@a.AnnouncementID">Display for</label>
+                    <select id="duration-@a.AnnouncementID" name="duration" data-announcement-duration>
+                        <option value="1">1 day from now</option>
+                        <option value="7">7 days from now</option>
+                        <option value="30">30 days from now</option>
+                        <option value="custom" selected="@a.ExpiresAt.HasValue">Until a date</option>
+                        <option value="never" selected="@(!a.ExpiresAt.HasValue)">No expiry</option>
+                    </select>
+                    <label class="announcement-expiry-picker" for="end-@a.AnnouncementID" data-custom-end>
+                        End date
+                        <input id="end-@a.AnnouncementID" type="date" name="endDate"
+                               min="@Model.CurrentTime.ToString("yyyy-MM-dd")"
+                               value="@(a.ExpiresAt?.Date.ToString("yyyy-MM-dd"))" />
+                    </label>
+                    <button type="submit" class="secondary">Update duration</button>
+                </form>
+                <form method="post" asp-page-handler="RetireAnnouncement">
+                    <input type="hidden" name="id" value="@a.AnnouncementID" />
+                    <button type="submit" class="quiet danger">Remove</button>
+                </form>
+            </div>
         </div>
     }
     @if (!Model.Announcements.Any())
     {
-        <p class="muted">No announcements are showing on the home page.</p>
+        <p class="muted">No active or scheduled announcements.</p>
     }
     <h2>Publish announcement</h2>
-    <form method="post" asp-page-handler="Announcement">
+    <form method="post" asp-page-handler="Announcement" class="announcement-publish-form"
+          data-announcement-duration-form>
         <label for="title">Title</label>
         <input id="title" name="title" maxlength="120" required />
         <label for="message">Message</label>
         <textarea id="message" name="message" rows="3" maxlength="1000" required></textarea>
+        <div class="announcement-duration-fields">
+            <div>
+                <label for="announcement-duration">Display for</label>
+                <select id="announcement-duration" name="duration" data-announcement-duration required>
+                    <option value="1">1 day</option>
+                    <option value="7" selected>7 days</option>
+                    <option value="30">30 days</option>
+                    <option value="custom">Until a date</option>
+                    <option value="never">No expiry (until removed)</option>
+                </select>
+            </div>
+            <label for="announcement-end" class="announcement-expiry-picker" data-custom-end>
+                End date (inclusive)
+                <input id="announcement-end" type="date" name="endDate"
+                       min="@Model.CurrentTime.ToString("yyyy-MM-dd")" />
+            </label>
+        </div>
+        <p class="muted">The announcement is published immediately. An end date keeps it visible through the chosen day (Malaysia time).</p>
         <button type="submit">Publish</button>
     </form>
 </section>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('[data-announcement-duration-form]').forEach(function (form) {
+            const select = form.querySelector('[data-announcement-duration]');
+            const custom = form.querySelector('[data-custom-end]');
+            const picker = custom?.querySelector('input[type="date"]');
+            if (!select || !custom || !picker) return;
+            const update = () => {
+                const selected = select.value === 'custom';
+                custom.hidden = !selected;
+                picker.required = selected;
+                picker.disabled = !selected;
+            };
+            select.addEventListener('change', update);
+            update();
+        });
+    </script>
+}

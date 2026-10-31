@@ -17,6 +17,8 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
     public List<MenuItem> Items { get; private set; } = [];
     public List<string> DietaryOptions { get; private set; } = [];
     public List<string> AllergenOptions { get; private set; } = [];
+    public List<string> ProteinOptions { get; private set; } = [];
+    public List<MenuOption> MenuOptions { get; private set; } = [];
 
     [BindProperty(SupportsGet = true)] public string? Search { get; set; }
     [BindProperty(SupportsGet = true)] public string? FilterCategory { get; set; }
@@ -25,11 +27,6 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
     [BindProperty] public IFormFile? DishImage { get; set; }
     [BindProperty] public string[] DietarySelections { get; set; } = [];
     [BindProperty] public string[] AllergenSelections { get; set; } = [];
-
-    private static readonly string[] DefaultDietaryTags =
-        ["Vegetarian", "Vegan", "Pescatarian", "Gluten-free", "Dairy-free", "No pork", "No beef", "No chicken", "No nuts"];
-    private static readonly string[] DefaultAllergens =
-        ["Milk", "Egg", "Wheat", "Peanuts", "Tree nuts", "Nuts", "Soy", "Fish", "Shellfish", "Sesame", "Mustard", "Celery", "Sulphites"];
 
     [BindProperty]
     public MenuItemInput Dish { get; set; } = new();
@@ -55,8 +52,17 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
         AllItems = await db.MenuItems.AsNoTracking()
             .OrderBy(i => i.Category).ThenBy(i => i.Name).ToListAsync();
 
-        DietaryOptions = Options(DefaultDietaryTags, AllItems.Select(i => i.DietaryTags));
-        AllergenOptions = Options(DefaultAllergens, AllItems.Select(i => i.Allergens));
+        MenuOptions = await db.MenuOptions.AsNoTracking()
+            .OrderBy(o => o.Kind).ThenBy(o => o.Name).ToListAsync();
+        DietaryOptions = Options(MenuOptions.Where(o => o.Kind == "Dietary").Select(o => o.Name),
+            AllItems.Select(i => i.DietaryTags));
+        AllergenOptions = Options(MenuOptions.Where(o => o.Kind == "Allergen").Select(o => o.Name),
+            AllItems.Select(i => i.Allergens));
+        ProteinOptions = MenuOptions.Where(o => o.Kind == "Protein").Select(o => o.Name)
+            .Concat(AllItems.Select(i => i.ProteinType))
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(v => v, StringComparer.OrdinalIgnoreCase).ToList();
 
         IEnumerable<MenuItem> filtered = AllItems;
         if (!string.IsNullOrWhiteSpace(Search))
@@ -76,8 +82,8 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
         Items = filtered.ToList();
     }
 
-    private static List<string> Options(IEnumerable<string> defaults, IEnumerable<string> existing) =>
-        defaults.Concat(existing.SelectMany(SplitTags))
+    private static List<string> Options(IEnumerable<string> configured, IEnumerable<string> existing) =>
+        configured.Concat(existing.SelectMany(SplitTags))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -135,6 +141,98 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
         return Success("Empty category deleted.");
     }
 
+    private static bool ValidOptionName(string? kind, string? name) =>
+        (kind is "Protein" or "Dietary" or "Allergen") &&
+        !string.IsNullOrWhiteSpace(name) &&
+        name.Length <= (kind == "Protein" ? 40 : 60) &&
+        !name.Contains(',');
+
+    public int OptionUsageCount(MenuOption option) => option.Kind switch
+    {
+        "Protein" => AllItems.Count(i => string.Equals(i.ProteinType, option.Name, StringComparison.OrdinalIgnoreCase)),
+        "Dietary" => AllItems.Count(i => SplitTags(i.DietaryTags)
+            .Any(tag => string.Equals(tag, option.Name, StringComparison.OrdinalIgnoreCase))),
+        "Allergen" => AllItems.Count(i => SplitTags(i.Allergens)
+            .Any(tag => string.Equals(tag, option.Name, StringComparison.OrdinalIgnoreCase))),
+        _ => 0
+    };
+
+    public async Task<IActionResult> OnPostCreateOptionAsync(string? kind, string? name)
+    {
+        name = name?.Trim();
+        if (!ValidOptionName(kind, name))
+            return Error("Enter a valid option name (up to 40 characters for proteins or 60 for tags).");
+
+        if (await db.MenuOptions.AnyAsync(o => o.Kind == kind && o.Name == name))
+            return Error("That option already exists.");
+
+        db.MenuOptions.Add(new MenuOption { Kind = kind!, Name = name! });
+        await db.SaveChangesAsync();
+        return Success($"{name} added to the {kind!.ToLowerInvariant()} choices.");
+    }
+
+    public async Task<IActionResult> OnPostRenameOptionAsync(int optionId, string? name)
+    {
+        name = name?.Trim();
+        var option = await db.MenuOptions.FindAsync(optionId);
+        if (option is null) return NotFound();
+        if (!ValidOptionName(option.Kind, name))
+            return Error("Enter a valid name for this option.");
+
+        if (await db.MenuOptions.AnyAsync(o => o.MenuOptionID != optionId && o.Kind == option.Kind && o.Name == name))
+            return Error("That option already exists.");
+
+        var oldName = option.Name;
+        var items = await db.MenuItems.ToListAsync();
+        foreach (var item in items)
+        {
+            if (option.Kind == "Protein")
+            {
+                if (string.Equals(item.ProteinType, oldName, StringComparison.OrdinalIgnoreCase))
+                    item.ProteinType = name!;
+            }
+            else if (option.Kind == "Dietary")
+            {
+                item.DietaryTags = JoinTags(SplitTags(item.DietaryTags)
+                    .Select(tag => string.Equals(tag, oldName, StringComparison.OrdinalIgnoreCase) ? name! : tag));
+                if (item.DietaryTags.Length > 250)
+                    return Error("The new tag name would exceed a dish's dietary-tag limit.");
+            }
+            else
+            {
+                item.Allergens = JoinTags(SplitTags(item.Allergens)
+                    .Select(tag => string.Equals(tag, oldName, StringComparison.OrdinalIgnoreCase) ? name! : tag));
+                if (item.Allergens.Length > 300)
+                    return Error("The new allergen name would exceed a dish's allergen limit.");
+            }
+        }
+
+        option.Name = name!;
+        await db.SaveChangesAsync();
+        return Success($"{oldName} renamed to {name}. Any dishes using it were updated.");
+    }
+
+    public async Task<IActionResult> OnPostDeleteOptionAsync(int optionId)
+    {
+        var option = await db.MenuOptions.FindAsync(optionId);
+        if (option is null) return NotFound();
+        var items = await db.MenuItems.AsNoTracking().ToListAsync();
+        bool inUse = option.Kind switch
+        {
+            "Protein" => items.Any(i => string.Equals(i.ProteinType, option.Name, StringComparison.OrdinalIgnoreCase)),
+            "Dietary" => items.Any(i => SplitTags(i.DietaryTags)
+                .Any(tag => string.Equals(tag, option.Name, StringComparison.OrdinalIgnoreCase))),
+            "Allergen" => items.Any(i => SplitTags(i.Allergens)
+                .Any(tag => string.Equals(tag, option.Name, StringComparison.OrdinalIgnoreCase))),
+            _ => true
+        };
+        if (inUse) return Error("This option is used by a dish. Change those dishes before deleting it.");
+
+        db.MenuOptions.Remove(option);
+        await db.SaveChangesAsync();
+        return Success($"{option.Name} removed from the list of choices.");
+    }
+
     public async Task<IActionResult> OnPostSaveItemAsync()
     {
         var name = Dish.Name?.Trim();
@@ -158,6 +256,15 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
 
         if (!await db.MenuCategories.AnyAsync(c => c.Name == category))
             return Error("Choose an existing category.");
+
+        var configuredOptions = await db.MenuOptions.AsNoTracking()
+            .Select(o => new { o.Kind, o.Name }).ToListAsync();
+        bool HasOption(string kind, string selected) => configuredOptions.Any(o =>
+            o.Kind == kind && string.Equals(o.Name, selected.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (!HasOption("Protein", protein) ||
+            DietarySelections.Any(tag => !HasOption("Dietary", tag)) ||
+            AllergenSelections.Any(tag => !HasOption("Allergen", tag)))
+            return Error("Choose only configured protein, dietary and allergen options.");
 
         if (await db.MenuItems.AnyAsync(i => i.MenuItemID != Dish.MenuItemID && i.Name == name))
             return Error("A dish with that name already exists.");

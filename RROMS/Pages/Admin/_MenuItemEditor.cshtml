@@ -32,7 +32,7 @@
     <div class="menu-form-field">
         <label for="dish-protein-@Model.MenuItemID">Protein type</label>
         <select id="dish-protein-@Model.MenuItemID" name="Dish.ProteinType">
-            @foreach (var protein in new[] { "Vegetarian", "Chicken", "Beef", "Lamb", "Duck", "Seafood", "Molluscs" })
+            @foreach (var protein in ViewData["ProteinOptions"] as List<string> ?? new())
             {
                 <option value="@protein" selected="@(protein == Model.ProteinType)">@protein</option>
             }

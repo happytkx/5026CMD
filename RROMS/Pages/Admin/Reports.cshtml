@@ -264,7 +264,8 @@
             }).ToList();
             var linePoints = string.Join(" ", plotted.Select(point => point.X + "," + point.Y));
             var step = Math.Max(1, (int)Math.Ceiling(plotted.Count / 7.0));
-            <div class="reservation-line-chart">
+            <div class="reservation-chart-interactive">
+                <div class="reservation-line-chart">
                 <svg viewBox="0 0 975 310" role="img" aria-labelledby="reservation-trend-title reservation-trend-description">
                     <title id="reservation-trend-title">Reservation trend over the selected reporting period</title>
                     <desc id="reservation-trend-description">
@@ -282,15 +283,22 @@
                     @for (var index = 0; index < plotted.Count; index++)
                     {
                         var point = plotted[index];
-                        <circle class="reservation-chart-point" cx="@point.X" cy="@point.Y" r="5" tabindex="0">
-                            <title>@point.Point.Count reservations, @point.Point.StartDate.ToString("dd MMM yyyy") to @point.Point.EndDate.ToString("dd MMM yyyy")</title>
-                        </circle>
+                        <circle class="reservation-chart-point" cx="@point.X" cy="@point.Y" r="8" tabindex="0"
+                                data-chart-point data-chart-count="@point.Point.Count"
+                                data-chart-start="@point.Point.StartDate.ToString("dd MMM yyyy")"
+                                data-chart-end="@point.Point.EndDate.ToString("dd MMM yyyy")"
+                                aria-label="@point.Point.Count scheduled reservations, @point.Point.StartDate.ToString("dd MMM yyyy") to @point.Point.EndDate.ToString("dd MMM yyyy")"></circle>
                         @if (index % step == 0 || index == plotted.Count - 1)
                         {
                             @Html.Raw($"<text class=\"reservation-chart-axis reservation-chart-date\" x=\"{point.X}\" y=\"279\" text-anchor=\"middle\">{point.Point.StartDate.ToString(Model.TrendGranularity == "month" ? "MMM yy" : "dd MMM")}</text>")
                         }
                     }
                 </svg>
+                </div>
+                <div class="reservation-chart-tooltip" role="tooltip" hidden>
+                    <strong data-chart-tooltip-count></strong>
+                    <span data-chart-tooltip-date></span>
+                </div>
             </div>
             <details class="reservation-trend-data">
                 <summary>View exact values and open reservations</summary>
@@ -429,4 +437,42 @@
     </section>
 }
 
+}
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.reservation-chart-interactive').forEach(function (container) {
+            const tooltip = container.querySelector('.reservation-chart-tooltip');
+            const count = tooltip?.querySelector('[data-chart-tooltip-count]');
+            const date = tooltip?.querySelector('[data-chart-tooltip-date]');
+            if (!tooltip || !count || !date) return;
+
+            function show(point) {
+                const number = Number(point.dataset.chartCount || 0);
+                count.textContent = number + (number === 1 ? ' reservation' : ' reservations');
+                const start = point.dataset.chartStart || '';
+                const end = point.dataset.chartEnd || '';
+                date.textContent = start === end ? start : start + ' – ' + end;
+                tooltip.hidden = false;
+                const frame = container.getBoundingClientRect();
+                const target = point.getBoundingClientRect();
+                const width = tooltip.offsetWidth;
+                const height = tooltip.offsetHeight;
+                const centerX = target.left + target.width / 2 - frame.left;
+                const topY = target.top - frame.top - height - 14;
+                tooltip.style.left = Math.max(8, Math.min(centerX - width / 2, frame.width - width - 8)) + 'px';
+                tooltip.style.top = (topY >= 0 ? topY : target.bottom - frame.top + 12) + 'px';
+            }
+
+            function hide() { tooltip.hidden = true; }
+            container.querySelectorAll('[data-chart-point]').forEach(point => {
+                point.addEventListener('pointerenter', () => show(point));
+                point.addEventListener('pointerleave', hide);
+                point.addEventListener('focus', () => show(point));
+                point.addEventListener('blur', hide);
+            });
+            container.querySelector('.reservation-line-chart')?.addEventListener('scroll', hide, { passive: true });
+            window.addEventListener('resize', hide);
+        });
+    </script>
 }

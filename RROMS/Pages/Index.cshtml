@@ -101,7 +101,18 @@
             </div>
             <p class="muted">Missed the welcome message? You can always read our latest news here.</p>
         </div>
-        <div class="celeste-announcement-list">
+        @if (Model.Announcements.Count > 1)
+        {
+            <div class="announcement-carousel-actions" aria-label="Browse announcements">
+                <span class="muted">Swipe or use the arrows to read more.</span>
+                <button type="button" class="announcement-carousel-arrow" data-announcement-prev
+                        aria-controls="celeste-announcement-track" aria-label="Previous announcements">←</button>
+                <button type="button" class="announcement-carousel-arrow" data-announcement-next
+                        aria-controls="celeste-announcement-track" aria-label="Next announcements">→</button>
+            </div>
+        }
+        <div class="celeste-announcement-list @(Model.Announcements.Count == 1 ? "single" : "")" id="celeste-announcement-track"
+             tabindex="0" role="region" aria-label="Latest announcements, horizontally scrollable">
             @foreach (var announcement in Model.Announcements)
             {
                 <article class="celeste-announcement">
@@ -133,6 +144,30 @@
     </dialog>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+            const track = document.getElementById('celeste-announcement-track');
+            const previous = document.querySelector('[data-announcement-prev]');
+            const next = document.querySelector('[data-announcement-next]');
+            const controls = document.querySelector('.announcement-carousel-actions');
+            if (track) {
+                const updateArrows = () => {
+                    if (controls) controls.hidden = track.scrollWidth <= track.clientWidth + 2;
+                    const atStart = track.scrollLeft <= 2;
+                    const atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 2;
+                    if (previous) previous.disabled = atStart;
+                    if (next) next.disabled = atEnd;
+                };
+                const advance = direction => {
+                    const first = track.querySelector('.celeste-announcement');
+                    if (!first) return;
+                    const gap = parseFloat(getComputedStyle(track).columnGap) || 0;
+                    track.scrollBy({ left: direction * (first.getBoundingClientRect().width + gap), behavior: 'smooth' });
+                };
+                previous?.addEventListener('click', () => advance(-1));
+                next?.addEventListener('click', () => advance(1));
+                track.addEventListener('scroll', updateArrows, { passive: true });
+                window.addEventListener('resize', updateArrows);
+                updateArrows();
+            }
             const dialog = document.getElementById("celeste-announcement-dialog");
             if (!dialog || typeof dialog.showModal !== "function") return;
             const key = "celeste-dismissed-announcements-v1";

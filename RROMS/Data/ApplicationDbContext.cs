@@ -70,6 +70,7 @@ namespace RROMS.Data
         }
 
         public DbSet<MenuCategory> MenuCategories { get; set; }
+        public DbSet<MenuOption> MenuOptions { get; set; }
 
         public DbSet<CustomerOrder> Orders
         {
@@ -104,6 +105,7 @@ namespace RROMS.Data
             modelBuilder.Entity<StaffAccount>().HasIndex(s => s.NormalizedEmail).IsUnique()
                 .HasFilter("[NormalizedEmail] IS NOT NULL");
             modelBuilder.Entity<MenuCategory>().HasIndex(c => c.Name).IsUnique();
+            modelBuilder.Entity<MenuOption>().HasIndex(o => new { o.Kind, o.Name }).IsUnique();
             modelBuilder.Entity<ReservationEmail>().HasIndex(e => e.EventKey).IsUnique();
             modelBuilder.Entity<ReservationEmail>().HasIndex(e => new { e.Status, e.DueAt });
             modelBuilder.Entity<Reservation>().Property(r => r.BookingReference).HasMaxLength(40);

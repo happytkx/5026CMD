@@ -3113,3 +3113,78 @@ td small
 .menu-performance-data { margin-top: 22px; }
 @media (max-width: 1120px) { .menu-performance-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 650px) { .menu-performance-filter-grid { grid-template-columns: 1fr; } .menu-performance-bar-row { grid-template-columns: 1fr; gap: 6px; } }
+
+
+
+/* Horizontally scrollable customer news: two cards at a time on desktops. */
+.celeste-announcement-list {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: calc(50% - 9px);
+    grid-template-columns: none;
+    gap: 18px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 1px;
+    scrollbar-color: #b3a58b transparent;
+    scrollbar-width: thin;
+    padding-bottom: 13px;
+}
+.celeste-announcement-list.single { grid-auto-columns: 100%; }
+.celeste-announcement { scroll-snap-align: start; min-width: 0; }
+.announcement-carousel-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin: -8px 0 12px;
+}
+.announcement-carousel-actions[hidden] { display: none; }
+.announcement-carousel-actions .muted { font-size: 12px; margin: 0 auto 0 0; }
+.announcement-carousel-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--white);
+    color: var(--olive-deep);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    cursor: pointer;
+    font-size: 20px;
+    line-height: 1;
+}
+.announcement-carousel-arrow:hover:not(:disabled) { background: var(--paper); }
+.announcement-carousel-arrow:disabled { opacity: .4; cursor: not-allowed; }
+@media (max-width: 720px) {
+    .celeste-announcement-list { grid-auto-columns: 85%; }
+    .celeste-announcement-list.single { grid-auto-columns: 100%; }
+    .celeste-announcement { padding: 22px; }
+}
+
+/* Hover- and keyboard-focus tooltip for the reservation line chart. */
+.reservation-chart-interactive { position: relative; }
+.reservation-chart-point { cursor: help; }
+.reservation-chart-tooltip {
+    position: absolute;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: max-content;
+    max-width: min(220px, 90%);
+    padding: 10px 13px;
+    border: 1px solid #cfbea2;
+    border-radius: 5px;
+    box-shadow: 0 8px 25px rgba(25, 25, 20, .16);
+    background: #fdfbf6;
+    color: var(--ink);
+    font-size: 12px;
+    pointer-events: none;
+}
+.reservation-chart-tooltip strong { font-weight: 600; }
+.reservation-chart-tooltip span { color: var(--muted); }
+.reservation-chart-tooltip[hidden] { display: none; }

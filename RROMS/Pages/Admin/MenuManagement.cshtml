@@ -5,6 +5,7 @@
     ViewData["MenuCategories"] = Model.Categories;
     ViewData["DietaryOptions"] = Model.DietaryOptions;
     ViewData["AllergenOptions"] = Model.AllergenOptions;
+    ViewData["ProteinOptions"] = Model.ProteinOptions;
     var emptyDish = new RROMS.Models.MenuItem { Category = Model.Categories.FirstOrDefault()?.Name ?? "", IsAvailable = true };
 }
 <p class="eyebrow">ADMINISTRATOR / MENU</p>
@@ -79,6 +80,52 @@
     </div>
     </div>
 </details>
+<details class="menu-category-tools menu-option-tools">
+    <summary>Manage protein types, dietary tags &amp; allergens <span class="badge">@Model.MenuOptions.Count options</span></summary>
+    <div class="menu-category-tools-body">
+        <p class="muted">These options appear in the dish editor dropdowns. Add new choices, rename them across existing dishes, or remove choices that no dish uses.</p>
+        @foreach (var kind in new[] { "Protein", "Dietary", "Allergen" })
+        {
+            var label = kind switch { "Protein" => "Protein types", "Dietary" => "Dietary tags", _ => "Allergens" };
+            var optionsForKind = Model.MenuOptions.Where(o => o.Kind == kind).ToList();
+            <details class="menu-option-group">
+                <summary>@label <span class="badge">@optionsForKind.Count</span></summary>
+                <form method="post" asp-page-handler="CreateOption" class="menu-category-create">
+                    <input type="hidden" name="kind" value="@kind" />
+                    <label for="new-option-@kind">New @(kind == "Protein" ? "protein type" : kind == "Dietary" ? "dietary tag" : "allergen")</label>
+                    <div>
+                        <input id="new-option-@kind" name="name" maxlength="@(kind == "Protein" ? 40 : 60)"
+                               placeholder="Enter a new @kind.ToLowerInvariant() option" required />
+                        <button type="submit">Add option</button>
+                    </div>
+                </form>
+                <div class="menu-category-list">
+                    @foreach (var option in optionsForKind)
+                    {
+                        var useCount = Model.OptionUsageCount(option);
+                        <article class="menu-category-row">
+                            <form method="post" asp-page-handler="RenameOption" class="menu-category-rename">
+                                <input type="hidden" name="optionId" value="@option.MenuOptionID" />
+                                <label for="option-@option.MenuOptionID">@useCount dish@(useCount == 1 ? "" : "es") using this option</label>
+                                <div>
+                                    <input id="option-@option.MenuOptionID" name="name" value="@option.Name"
+                                           maxlength="@(kind == "Protein" ? 40 : 60)" required />
+                                    <button type="submit" class="secondary">Rename</button>
+                                </div>
+                            </form>
+                            <form method="post" asp-page-handler="DeleteOption"
+                                  onsubmit="return confirm('Delete this unused option?');">
+                                <input type="hidden" name="optionId" value="@option.MenuOptionID" />
+                                <button type="submit" class="quiet danger" disabled="@(useCount > 0)"
+                                        title="@(useCount > 0 ? "Change the dishes using this option before deleting" : "Delete unused option")">Delete</button>
+                            </form>
+                        </article>
+                    }
+                </div>
+            </details>
+        }
+    </div>
+</details>
 <section class="card menu-management-card">
     <div class="menu-manager-heading">
         <div>
@@ -144,9 +191,19 @@
             new TomSelect(select, {
                 plugins: ['remove_button'],
                 create: false,
+                dropdownParent: 'body',
                 maxItems: null,
                 closeAfterSelect: false,
-                placeholder: select.dataset.placeholder || 'Choose options'
+                placeholder: select.dataset.placeholder || 'Choose options',
+                onDropdownOpen: function () {
+                    const control = this.control.getBoundingClientRect();
+                    const menu = this.dropdown;
+                    const availableBelow = window.innerHeight - control.bottom;
+                    if (menu && availableBelow < Math.min(menu.offsetHeight, 260) &&
+                        control.top > menu.offsetHeight + 12) {
+                        menu.style.top = (window.scrollY + control.top - menu.offsetHeight - 4) + 'px';
+                    }
+                }
             });
         });
 
