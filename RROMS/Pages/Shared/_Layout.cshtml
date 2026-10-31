@@ -1,9 +1,25 @@
 @* Shared page shell: Céleste header/footer for customer pages and sidebar navigation for staff reservation pages; loads fonts and the common stylesheet. *@
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@inject RROMS.Data.ApplicationDbContext NotificationDb
 @{
     var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
     var admin = User.IsInRole("Administrator");
     var staff = User.IsInRole("Restaurant Staff") || User.IsInRole("Staff") || admin;
     var workspace = staff && (currentPage.StartsWith("/Staff") || currentPage.StartsWith("/Admin") || currentPage == "/Reservations/Details");
+    var unreadStaffNotifications = 0;
+    if (workspace)
+    {
+        var recipientKey = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var isAdministrator = User.IsInRole("Administrator");
+        if (!string.IsNullOrWhiteSpace(recipientKey))
+        {
+            unreadStaffNotifications = await NotificationDb.StaffNotifications.AsNoTracking()
+                .CountAsync(n => (n.Audience == "Staff" || (isAdministrator && n.Audience == "Administrator")) &&
+                    !NotificationDb.StaffNotificationReads.Any(r =>
+                        r.StaffNotificationID == n.StaffNotificationID && r.RecipientKey == recipientKey));
+        }
+    }
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -73,6 +89,13 @@
                     <a class="@(currentPage == "/Staff/Index" ? "active" : "")" asp-page="/Staff/Index">
                         Daily Reservations
                     </a>
+                    <a class="@(currentPage == "/Staff/Notifications" ? "active" : "")" asp-page="/Staff/Notifications">
+                        Notifications
+                        @if (unreadStaffNotifications > 0)
+                        {
+                            <span class="staff-alert-count">@(unreadStaffNotifications > 99 ? "99+" : unreadStaffNotifications.ToString())</span>
+                        }
+                    </a>
                     <a class="@(currentPage == "/Staff/Seating" ? "active" : "")" asp-page="/Staff/Seating">
                         Seating &amp; Allocation
                     </a>
@@ -97,7 +120,16 @@
             </aside>
             <div class="workspace-bar">
                 CÉLESTE / RESERVATION MANAGEMENT
-                <span>@(admin ? "Administrator · Shared staff access" : "Restaurant Staff")</span>
+                <span class="workspace-bar-right">
+                    @(admin ? "Administrator · Shared staff access" : "Restaurant Staff")
+                    <a asp-page="/Staff/Notifications" class="staff-notification-bell" aria-label="Staff notifications@(unreadStaffNotifications > 0 ? $": {unreadStaffNotifications} unread" : "")" title="Notifications">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+                            <path d="M10 21h4" />
+                        </svg>
+                        @if (unreadStaffNotifications > 0) { <span class="staff-alert-count">@(unreadStaffNotifications > 99 ? "99+" : unreadStaffNotifications.ToString())</span> }
+                    </a>
+                </span>
             </div>
         }
         <div class="welcome-bar">

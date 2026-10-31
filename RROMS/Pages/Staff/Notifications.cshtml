@@ -1,0 +1,53 @@
+@page
+@model RROMS.Pages.Staff.NotificationsModel
+@{
+    ViewData["Title"] = "Staff Notifications";
+}
+<section class="staff-notifications">
+    <p class="eyebrow">RESTAURANT OPERATIONS</p>
+    <div class="staff-notifications-heading">
+        <div>
+            <h1>Notifications</h1>
+            <p class="muted">Reservation, order and payment updates for the restaurant team.</p>
+        </div>
+        @if (Model.UnreadCount > 0)
+        {
+            <form method="post" asp-page-handler="MarkAllRead">
+                <button type="submit" class="secondary">Mark all as read (@Model.UnreadCount)</button>
+            </form>
+        }
+    </div>
+    @if (Model.Items.Count == 0)
+    {
+        <section class="card empty-state">
+            You have no operational notifications yet. New confirmed bookings and dining orders will appear here.
+        </section>
+    }
+    else
+    {
+        <section class="card staff-notifications-list">
+            @foreach (var item in Model.Items)
+            {
+                <article class="staff-notification-item @(item.IsRead ? "" : "unread")">
+                    <div class="staff-notification-content">
+                        <p class="staff-notification-meta">
+                            <span>@item.Type</span>
+                            <span>@item.CreatedAt.ToString("dd MMM yyyy, h:mm tt")</span>
+                            @if (!item.IsRead) { <span class="staff-alert-new">New</span> }
+                        </p>
+                        <h2>@item.Title</h2>
+                        <p>@item.Message</p>
+                        <a href="@item.TargetUrl">View details →</a>
+                    </div>
+                    @if (!item.IsRead)
+                    {
+                        <form method="post" asp-page-handler="MarkRead">
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <button class="secondary" type="submit">Mark as read</button>
+                        </form>
+                    }
+                </article>
+            }
+        </section>
+    }
+</section>

@@ -95,6 +95,8 @@ namespace RROMS.Data
         {
             get; set;
         }
+        public DbSet<StaffNotification> StaffNotifications { get; set; }
+        public DbSet<StaffNotificationRead> StaffNotificationReads { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -151,6 +153,12 @@ namespace RROMS.Data
                 .HasOne(n => n.RelatedOrder).WithMany().HasForeignKey(n => n.RelatedOrderID)
                 .OnDelete(DeleteBehavior.NoAction);
             modelBuilder.Entity<CustomerNotification>().HasIndex(n => new { n.CustomerID, n.IsRead });
+            modelBuilder.Entity<StaffNotification>().HasIndex(n => new { n.Audience, n.CreatedAt });
+            modelBuilder.Entity<StaffNotificationRead>()
+                .HasOne(r => r.Notification).WithMany(n => n.Reads)
+                .HasForeignKey(r => r.StaffNotificationID).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<StaffNotificationRead>()
+                .HasIndex(r => new { r.StaffNotificationID, r.RecipientKey }).IsUnique();
         }
     }
 }

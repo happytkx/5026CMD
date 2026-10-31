@@ -242,6 +242,47 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
             : staff ? "Internal staff operation" : $"Customer ID: {customerId}";
         Notify(r, "Audit", $"Actor: {actor}. Action: {action}. Status: {previousStatus} -> {r.ReservationStatus}. Table: {previousTable} -> {r.TableID}. {message}");
         Notify(r, action, message);
+
+        // Shared operational feed for staff and administrators. Only payment failures are admin-only.
+        var reservationLink = StaffAlerts.ReservationUrl(r.ReservationDate);
+        switch (action)
+        {
+            case "Pay" when paymentSuccess:
+                StaffAlerts.Add(db, "Reservation confirmed",
+                    $"{r.BookingReference}: {r.PartySize} guests on {r.ReservationDate:dd MMM yyyy} at {r.StartTime:hh\\:mm} ({r.PreferredDiningOption}). Deposit paid.",
+                    reservationLink, "Reservation");
+                break;
+            case "Pay":
+                StaffAlerts.Add(db, "Reservation deposit payment failed",
+                    $"The deposit attempt for {r.BookingReference} failed. The booking is still pending.",
+                    reservationLink, "Payment", StaffNotification.AdministratorAudience);
+                break;
+            case "Cancel":
+                StaffAlerts.Add(db, "Reservation cancelled",
+                    $"{r.BookingReference} was cancelled. Its allocated table has been released.",
+                    reservationLink, "Reservation");
+                break;
+            case "Modify":
+                StaffAlerts.Add(db, "Reservation rescheduled",
+                    $"{r.BookingReference} moved to {r.ReservationDate:dd MMM yyyy} at {r.StartTime:hh\\:mm}.",
+                    reservationLink, "Reservation");
+                break;
+            case "Late":
+                StaffAlerts.Add(db, "Late arrival reported",
+                    $"{r.BookingReference}: the guest has notified the restaurant of a late arrival.",
+                    reservationLink, "Reservation");
+                break;
+            case "CheckIn":
+                StaffAlerts.Add(db, "Guest checked in",
+                    $"{r.BookingReference} has been seated at table {r.TableID}. Ordering is now available.",
+                    reservationLink, "Reservation");
+                break;
+            case "NoShow":
+                StaffAlerts.Add(db, "Reservation marked no-show",
+                    $"{r.BookingReference} was marked no-show and its table has been released.",
+                    reservationLink, "Reservation");
+                break;
+        }
         if ((action == "Pay" && paymentSuccess) || action == "Modify")
             ReservationEmailService.QueueConfirmation(db, r, action == "Modify");
         await db.SaveChangesAsync();
@@ -281,6 +322,9 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
                 r.ReservationStatus = "No-show";
                 r.DepositStatus = "Forfeited";
                 Notify(r, "No-show", "Arrival deadline passed. Deposit forfeited and table released.");
+                StaffAlerts.Add(db, "Reservation automatically marked no-show",
+                    $"Booking {r.BookingReference} was marked no-show after its arrival deadline. Table {r.TableID} is now available.",
+                    StaffAlerts.ReservationUrl(r.ReservationDate), "Reservation");
             }
         }
         await db.SaveChangesAsync();
