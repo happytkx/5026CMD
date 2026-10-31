@@ -132,60 +132,21 @@
             <a asp-page="/Admin/ReportReservations" asp-route-StartDate="@Model.From.ToString("yyyy-MM-dd")" asp-route-EndDate="@Model.To.ToString("yyyy-MM-dd")">Explore reservations</a>
         </section>
         <section class="card">
-            <h2>Least-Ordered Menu Items</h2>
-            <p class="muted">Includes dishes with zero orders during the period.</p>
-            <div class="table-wrap">
-                <table>
-                    <thead><tr><th>Dish</th><th>Category</th><th>Qty</th><th>Sales</th></tr></thead>
-                    <tbody>
-                    @foreach (var item in insights.LeastOrdered)
-                    {
-                        <tr><td>@item.Name</td><td>@item.Category</td><td>@item.Quantity</td><td>RM @item.Sales.ToString("N2")</td></tr>
-                    }
-                    </tbody>
-                </table>
-                @if (insights.LeastOrdered.Count == 0)
-                {
-                    <p>No menu items found.</p>
-                }
-            </div>
+            <p class="eyebrow">MENU INSIGHTS</p>
+            <h2>Explore Menu Performance</h2>
+            <p class="muted">Choose one category at a time to compare its most-ordered and least-ordered dishes, sales and zero-order items.</p>
+            <a class="button secondary" asp-page="/Admin/MenuPerformance"
+               asp-route-StartDate="@Model.From.ToString("yyyy-MM-dd")"
+               asp-route-EndDate="@Model.To.ToString("yyyy-MM-dd")">View Menu Performance</a>
         </section>
     </div>
 
-    <section class="card report-chart">
-        <h2>Menu Category Sales &amp; Ordering Patterns</h2>
-        <p class="muted">Quantities ordered and food/beverage revenue before tax, excluding cancelled orders.</p>
-        @{
-            var categoryMaximum = insights.CategorySales.Count == 0 ? 0m : insights.CategorySales.Max(x => x.Sales);
-        }
-        @if (insights.CategorySales.Count == 0)
-        {
-            <p>No dining orders were placed during this period.</p>
-        }
-        else
-        {
-            @foreach (var category in insights.CategorySales)
-            {
-                var width = categoryMaximum <= 0m ? 0 : (int)Math.Round(category.Sales / categoryMaximum * 100m);
-                <div class="report-status-row">
-                    <div class="report-status-label">
-                        <strong>@category.Category</strong>
-                        <span>@category.Quantity dishes · RM @category.Sales.ToString("N2")</span>
-                    </div>
-                    <div class="report-bar-track" role="progressbar" aria-label="@($"Category sales for {category.Category}")"
-                         aria-valuemin="0" aria-valuemax="@categoryMaximum" aria-valuenow="@category.Sales">
-                        <div class="report-bar-fill" style="width: @(width)%"></div>
-                    </div>
-                </div>
-            }
-        }
-        <p class="muted">Menu category and dish figures are based on recorded order lines; paid collections are reported separately.</p>
-    </section>
 
     <div class="analytics-links">
         <a class="button secondary" asp-page="/Admin/Reports">Reservation &amp; Deposit Reports</a>
         <a class="button secondary" asp-page="/Admin/PaymentCollections">Payment Collections</a>
         <a class="button secondary" asp-page="/Admin/Occupancy">Occupancy Details</a>
+        <a class="button secondary" asp-page="/Admin/MenuPerformance">Menu Performance</a>
     </div>
 }
 <section class="card">
