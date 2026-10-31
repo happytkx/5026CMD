@@ -168,7 +168,11 @@
                     </span>
                     <form method="post" asp-page-handler="ToggleAvailability">
                         <input type="hidden" name="itemId" value="@item.MenuItemID" />
-                        <button type="submit" class="secondary">@(item.IsAvailable ? "Disable" : "Enable")</button>
+                        <button type="submit"
+                                class="menu-availability-action @(item.IsAvailable ? "menu-action-disable" : "menu-action-enable")"
+                                aria-label="@(item.IsAvailable ? "Disable" : "Enable") @item.Name for customer orders">
+                            @(item.IsAvailable ? "Disable" : "Enable")
+                        </button>
                     </form>
                 </div>
                 <details class="menu-editor-panel">

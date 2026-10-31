@@ -1290,6 +1290,27 @@ form.card.mybill-selector {
 .menu-admin-item-bar p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
 .menu-admin-item-bar form { flex-shrink: 0; margin: 0; padding: 0; border: 0; }
 .menu-admin-item-bar form button { margin: 0; min-height: 40px; }
+.menu-admin-item-bar form .menu-availability-action {
+    min-width: 124px;
+    min-height: 44px;
+    padding: 11px 18px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    color: #fff;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    box-shadow: 0 3px 8px rgba(35, 35, 30, .12);
+    transition: background-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.menu-admin-item-bar form .menu-action-enable { background: #267342; border-color: #267342; }
+.menu-admin-item-bar form .menu-action-disable { background: #ac3535; border-color: #ac3535; }
+.menu-admin-item-bar form .menu-action-enable:hover { background: #19572f; border-color: #19572f; }
+.menu-admin-item-bar form .menu-action-disable:hover { background: #852626; border-color: #852626; }
+.menu-admin-item-bar form .menu-availability-action:hover { box-shadow: 0 5px 12px rgba(35, 35, 30, .18); }
+.menu-admin-item-bar form .menu-availability-action:active { transform: translateY(1px); }
+.menu-admin-item-bar form .menu-availability-action:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
 .menu-unavailable { background: #F8ECE9; color: #994A40; }
 .menu-admin-item .menu-editor-panel { border: 0; border-top: 1px solid var(--line); border-radius: 0; }
 @media (max-width: 700px) {
