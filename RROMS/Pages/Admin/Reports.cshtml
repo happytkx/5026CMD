@@ -276,7 +276,7 @@
                         var y = Coord(245d - tick * 225d / 4d);
                         var count = (int)Math.Round(maxCount * tick / 4d);
                         <line class="reservation-chart-gridline" x1="60" y1="@y" x2="935" y2="@y"></line>
-                        <text class="reservation-chart-axis" x="48" y="@Coord(245d - tick * 225d / 4d + 4d)" text-anchor="end">@count</text>
+                        @Html.Raw($"<text class=\"reservation-chart-axis\" x=\"48\" y=\"{Coord(245d - tick * 225d / 4d + 4d)}\" text-anchor=\"end\">{count}</text>")
                     }
                     <polyline class="reservation-chart-line" points="@linePoints"></polyline>
                     @for (var index = 0; index < plotted.Count; index++)
@@ -287,7 +287,7 @@
                         </circle>
                         @if (index % step == 0 || index == plotted.Count - 1)
                         {
-                            <text class="reservation-chart-axis reservation-chart-date" x="@point.X" y="279" text-anchor="middle">@point.Point.StartDate.ToString(Model.TrendGranularity == "month" ? "MMM yy" : "dd MMM")</text>
+                            @Html.Raw($"<text class=\"reservation-chart-axis reservation-chart-date\" x=\"{point.X}\" y=\"279\" text-anchor=\"middle\">{point.Point.StartDate.ToString(Model.TrendGranularity == "month" ? "MMM yy" : "dd MMM")}</text>")
                         }
                     }
                 </svg>
