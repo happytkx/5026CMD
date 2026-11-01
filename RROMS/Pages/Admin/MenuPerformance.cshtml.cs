@@ -105,7 +105,15 @@ public class MenuPerformanceModel(ApplicationDbContext db) : PageModel
             : data.OrderByDescending(d => d.Quantity).ThenByDescending(d => d.Sales).ThenBy(d => d.Name).ToList();
     }
 
-    public async Task OnGetAsync() => await LoadAsync();
+    // Old bookmarks now open the integrated menu workspace. The legacy CSV
+    // export handler remains available for previously shared report links.
+    public IActionResult OnGet() => RedirectToPage("/Admin/MenuManagement", new
+    {
+        FilterCategory = Category,
+        SortBy = SortBy == "LeastOrdered" ? "LeastOrdered" : "MostOrdered",
+        StartDate = StartDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+        EndDate = EndDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+    });
 
     public async Task<IActionResult> OnGetExportAsync()
     {

@@ -71,11 +71,8 @@
                         <a class="@(currentPage == "/Admin/PaymentCollections" ? "active" : "")" asp-page="/Admin/PaymentCollections">
                             Payment Collections
                         </a>
-                        <a class="@(currentPage == "/Admin/MenuManagement" ? "active" : "")" asp-page="/Admin/MenuManagement">
-                            Menu Management
-                        </a>
-                        <a class="@(currentPage == "/Admin/MenuPerformance" ? "active" : "")" asp-page="/Admin/MenuPerformance">
-                            Menu Performance
+                        <a class="@(currentPage == "/Admin/MenuManagement" || currentPage == "/Admin/MenuPerformance" ? "active" : "")" asp-page="/Admin/MenuManagement">
+                            Menu &amp; Performance
                         </a>
                         <a class="@(currentPage == "/Admin/Occupancy" ? "active" : "")" asp-page="/Admin/Occupancy">
                             Table Utilisation

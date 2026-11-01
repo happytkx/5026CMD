@@ -133,11 +133,11 @@
         </section>
         <section class="card">
             <p class="eyebrow">MENU INSIGHTS</p>
-            <h2>Explore Menu Performance</h2>
-            <p class="muted">Choose one category at a time to compare its most-ordered and least-ordered dishes, sales and zero-order items.</p>
-            <a class="button secondary" asp-page="/Admin/MenuPerformance"
+            <h2>Manage Menu &amp; Performance</h2>
+            <p class="muted">View dish sales and ordering trends alongside prices, availability and editing controls.</p>
+            <a class="button secondary" asp-page="/Admin/MenuManagement"
                asp-route-StartDate="@Model.From.ToString("yyyy-MM-dd")"
-               asp-route-EndDate="@Model.To.ToString("yyyy-MM-dd")">View Menu Performance</a>
+               asp-route-EndDate="@Model.To.ToString("yyyy-MM-dd")">Open Menu Workspace</a>
         </section>
     </div>
 
@@ -146,7 +146,7 @@
         <a class="button secondary" asp-page="/Admin/Reports">Reservation &amp; Deposit Reports</a>
         <a class="button secondary" asp-page="/Admin/PaymentCollections">Payment Collections</a>
         <a class="button secondary" asp-page="/Admin/Occupancy">Occupancy Details</a>
-        <a class="button secondary" asp-page="/Admin/MenuPerformance">Menu Performance</a>
+        <a class="button secondary" asp-page="/Admin/MenuManagement">Menu Workspace</a>
     </div>
 }
 <section class="card announcement-admin-panel">

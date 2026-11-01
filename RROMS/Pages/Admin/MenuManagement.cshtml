@@ -1,25 +1,35 @@
 @page
 @model RROMS.Pages.Admin.MenuManagementModel
 @{
-    ViewData["Title"] = "Menu Management";
+    ViewData["Title"] = "Menu Management & Performance";
     ViewData["MenuCategories"] = Model.Categories;
     ViewData["DietaryOptions"] = Model.DietaryOptions;
     ViewData["AllergenOptions"] = Model.AllergenOptions;
     ViewData["ProteinOptions"] = Model.ProteinOptions;
     var emptyDish = new RROMS.Models.MenuItem { Category = Model.Categories.FirstOrDefault()?.Name ?? "", IsAvailable = true };
+    var today = ReservationPolicy.Now.Date;
+    var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+    var monthStart = new DateTime(today.Year, today.Month, 1);
 }
 <p class="eyebrow">ADMINISTRATOR / MENU</p>
-<h1>Menu Management</h1>
-<p>Organise categories, update menu items and prices, and decide which dishes customers can order.</p>
+<h1>Menu Management &amp; Performance</h1>
+<p>Review dish sales and ordering trends, then update prices, details and availability in one workspace.</p>
 @if (TempData["Success"] is string ok)
 {
-    <p class="success">@ok</p>
+    <p class="success" role="status">@ok</p>
 }
 @if (TempData["Error"] is string err)
 {
-    <p class="error">@err</p>
+    <p class="error" role="alert">@err</p>
 }
-<form method="get" class="menu-management-filters" role="search">
+<div class="menu-unified-period-presets report-period-presets" aria-label="Quick reporting periods">
+    <span>Performance period:</span>
+    <a asp-page="/Admin/MenuManagement" asp-route-Search="@Model.Search" asp-route-FilterCategory="@Model.FilterCategory" asp-route-FilterAvailability="@Model.FilterAvailability" asp-route-SortBy="@Model.SortBy" asp-route-StartDate="@today.AddDays(-29).ToString("yyyy-MM-dd")" asp-route-EndDate="@today.ToString("yyyy-MM-dd")">Last 30 days</a>
+    <a asp-page="/Admin/MenuManagement" asp-route-Search="@Model.Search" asp-route-FilterCategory="@Model.FilterCategory" asp-route-FilterAvailability="@Model.FilterAvailability" asp-route-SortBy="@Model.SortBy" asp-route-StartDate="@today.ToString("yyyy-MM-dd")" asp-route-EndDate="@today.ToString("yyyy-MM-dd")">Today</a>
+    <a asp-page="/Admin/MenuManagement" asp-route-Search="@Model.Search" asp-route-FilterCategory="@Model.FilterCategory" asp-route-FilterAvailability="@Model.FilterAvailability" asp-route-SortBy="@Model.SortBy" asp-route-StartDate="@weekStart.ToString("yyyy-MM-dd")" asp-route-EndDate="@today.ToString("yyyy-MM-dd")">This Week</a>
+    <a asp-page="/Admin/MenuManagement" asp-route-Search="@Model.Search" asp-route-FilterCategory="@Model.FilterCategory" asp-route-FilterAvailability="@Model.FilterAvailability" asp-route-SortBy="@Model.SortBy" asp-route-StartDate="@monthStart.ToString("yyyy-MM-dd")" asp-route-EndDate="@today.ToString("yyyy-MM-dd")">This Month</a>
+</div>
+<form method="get" asp-page="/Admin/MenuManagement" class="menu-unified-filters" role="search">
     <div class="menu-filter-field menu-filter-search">
         <label for="menu-search">Search dishes</label>
         <input id="menu-search" type="search" name="Search" value="@Model.Search" placeholder="Dish name or description" />
@@ -42,14 +52,55 @@
             <option value="Unavailable" selected="@(Model.FilterAvailability == "Unavailable")">Unavailable</option>
         </select>
     </div>
-    <button type="submit">Apply Filters</button>
-    <a asp-page="/Admin/MenuManagement" class="button secondary">Clear</a>
+    <div class="menu-filter-field">
+        <label for="menu-sort">Sort dishes</label>
+        <select id="menu-sort" name="SortBy">
+            <option value="MostOrdered" selected="@(Model.SortBy == "MostOrdered")">Most ordered</option>
+            <option value="LeastOrdered" selected="@(Model.SortBy == "LeastOrdered")">Least ordered</option>
+            <option value="HighestSales" selected="@(Model.SortBy == "HighestSales")">Highest sales</option>
+            <option value="Name" selected="@(Model.SortBy == "Name")">Dish name (A–Z)</option>
+        </select>
+    </div>
+    <div class="menu-filter-field">
+        <label for="menu-start-date">Start date</label>
+        <input id="menu-start-date" type="date" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+    </div>
+    <div class="menu-filter-field">
+        <label for="menu-end-date">End date</label>
+        <input id="menu-end-date" type="date" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+    </div>
+    <div class="menu-unified-filter-actions">
+        <button type="submit">Apply Filters</button>
+        <button type="submit" name="handler" value="Export" class="secondary">Export CSV</button>
+        <a asp-page="/Admin/MenuManagement" class="button secondary">Clear</a>
+    </div>
+    <div asp-validation-summary="All" class="text-danger menu-performance-validation"></div>
 </form>
+@if (Model.HasValidPeriod)
+{
+    <p class="menu-unified-period-note">
+        Showing @Model.Items.Count of @Model.AllItems.Count dishes.
+        Sales and units are based on orders placed from <strong>@Model.StartDate.ToString("dd MMM yyyy")</strong>
+        to <strong>@Model.EndDate.ToString("dd MMM yyyy")</strong>.
+    </p>
+    <section class="menu-unified-stats" aria-label="Filtered menu performance">
+        <article class="card"><small>AVAILABLE DISHES</small><h2>@Model.AvailableDishCount / @Model.Items.Count</h2></article>
+        <article class="card"><small>UNITS SOLD</small><h2>@Model.TotalUnits</h2></article>
+        <article class="card"><small>DISH SALES BEFORE TAX</small><h2>RM @Model.TotalSales.ToString("N2")</h2></article>
+        <article class="card"><small>AVAILABLE DISHES WITH ZERO ORDERS</small><h2>@Model.NoOrderAvailableCount</h2></article>
+    </section>
+}
 <details class="menu-category-tools">
     <summary>Manage categories <span class="badge">@Model.Categories.Count categories</span></summary>
     <div class="menu-category-tools-body">
         <p class="muted">Add or rename categories, and delete categories that contain no dishes.</p>
     <form method="post" asp-page-handler="CreateCategory" class="menu-category-create">
+                    <input type="hidden" name="Search" value="@Model.Search" />
+                    <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
+                    <input type="hidden" name="FilterAvailability" value="@Model.FilterAvailability" />
+                    <input type="hidden" name="SortBy" value="@Model.SortBy" />
+                    <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                    <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
         <label for="new-category">New category name</label>
         <div>
             <input id="new-category" name="name" maxlength="120" placeholder="e.g. Chef's Specials" required />
@@ -62,6 +113,12 @@
             var dishCount = Model.AllItems.Count(i => i.Category == category.Name);
             <article class="menu-category-row">
                 <form method="post" asp-page-handler="RenameCategory" class="menu-category-rename">
+                    <input type="hidden" name="Search" value="@Model.Search" />
+                    <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
+                    <input type="hidden" name="FilterAvailability" value="@Model.FilterAvailability" />
+                    <input type="hidden" name="SortBy" value="@Model.SortBy" />
+                    <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                    <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
                     <input type="hidden" name="categoryId" value="@category.MenuCategoryID" />
                     <label for="category-@category.MenuCategoryID">@dishCount dish@(dishCount == 1 ? "" : "es")</label>
                     <div>
@@ -71,6 +128,12 @@
                 </form>
                 <form method="post" asp-page-handler="DeleteCategory"
                       onsubmit="return confirm('Delete this empty category?');">
+                    <input type="hidden" name="Search" value="@Model.Search" />
+                    <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
+                    <input type="hidden" name="FilterAvailability" value="@Model.FilterAvailability" />
+                    <input type="hidden" name="SortBy" value="@Model.SortBy" />
+                    <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                    <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
                     <input type="hidden" name="categoryId" value="@category.MenuCategoryID" />
                     <button type="submit" class="quiet danger" disabled="@(dishCount > 0)"
                             title="@(dishCount > 0 ? "Move its dishes before deleting" : "Delete empty category")">Delete</button>
@@ -91,6 +154,12 @@
             <details class="menu-option-group">
                 <summary>@label <span class="badge">@optionsForKind.Count</span></summary>
                 <form method="post" asp-page-handler="CreateOption" class="menu-category-create">
+                    <input type="hidden" name="Search" value="@Model.Search" />
+                    <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
+                    <input type="hidden" name="FilterAvailability" value="@Model.FilterAvailability" />
+                    <input type="hidden" name="SortBy" value="@Model.SortBy" />
+                    <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                    <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
                     <input type="hidden" name="kind" value="@kind" />
                     <label for="new-option-@kind">New @(kind == "Protein" ? "protein type" : kind == "Dietary" ? "dietary tag" : "allergen")</label>
                     <div>
@@ -105,6 +174,12 @@
                         var useCount = Model.OptionUsageCount(option);
                         <article class="menu-category-row">
                             <form method="post" asp-page-handler="RenameOption" class="menu-category-rename">
+                    <input type="hidden" name="Search" value="@Model.Search" />
+                    <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
+                    <input type="hidden" name="FilterAvailability" value="@Model.FilterAvailability" />
+                    <input type="hidden" name="SortBy" value="@Model.SortBy" />
+                    <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                    <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
                                 <input type="hidden" name="optionId" value="@option.MenuOptionID" />
                                 <label for="option-@option.MenuOptionID">@useCount dish@(useCount == 1 ? "" : "es") using this option</label>
                                 <div>
@@ -115,6 +190,12 @@
                             </form>
                             <form method="post" asp-page-handler="DeleteOption"
                                   onsubmit="return confirm('Delete this unused option?');">
+                    <input type="hidden" name="Search" value="@Model.Search" />
+                    <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
+                    <input type="hidden" name="FilterAvailability" value="@Model.FilterAvailability" />
+                    <input type="hidden" name="SortBy" value="@Model.SortBy" />
+                    <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                    <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
                                 <input type="hidden" name="optionId" value="@option.MenuOptionID" />
                                 <button type="submit" class="quiet danger" disabled="@(useCount > 0)"
                                         title="@(useCount > 0 ? "Change the dishes using this option before deleting" : "Delete unused option")">Delete</button>
@@ -126,18 +207,18 @@
         }
     </div>
 </details>
-<section class="card menu-management-card">
+<section class="card menu-unified-management" id="menu-items">
     <div class="menu-manager-heading">
         <div>
             <p class="eyebrow">CUSTOMER-FACING MENU</p>
-            <h2>Menu Items &amp; Prices</h2>
-            <p class="muted">Changes take effect on the digital menu. Historical orders keep their recorded item names and prices.</p>
+            <h2>Dishes, Prices &amp; Performance</h2>
+            <p class="muted">Current prices and availability are editable. Sales use the original prices from placed orders, excluding cancelled items and orders.</p>
         </div>
         <span class="badge">@Model.Items.Count of @Model.AllItems.Count dishes</span>
     </div>
     @if (Model.Categories.Count == 0)
     {
-        <p class="notice">Create at least one dish category before adding menu items.</p>
+        <p class="notice">Create at least one category before adding menu items.</p>
     }
     else
     {
@@ -145,6 +226,12 @@
             <summary>Add New Dish <span>＋</span></summary>
             <div class="menu-editor-inner">
                 <form method="post" asp-page-handler="SaveItem" enctype="multipart/form-data">
+                    <input type="hidden" name="Search" value="@Model.Search" />
+                    <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
+                    <input type="hidden" name="FilterAvailability" value="@Model.FilterAvailability" />
+                    <input type="hidden" name="SortBy" value="@Model.SortBy" />
+                    <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                    <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
                     <partial name="_MenuItemEditor" model="emptyDish" />
                 </form>
             </div>
@@ -152,41 +239,224 @@
     }
     @if (Model.Items.Count == 0)
     {
-        <p class="notice">No dishes match your search and filters.</p>
+        <p class="notice">No dishes match the selected search, category or availability filters.</p>
     }
-    <div class="menu-admin-items">
+    <div class="menu-unified-list">
+        <div class="menu-unified-grid menu-unified-head" aria-hidden="true">
+            <span>Dish &amp; category</span><span>Current price</span><span>Units sold</span>
+            <span>Sales (RM)</span><span>Status</span><span>Availability</span>
+        </div>
         @foreach (var item in Model.Items)
         {
-            <article class="menu-admin-item">
-                <div class="menu-admin-item-bar">
-                    <div>
+            var metrics = Model.MetricsFor(item);
+            <article class="menu-unified-item" id="menu-item-@item.MenuItemID">
+                <div class="menu-unified-grid">
+                    <div class="menu-unified-dish">
                         <strong>@item.Name</strong>
-                        <p>@item.Category · RM @item.Price.ToString("N2")</p>
+                        <small>@item.Category</small>
                     </div>
-                    <span class="badge @(item.IsAvailable ? "" : "menu-unavailable")">
+                    <div class="menu-unified-value" data-label="Current price">RM @item.Price.ToString("N2")</div>
+                    <div class="menu-unified-value" data-label="Units sold">@metrics.Units</div>
+                    <div class="menu-unified-value" data-label="Sales (RM)">RM @metrics.Sales.ToString("N2")</div>
+                    <div><span class="badge @(item.IsAvailable ? "" : "menu-unavailable")">
                         @(item.IsAvailable ? "Available" : "Unavailable")
-                    </span>
-                    <form method="post" asp-page-handler="ToggleAvailability">
+                    </span></div>
+                    <form method="post" asp-page-handler="ToggleAvailability" class="menu-unified-availability"
+                          onsubmit="return @(item.IsAvailable ? "confirm('Disable this dish on the customer menu?');" : "true;")">
+                    <input type="hidden" name="Search" value="@Model.Search" />
+                    <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
+                    <input type="hidden" name="FilterAvailability" value="@Model.FilterAvailability" />
+                    <input type="hidden" name="SortBy" value="@Model.SortBy" />
+                    <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                    <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
                         <input type="hidden" name="itemId" value="@item.MenuItemID" />
-                        <button type="submit"
-                                class="menu-availability-action @(item.IsAvailable ? "menu-action-disable" : "menu-action-enable")"
+                        <button type="submit" class="menu-availability-action @(item.IsAvailable ? "menu-action-disable" : "menu-action-enable")"
                                 aria-label="@(item.IsAvailable ? "Disable" : "Enable") @item.Name for customer orders">
                             @(item.IsAvailable ? "Disable" : "Enable")
                         </button>
                     </form>
                 </div>
-                <details class="menu-editor-panel">
-                    <summary>Edit Item Details <span>⌄</span></summary>
-                    <div class="menu-editor-inner">
-                        <form method="post" asp-page-handler="SaveItem" enctype="multipart/form-data">
-                            <partial name="_MenuItemEditor" model="item" />
-                        </form>
-                    </div>
-                </details>
+                <div class="menu-unified-details">
+                    <details class="menu-editor-panel">
+                        <summary>Edit details <span>⌄</span></summary>
+                        <div class="menu-editor-inner">
+                            <form method="post" asp-page-handler="SaveItem" enctype="multipart/form-data">
+                    <input type="hidden" name="Search" value="@Model.Search" />
+                    <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
+                    <input type="hidden" name="FilterAvailability" value="@Model.FilterAvailability" />
+                    <input type="hidden" name="SortBy" value="@Model.SortBy" />
+                    <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                    <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+                                <partial name="_MenuItemEditor" model="item" />
+                            </form>
+                        </div>
+                    </details>
+                    <details class="menu-trend-panel">
+                        <summary>View trend <span>⌄</span></summary>
+                        <div class="menu-trend-body">
+                            <div class="menu-trend-heading">
+                                <div>
+                                    <h3>@item.Name: Ordering Trend</h3>
+                                    <p class="muted">Based on order placement dates; grouped by @Model.TrendInterval.</p>
+                                </div>
+                                <div class="menu-trend-switch" role="group" aria-label="Choose chart measure">
+                                    <button type="button" class="menu-trend-mode active" data-trend-mode="units" aria-pressed="true">Units</button>
+                                    <button type="button" class="menu-trend-mode" data-trend-mode="sales" aria-pressed="false">Sales (RM)</button>
+                                </div>
+                            </div>
+                            @if (!Model.HasValidPeriod)
+                            {
+                                <p class="notice">Select a valid reporting period to view this chart.</p>
+                            }
+                            else if (metrics.Units == 0)
+                            {
+                                <p class="notice">No non-cancelled orders for this dish during the selected period.</p>
+                            }
+                            else
+                            {
+                                var dots = metrics.Trend.Select((point, index) => new
+                                {
+                                    Point = point,
+                                    X = (metrics.Trend.Count == 1 ? 450d : 44d + index * 812d / (metrics.Trend.Count - 1))
+                                        .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture),
+                                    UnitY = (226d - point.Units * 170d / Math.Max(1, metrics.Trend.Max(p => p.Units)))
+                                        .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture),
+                                    SaleY = (226d - (double)(point.Sales / Math.Max(1m, metrics.Trend.Max(p => p.Sales))) * 170d)
+                                        .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)
+                                }).ToList();
+                                var unitLine = string.Join(" ", dots.Select(p => p.X + "," + p.UnitY));
+                                var salesLine = string.Join(" ", dots.Select(p => p.X + "," + p.SaleY));
+                                var labelEvery = Math.Max(1, (int)Math.Ceiling(dots.Count / 5d));
+                                <div class="menu-trend-chart reservation-chart-interactive" data-menu-trend-chart>
+                                    <div class="menu-trend-scroll">
+                                        <svg viewBox="0 0 900 275" role="img" aria-label="Ordering trend for @item.Name. Hover or focus on a data point for quantity and sales.">
+                                            @foreach (var y in new[] { 56, 98, 141, 184, 226 })
+                                            {
+                                                <line class="reservation-chart-gridline" x1="35" y1="@y" x2="862" y2="@y"></line>
+                                            }
+                                            <polyline class="reservation-chart-line menu-trend-line" points="@unitLine"
+                                                      data-units-line="@unitLine" data-sales-line="@salesLine"></polyline>
+                                            @for (var index = 0; index < dots.Count; index++)
+                                            {
+                                                var point = dots[index];
+                                                <circle class="reservation-chart-point menu-trend-point" cx="@point.X" cy="@point.UnitY"
+                                                        r="6" tabindex="0" data-menu-trend-point
+                                                        data-units-y="@point.UnitY" data-sales-y="@point.SaleY"
+                                                        data-chart-date="@point.Point.Date.ToString("dd MMM yyyy")"
+                                                        data-chart-units="@point.Point.Units"
+                                                        data-chart-sales="@point.Point.Sales.ToString("N2")"
+                                                        aria-label="@($"{point.Point.Date:dd MMM yyyy}: {point.Point.Units} units, RM {point.Point.Sales:N2} in sales")"></circle>
+                                                if (index % labelEvery == 0 || index == dots.Count - 1)
+                                                {
+                                                    @Html.Raw($"<text class=\"reservation-chart-axis reservation-chart-date\" x=\"{point.X}\" y=\"261\" text-anchor=\"middle\">{System.Net.WebUtility.HtmlEncode(point.Point.Date.ToString(Model.TrendInterval == "month" ? "MMM yy" : "dd MMM"))}</text>")
+                                                }
+                                            }
+                                        </svg>
+                                    </div>
+                                    <div class="reservation-chart-tooltip menu-trend-tooltip" role="tooltip" hidden>
+                                        <strong data-trend-tooltip-date></strong>
+                                        <span data-trend-tooltip-units></span>
+                                        <span data-trend-tooltip-sales></span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </details>
+                </div>
             </article>
         }
     </div>
 </section>
+@if (Model.HasValidPeriod)
+{
+    <details class="card menu-unified-category-overview" id="category-performance">
+        <summary>Category Performance Overview <span class="badge">@Model.CategoryPerformance.Count categories</span></summary>
+        <div class="menu-category-overview-body">
+            <p class="muted">Compare categories based on the same dish filters and reporting dates. Amounts use historical order-line prices.</p>
+            @if (Model.CategoryPerformance.Count == 0)
+            {
+                <p class="notice">No matching dishes to compare.</p>
+            }
+            else
+            {
+                var categoryMax = Math.Max(1, Model.CategoryPerformance.Max(c => c.Units));
+                <div class="menu-performance-bars" role="list" aria-label="Category ordering comparison">
+                    @foreach (var category in Model.CategoryPerformance)
+                    {
+                        var width = (int)Math.Round(category.Units * 100d / categoryMax);
+                        <div class="menu-performance-bar-row" role="listitem">
+                            <div class="menu-performance-bar-label">
+                                <strong>@category.Name <span class="muted">(@category.Dishes dishes)</span></strong>
+                                <span>@category.Units units · RM @category.Sales.ToString("N2") sales</span>
+                            </div>
+                            <div class="menu-performance-bar-track" role="progressbar"
+                                 aria-label="@category.Name" aria-valuemin="0" aria-valuemax="@categoryMax" aria-valuenow="@category.Units">
+                                <div class="menu-performance-bar-fill" style="width: @(width)%"></div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            <details class="menu-performance-data menu-unified-dish-ranking">
+                <summary>View dish popularity comparison</summary>
+                @if (string.IsNullOrWhiteSpace(Model.FilterCategory))
+                {
+                    <p class="muted">Choose one category above to compare its dishes on a ranked line chart.</p>
+                }
+                else if (Model.Items.Count == 0)
+                {
+                    <p class="muted">No matching dishes in this category.</p>
+                }
+                else
+                {
+                    var ranked = Model.Items.OrderByDescending(i => Model.MetricsFor(i).Units).ToList();
+                    var chartWidth = Math.Max(975, ranked.Count * 180);
+                    var maximum = Math.Max(4, ranked.Max(i => Model.MetricsFor(i).Units));
+                    string Plot(double n) => n.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+                    var ranks = ranked.Select((dish, index) => new
+                    {
+                        Dish = dish,
+                        Metric = Model.MetricsFor(dish),
+                        X = Plot(ranked.Count == 1 ? chartWidth / 2d : 95d + index * (chartWidth - 190d) / (ranked.Count - 1)),
+                        Y = Plot(245d - Model.MetricsFor(dish).Units * 215d / maximum),
+                        Label = dish.Name.Length <= 18 ? dish.Name : dish.Name[..16] + "…"
+                    }).ToList();
+                    var rankLine = string.Join(" ", ranks.Select(point => point.X + "," + point.Y));
+                    <p class="muted">Items are ranked by units ordered, not by date. Hover or focus for exact quantity and sales.</p>
+                    <div class="reservation-chart-interactive menu-rank-interactive">
+                        <div class="reservation-line-chart">
+                            <svg viewBox="0 0 @chartWidth 310" style="min-width: @(Math.Max(570, ranked.Count * 180))px"
+                                 role="img" aria-label="Dish popularity comparison for @Model.FilterCategory">
+                                @for (var tick = 0; tick <= 4; tick++)
+                                {
+                                    var y = Plot(245d - tick * 215d / 4d);
+                                    var value = (int)Math.Round(maximum * tick / 4d);
+                                    <line class="reservation-chart-gridline" x1="80" y1="@y" x2="@Plot(chartWidth - 80d)" y2="@y"></line>
+                                    @Html.Raw($"<text class=\"reservation-chart-axis\" x=\"65\" y=\"{Plot(249d - tick * 215d / 4d)}\" text-anchor=\"end\">{value}</text>")
+                                }
+                                <polyline class="reservation-chart-line" points="@rankLine"></polyline>
+                                @foreach (var rank in ranks)
+                                {
+                                    <circle class="reservation-chart-point" cx="@rank.X" cy="@rank.Y" r="8"
+                                            tabindex="0" data-menu-point data-chart-count="@rank.Metric.Units"
+                                            data-chart-name="@rank.Dish.Name" data-chart-sales="@rank.Metric.Sales.ToString("N2")"
+                                            aria-label="@($"{rank.Dish.Name}: {rank.Metric.Units} units and RM {rank.Metric.Sales:N2} sales")"></circle>
+                                    @Html.Raw($"<text class=\"reservation-chart-axis reservation-chart-date\" x=\"{rank.X}\" y=\"279\" text-anchor=\"middle\">{System.Net.WebUtility.HtmlEncode(rank.Label)}</text>")
+                                }
+                            </svg>
+                        </div>
+                        <div class="reservation-chart-tooltip" role="tooltip" hidden>
+                            <strong data-chart-tooltip-name></strong>
+                            <span data-chart-tooltip-count></span>
+                            <span data-chart-tooltip-sales></span>
+                        </div>
+                    </div>
+                }
+            </details>
+            <p class="muted">A dish with zero orders may be newly added, unavailable or intentionally niche. Low sales alone do not measure profitability.</p>
+        </div>
+    </details>
+}
 
 @section Scripts {
     <script>
@@ -240,5 +510,94 @@
                 updateFile(input.files[0]);
             });
         });
+
+        document.querySelectorAll('[data-menu-trend-chart]').forEach(container => {
+            const body = container.closest('.menu-trend-body');
+            const line = container.querySelector('.menu-trend-line');
+            const points = Array.from(container.querySelectorAll('[data-menu-trend-point]'));
+            const tooltip = container.querySelector('.reservation-chart-tooltip');
+            const dateLabel = tooltip?.querySelector('[data-trend-tooltip-date]');
+            const unitsLabel = tooltip?.querySelector('[data-trend-tooltip-units]');
+            const salesLabel = tooltip?.querySelector('[data-trend-tooltip-sales]');
+            if (!body || !line || !tooltip || !dateLabel || !unitsLabel || !salesLabel) return;
+
+            body.querySelectorAll('[data-trend-mode]').forEach(button => {
+                button.addEventListener('click', () => {
+                    const sales = button.dataset.trendMode === 'sales';
+                    line.setAttribute('points', sales ? line.dataset.salesLine : line.dataset.unitsLine);
+                    points.forEach(point => point.setAttribute('cy', sales ? point.dataset.salesY : point.dataset.unitsY));
+                    body.querySelectorAll('[data-trend-mode]').forEach(choice => {
+                        const active = choice === button;
+                        choice.classList.toggle('active', active);
+                        choice.setAttribute('aria-pressed', String(active));
+                    });
+                    tooltip.hidden = true;
+                });
+            });
+
+            function show(point) {
+                dateLabel.textContent = point.dataset.chartDate || '';
+                const units = Number(point.dataset.chartUnits || 0);
+                unitsLabel.textContent = units + (units === 1 ? ' unit ordered' : ' units ordered');
+                salesLabel.textContent = 'RM ' + (point.dataset.chartSales || '0.00') + ' sales before tax';
+                tooltip.hidden = false;
+                const frame = container.getBoundingClientRect();
+                const target = point.getBoundingClientRect();
+                const width = tooltip.offsetWidth;
+                const height = tooltip.offsetHeight;
+                const centerX = target.left + target.width / 2 - frame.left;
+                const topY = target.top - frame.top - height - 12;
+                tooltip.style.left = Math.max(8, Math.min(centerX - width / 2, frame.width - width - 8)) + 'px';
+                tooltip.style.top = (topY >= 0 ? topY : target.bottom - frame.top + 12) + 'px';
+            }
+
+            points.forEach(point => {
+                point.addEventListener('pointerenter', () => show(point));
+                point.addEventListener('pointerleave', () => tooltip.hidden = true);
+                point.addEventListener('focus', () => show(point));
+                point.addEventListener('blur', () => tooltip.hidden = true);
+            });
+            container.querySelector('.menu-trend-scroll')?.addEventListener('scroll', () => tooltip.hidden = true, { passive: true });
+        });
+
+        const savedDishId = @Model.FocusItemId.GetValueOrDefault(0);
+        if (savedDishId > 0) {
+            const item = document.getElementById('menu-item-' + savedDishId);
+            if (item) requestAnimationFrame(() => item.scrollIntoView({ block: 'center' }));
+        }
+        document.querySelectorAll('.menu-rank-interactive').forEach(container => {
+            const tooltip = container.querySelector('.reservation-chart-tooltip');
+            const name = tooltip?.querySelector('[data-chart-tooltip-name]');
+            const count = tooltip?.querySelector('[data-chart-tooltip-count]');
+            const sales = tooltip?.querySelector('[data-chart-tooltip-sales]');
+            if (!tooltip || !name || !count || !sales) return;
+
+            function show(point) {
+                name.textContent = point.dataset.chartName || '';
+                const total = Number(point.dataset.chartCount || 0);
+                count.textContent = total + (total === 1 ? ' unit ordered' : ' units ordered');
+                sales.textContent = 'RM ' + (point.dataset.chartSales || '0.00') + ' sales before tax';
+                tooltip.hidden = false;
+                const frame = container.getBoundingClientRect();
+                const target = point.getBoundingClientRect();
+                const width = tooltip.offsetWidth;
+                const height = tooltip.offsetHeight;
+                const centerX = target.left + target.width / 2 - frame.left;
+                const topY = target.top - frame.top - height - 14;
+                tooltip.style.left = Math.max(8, Math.min(centerX - width / 2, frame.width - width - 8)) + 'px';
+                tooltip.style.top = (topY >= 0 ? topY : target.bottom - frame.top + 12) + 'px';
+            }
+
+            function hide() { tooltip.hidden = true; }
+            container.querySelectorAll('[data-menu-point]').forEach(point => {
+                point.addEventListener('pointerenter', () => show(point));
+                point.addEventListener('pointerleave', hide);
+                point.addEventListener('focus', () => show(point));
+                point.addEventListener('blur', hide);
+            });
+            container.querySelector('.reservation-line-chart')?.addEventListener('scroll', hide, { passive: true });
+            window.addEventListener('resize', hide);
+        });
+
     </script>
 }
