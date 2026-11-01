@@ -190,8 +190,7 @@ else
                                 var tickY = (234d - tick * 174d / 4d)
                                     .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
                                 <line class="payment-trend-grid" x1="85" y1="@gridY" x2="860" y2="@gridY"></line>
-                                <text class="payment-trend-axis" x="77" y="@tickY"
-                                      text-anchor="end">RM @((maxTotal * tick / 4m).ToString("N0"))</text>
+                                @Html.Raw($"<text class=\"payment-trend-axis\" x=\"77\" y=\"{tickY}\" text-anchor=\"end\">RM {(maxTotal * tick / 4m):N0}</text>")
                             }
                             <polyline class="payment-trend-line payment-trend-deposit-line" points="@depositLine"></polyline>
                             <polyline class="payment-trend-line payment-trend-dining-line" points="@diningLine"></polyline>
@@ -208,9 +207,9 @@ else
                                         aria-label="@($"{chartPoint.Point.Date:dd MMM yyyy}: Deposits RM {chartPoint.Point.Deposits:N2}, dining RM {chartPoint.Point.DiningPayments:N2}, total RM {chartPoint.Point.Total:N2}")"></circle>
                                 if (index % labelEvery == 0 || index == points.Count - 1)
                                 {
-                                    <text class="payment-trend-axis" x="@chartPoint.X" y="265" text-anchor="middle">
-                                        @chartPoint.Point.Date.ToString(Model.PaymentTrendInterval == "month" ? "MMM yy" : "dd MMM")
-                                    </text>
+                                    var dateLabel = System.Net.WebUtility.HtmlEncode(
+                                        chartPoint.Point.Date.ToString(Model.PaymentTrendInterval == "month" ? "MMM yy" : "dd MMM"));
+                                    @Html.Raw($"<text class=\"payment-trend-axis\" x=\"{chartPoint.X}\" y=\"265\" text-anchor=\"middle\">{dateLabel}</text>")
                                 }
                             }
                         </svg>
