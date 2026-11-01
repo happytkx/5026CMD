@@ -4,7 +4,9 @@
 @{
     ViewData["Title"] = "Reservation details"; var r=Model.Booking!; var photo=r.PreferredDiningOption switch
     {
-        "Outdoor"=>"celeste-outdoor.jpg","VIP Room"=>"celeste-private-dining.png",_=>"celeste-indoor.jpg"
+        "Outdoor" => "celeste-outdoor.jpg",
+        "VIP Room" => "celeste-private-dining.png",
+        _ => "celeste-indoor.png"
     };
 }
 @if (TempData["Message"] is string message)

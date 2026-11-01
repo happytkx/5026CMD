@@ -2749,7 +2749,14 @@ td small
 
 /* Customer account forms share the restaurant palette without changing booking layouts. */
 .account-shell { display:grid; grid-template-columns:1fr 1fr; max-width:1160px; margin:40px auto 70px; border:1px solid #e1dacd; background:#fff; }
-.account-photo { min-height:600px; background:linear-gradient(0deg,rgba(35,29,20,.74),rgba(35,29,20,.05)),url('/images/celeste-indoor.jpg') center/cover; display:flex; align-items:flex-end; padding:48px; color:#fff; }
+.account-photo {
+    min-height: 600px;
+    background: linear-gradient(0deg,rgba(35,29,20,.74),rgba(35,29,20,.05)),url('/images/celeste-indoor-2.png') center/cover;
+    display: flex;
+    align-items: flex-end;
+    padding: 48px;
+    color: #fff;
+}
 .account-photo h1 { color:#fff; font-size:clamp(2.4rem,4vw,3.6rem); }
 .account-photo .eyebrow { color:#eee3cf; }
 .account-panel { padding:44px; align-self:center; }
