@@ -3167,7 +3167,7 @@ td small
 
 /* Hover- and keyboard-focus tooltip for the reservation line chart. */
 .reservation-chart-interactive { position: relative; }
-.reservation-chart-point { cursor: help; }
+.reservation-chart-point { cursor: pointer; }
 .reservation-chart-tooltip {
     position: absolute;
     z-index: 5;

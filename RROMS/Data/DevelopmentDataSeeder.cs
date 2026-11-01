@@ -93,6 +93,9 @@ public static class DevelopmentDataSeeder
         await db.SaveChangesAsync();
         if (config.GetValue<bool>("DemoData:RefreshLegacyCalendarFixtures"))
             await RemoveUnusedLegacyCalendarFixturesAsync(db);
+        // Correct the initial sample run that put months of fictional future
+        // deposits on one startup day. Never change genuine payment records.
+        await SpreadCrowdedDemoDepositDaysAsync(db);
         if (customers.Count == 0) { await transaction.CommitAsync(); return; }
         var settings = await db.RestaurantSettings.OrderBy(s => s.SettingID).FirstAsync();
         var now = ReservationPolicy.Now;
@@ -121,7 +124,8 @@ public static class DevelopmentDataSeeder
             (2, "Indoor"), (2, "Outdoor"), (4, "Indoor"), (4, "Outdoor"),
             (6, "Indoor"), (8, "Indoor"), (6, "VIP Room"), (9, "VIP Room")
         ];
-        for (var date = yearStart; date < yearStart.AddYears(1); date = date.AddDays(1))
+        for (var date = yearStart; date < yearStart.AddYears(1) &&
+                 date <= now.Date.AddDays(28); date = date.AddDays(1))
         {
             var visits = date.DayOfWeek switch
             {
@@ -168,10 +172,13 @@ public static class DevelopmentDataSeeder
             var customer = customers[(index * 73) % customers.Count];
             index++;
             var paid = item.Status is not ("Pending" or "Expired");
+            var proposedCreated = item.Start.AddDays(-8 - (index % 20));
+            var sampleCreated = proposedCreated <= now ? proposedCreated :
+                now.Date.AddDays(-1 - (index % 17)).AddHours(10 + index % 7);
             var booking = new Reservation { CustomerID = customer.CustomerID, TableID = table.TableID,
                 BookingReference = reference, PartySize = item.Size, PreferredDiningOption = item.Area,
                 ReservationDate = item.Start.Date, StartTime = item.Start.TimeOfDay, EndTime = end.TimeOfDay,
-                OriginalStart = item.Start, CreatedDate = item.Start.AddDays(-8 - (index % 20)) < now ? item.Start.AddDays(-8 - (index % 20)) : now,
+                OriginalStart = item.Start, CreatedDate = sampleCreated,
                 DepositAmount = item.Size * 50m,
                 MinimumSpend = ReservationPolicy.MinimumSpend(item.Size, item.Area), ReservationStatus = item.Status,
                 DepositStatus = item.Status is "Cancelled" or "No-show" ? "Forfeited" : paid ? "Paid" : "Unpaid",
@@ -320,6 +327,57 @@ public static class DevelopmentDataSeeder
         var unusedReservations = await db.Reservations
             .Where(r => removableIds.Contains(r.ReservationID)).ToListAsync();
         db.Reservations.RemoveRange(unusedReservations);
+        await db.SaveChangesAsync();
+    }
+
+    // A previous version seeded the whole future calendar at startup. This
+    // placed dozens of genuinely fictional deposits on one reporting date.
+    // Redistribute only crowded batches of untouched SEASON demo payments;
+    // never edit actual customer receipts or manually worked-on bookings.
+    private static async Task SpreadCrowdedDemoDepositDaysAsync(ApplicationDbContext db)
+    {
+        var payments = await db.Payments
+            .Include(p => p.Reservation)
+            .Where(p => p.PaymentType == "Deposit" && p.PaymentStatus == "Paid" &&
+                p.PaymentReference.StartsWith("DEMO-RES-SEASON-") &&
+                p.Reservation.Customer.IsDemo)
+            .ToListAsync();
+
+        var crowded = payments.GroupBy(p => p.PaymentDate.Date)
+            .Where(group => group.Count() >= 15)
+            .SelectMany(group => group)
+            .Where(p => p.PaymentReference == p.Reservation.BookingReference + "-PAY" &&
+                p.Reservation.ModificationCount == 0 &&
+                p.PaymentDate.Date == p.Reservation.CreatedDate.Date &&
+                p.Reservation.ReservationDate > p.PaymentDate.Date.AddDays(28))
+            .ToList();
+        if (crowded.Count == 0) return;
+
+        var ids = crowded.Select(p => p.ReservationID).Distinct().ToList();
+        var protectedIds = (await db.Orders.AsNoTracking()
+            .Where(o => ids.Contains(o.ReservationID))
+            .Select(o => o.ReservationID).ToListAsync()).ToHashSet();
+        protectedIds.UnionWith(await db.Bills.AsNoTracking()
+            .Where(b => ids.Contains(b.ReservationID))
+            .Select(b => b.ReservationID).ToListAsync());
+        protectedIds.UnionWith(await db.ReservationHistories.AsNoTracking()
+            .Where(h => ids.Contains(h.ReservationID))
+            .Select(h => h.ReservationID).ToListAsync());
+        protectedIds.UnionWith(await db.ReservationEmails.AsNoTracking()
+            .Where(e => ids.Contains(e.ReservationID))
+            .Select(e => e.ReservationID).ToListAsync());
+
+        foreach (var payment in crowded)
+        {
+            if (protectedIds.Contains(payment.ReservationID)) continue;
+            var id = payment.ReservationID;
+            var corrected = payment.PaymentDate.Date
+                .AddDays(-1 - (id * 13 % 27))
+                .AddHours(10 + id % 8)
+                .AddMinutes(id * 19 % 60);
+            payment.PaymentDate = corrected;
+            payment.Reservation.CreatedDate = corrected;
+        }
         await db.SaveChangesAsync();
     }
 
