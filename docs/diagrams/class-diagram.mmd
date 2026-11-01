@@ -2,7 +2,11 @@ classDiagram
     direction TB
     class Administrator {
         +int AdministratorID
-        +int CustomerID
+        +string Name
+        +string Email
+        +string PasswordHash
+        +bool IsActive
+        +int SessionVersion
     }
     class Announcement {
         +int? CreatedByAdministratorID
@@ -224,7 +228,6 @@ classDiagram
     CustomerOrder "1" -- "0..*" Review : receives
     Customer "1" -- "0..*" CustomerNotification : receives
     CustomerOrder "0..1" -- "0..*" CustomerNotification : relates
-    Customer "1" -- "0..1" Administrator : account_profile
     MenuCategory "1" -- "0..*" MenuItem : categorises
     Administrator "0..1" -- "0..*" Announcement : created_by
     Administrator "0..1" -- "0..*" Announcement : updated_by
@@ -268,5 +271,5 @@ classDiagram
     TableAllocationService ..> ApplicationDbContext : queries
     BillingService ..> ApplicationDbContext : persists
     CustomerAccountService ..> Customer : authenticates
-    ApplicationDbContext ..> Administrator : provisions profile
+    ApplicationDbContext ..> Administrator : stores accounts
     ApplicationDbContext ..> MenuCategory : links catalogue

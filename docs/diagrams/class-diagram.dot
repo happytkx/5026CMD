@@ -2,7 +2,7 @@ digraph G {
 graph [rankdir=LR, bgcolor="white", pad=0.4, nodesep=0.5, ranksep=1.5, splines=polyline, fontname="Arial", fontsize=22, labelloc=t, label="Céleste RROMS — Implementation Class Diagram\nSelected attributes; full definitions in accompanying Mermaid source"];
 node [shape=plain, fontname="Arial"];
 edge [fontname="Arial", fontsize=10, color="#526779"];
-Administrator [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6"><TR><TD BGCOLOR="#F6D4B6"><B>Administrator</B></TD></TR><TR><TD ALIGN="LEFT">+int AdministratorID<BR ALIGN="LEFT"/>+int CustomerID<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT"> <BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+Administrator [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6"><TR><TD BGCOLOR="#F6D4B6"><B>Administrator</B></TD></TR><TR><TD ALIGN="LEFT">+int AdministratorID<BR ALIGN="LEFT"/>+string Name<BR ALIGN="LEFT"/>+string Email<BR ALIGN="LEFT"/>+string PasswordHash<BR ALIGN="LEFT"/>+bool IsActive<BR ALIGN="LEFT"/>+int SessionVersion<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT"> <BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 Announcement [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6"><TR><TD BGCOLOR="#9DD7EB"><B>Announcement</B></TD></TR><TR><TD ALIGN="LEFT">+int? CreatedByAdministratorID<BR ALIGN="LEFT"/>+int? UpdatedByAdministratorID<BR ALIGN="LEFT"/>+int AnnouncementID<BR ALIGN="LEFT"/>+string Title<BR ALIGN="LEFT"/>+string Message<BR ALIGN="LEFT"/>+bool IsActive<BR ALIGN="LEFT"/>+DateTime CreatedAt<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT"> <BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 Bill [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6"><TR><TD BGCOLOR="#9DD7EB"><B>Bill</B></TD></TR><TR><TD ALIGN="LEFT">+int BillID<BR ALIGN="LEFT"/>+int ReservationID<BR ALIGN="LEFT"/>+decimal FoodSubtotal<BR ALIGN="LEFT"/>+decimal TaxAmount<BR ALIGN="LEFT"/>+decimal TotalBill<BR ALIGN="LEFT"/>+decimal MinSpend<BR ALIGN="LEFT"/>+decimal DepositApplied<BR ALIGN="LEFT"/>+decimal BalanceToPay<BR ALIGN="LEFT"/>+string BillStatus<BR ALIGN="LEFT"/>+DateTime CreatedAt<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT"> <BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 Customer [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6"><TR><TD BGCOLOR="#9DD7EB"><B>Customer</B></TD></TR><TR><TD ALIGN="LEFT">+int CustomerID<BR ALIGN="LEFT"/>+string CustomerName<BR ALIGN="LEFT"/>+string Email<BR ALIGN="LEFT"/>+string PhoneNo<BR ALIGN="LEFT"/>+string? Address<BR ALIGN="LEFT"/>+string Role<BR ALIGN="LEFT"/>+DateTime CreatedAt<BR ALIGN="LEFT"/>+int FailedLoginCount<BR ALIGN="LEFT"/>+DateTime? LockoutEnd<BR ALIGN="LEFT"/>+string? NormalizedEmail<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT"> <BR ALIGN="LEFT"/></TD></TR></TABLE>>];
@@ -42,7 +42,6 @@ Customer -> Review [dir=none,label="writes",taillabel="1",headlabel="0..*"];
 CustomerOrder -> Review [dir=none,label="receives",taillabel="1",headlabel="0..*"];
 Customer -> CustomerNotification [dir=none,label="receives",taillabel="1",headlabel="0..*"];
 CustomerOrder -> CustomerNotification [dir=none,label="relates",taillabel="0..1",headlabel="0..*"];
-Customer -> Administrator [dir=none,label="account_profile",taillabel="1",headlabel="0..1"];
 MenuCategory -> MenuItem [dir=none,label="categorises",taillabel="1",headlabel="0..*"];
 Administrator -> Announcement [dir=none,label="created_by",taillabel="0..1",headlabel="0..*"];
 Administrator -> Announcement [dir=none,label="updated_by",taillabel="0..1",headlabel="0..*"];
@@ -61,7 +60,7 @@ ReservationService -> ApplicationDbContext [style=dashed,arrowhead=open,label="p
 TableAllocationService -> ApplicationDbContext [style=dashed,arrowhead=open,label="queries"];
 BillingService -> ApplicationDbContext [style=dashed,arrowhead=open,label="persists"];
 CustomerAccountService -> Customer [style=dashed,arrowhead=open,label="authenticates"];
-ApplicationDbContext -> Administrator [style=dashed,arrowhead=open,label="provisions profile"];
+ApplicationDbContext -> Administrator [style=dashed,arrowhead=open,label="stores accounts"];
 ApplicationDbContext -> MenuCategory [style=dashed,arrowhead=open,label="links catalogue"];
 DbContext [shape=box,label="DbContext"];
 ApplicationDbContext -> DbContext [arrowhead=empty];

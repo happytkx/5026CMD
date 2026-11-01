@@ -19,7 +19,9 @@ public class CustomerAccountService(ApplicationDbContext db, IPasswordHasher<Cus
     {
         var normalized = Normalize(email);
         // Do not allow public signup to take over a legacy customer and its reservations.
-        if (await db.Customers.AnyAsync(c => c.NormalizedEmail == normalized || c.Email.ToUpper() == normalized))
+        if (await db.Customers.AnyAsync(c => c.NormalizedEmail == normalized || c.Email.ToUpper() == normalized)
+            || await db.Administrators.AnyAsync(a => a.NormalizedEmail == normalized)
+            || await db.StaffAccounts.AnyAsync(a => a.NormalizedEmail == normalized))
             throw new InvalidOperationException("This email is already registered. Please sign in or contact the restaurant for help.");
         var customer = new Customer { CustomerName = name.Trim(), Email = email.Trim(),
             PhoneNo = phone.Trim(), NormalizedEmail = normalized };

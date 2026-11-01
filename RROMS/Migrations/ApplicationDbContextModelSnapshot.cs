@@ -30,12 +30,54 @@ namespace RROMS.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AdministratorID"));
 
-                    b.Property<int>("CustomerID")
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("FailedLoginCount")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDemo")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LockedUntilUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("NormalizedEmail")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTime?>("PasswordResetExpiresUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("PasswordResetSentUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PasswordResetTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("SessionVersion")
                         .HasColumnType("int");
 
                     b.HasKey("AdministratorID");
 
-                    b.HasIndex("CustomerID")
+                    b.HasIndex("NormalizedEmail")
                         .IsUnique();
 
                     b.ToTable("Administrators");
@@ -211,7 +253,10 @@ namespace RROMS.Migrations
                         .IsUnique()
                         .HasFilter("[NormalizedEmail] IS NOT NULL");
 
-                    b.ToTable("Customers");
+                    b.ToTable("Customers", t =>
+                        {
+                            t.HasCheckConstraint("CK_Customers_CustomerRole", "[Role] = 'Customer'");
+                        });
                 });
 
             modelBuilder.Entity("RROMS.Models.CustomerNotification", b =>
@@ -900,17 +945,6 @@ namespace RROMS.Migrations
                     b.HasIndex("UpdatedByAdministratorID");
 
                     b.ToTable("StaffAccounts");
-                });
-
-            modelBuilder.Entity("RROMS.Models.Administrator", b =>
-                {
-                    b.HasOne("RROMS.Models.Customer", "Account")
-                        .WithOne()
-                        .HasForeignKey("RROMS.Models.Administrator", "CustomerID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Account");
                 });
 
             modelBuilder.Entity("RROMS.Models.Announcement", b =>

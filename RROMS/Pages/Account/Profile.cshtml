@@ -21,10 +21,13 @@
         <label>Email address</label>
         <input value="@Model.Email" readonly />
         <p class="fine-print">Your email address is used to sign in and cannot be changed here.</p>
+        @if (Model.IsCustomer)
+        {
         <label asp-for="Input.PhoneNo">Phone number</label>
         <input asp-for="Input.PhoneNo" type="tel" maxlength="20" />
         <label asp-for="Input.Address">Address <span class="optional">(optional)</span></label>
         <textarea asp-for="Input.Address" rows="2" maxlength="250"></textarea>
+        }
         <button type="submit">Save profile</button>
     </form>
 </section>

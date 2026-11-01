@@ -18,7 +18,6 @@ erDiagram
     Orders ||--o{ Reviews : receives
     Customers ||--o{ CustomerNotifications : receives
     Orders o|--o{ CustomerNotifications : relates
-    Customers ||--o| Administrators : account_profile
     MenuCategories ||--o{ MenuItems : categorises
     Administrators o|--o{ Announcements : created_by
     Administrators o|--o{ Announcements : updated_by
@@ -34,7 +33,15 @@ erDiagram
     Administrators o|--o{ MenuItems : updated_by
     Administrators {
         int AdministratorID PK
-        int CustomerID FK,UK
+        string Name
+        string Email
+        string NormalizedEmail UK
+        string PasswordHash
+        bool IsActive
+        bool IsDemo
+        int FailedLoginCount
+        datetime LockedUntilUtc
+        int SessionVersion
     }
     Announcements {
         int CreatedByAdministratorID FK

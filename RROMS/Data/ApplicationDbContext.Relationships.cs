@@ -20,17 +20,6 @@ public partial class ApplicationDbContext
 
     private void PrepareRelationships()
     {
-        // Create the profile when an administrator account is seeded or provisioned.
-        foreach (var entry in ChangeTracker.Entries<Customer>().Where(e =>
-            e.Entity.Role == Customer.AdminRole && (e.State == EntityState.Added || e.State == EntityState.Modified)).ToList())
-        {
-            var account = entry.Entity;
-            if (!Administrators.Local.Any(a => ReferenceEquals(a.Account, account) ||
-                (account.CustomerID != 0 && a.CustomerID == account.CustomerID)) &&
-                (entry.State == EntityState.Added || !Administrators.Any(a => a.CustomerID == account.CustomerID)))
-                Administrators.Add(new Administrator { Account = account });
-        }
-
         // Preserve the existing category-name interface while enforcing a real category FK.
         foreach (var entry in ChangeTracker.Entries<MenuItem>().Where(e =>
             e.State == EntityState.Added || e.State == EntityState.Modified).ToList())
@@ -49,8 +38,8 @@ public partial class ApplicationDbContext
 
         var user = _http?.HttpContext?.User;
         if (user?.Identity?.IsAuthenticated != true || !user.IsInRole(Customer.AdminRole)) return;
-        var accountId = ReservationIdentity.CustomerId(user);
-        var administratorId = Administrators.Where(a => a.CustomerID == accountId && a.Account.Role == Customer.AdminRole)
+        var accountId = int.TryParse(user.FindFirst("AdministratorID")?.Value, out var id) ? id : -1;
+        var administratorId = Administrators.Where(a => a.AdministratorID == accountId && a.IsActive)
             .Select(a => (int?)a.AdministratorID).SingleOrDefault();
         if (administratorId == null) throw new InvalidOperationException("Administrator profile is missing. Please sign in again.");
         foreach (var entry in ChangeTracker.Entries().Where(e => e.Entity is IAdministratorManaged &&

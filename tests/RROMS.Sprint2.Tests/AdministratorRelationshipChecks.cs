@@ -10,13 +10,13 @@ internal static class AdministratorRelationshipChecks
     {
         var http = new HttpContextAccessor { HttpContext = new DefaultHttpContext() };
         await using var db = new ApplicationDbContext(options, http);
-        var account = new Customer { CustomerName = "Relationship Admin", Email = "relations@example.test", Role = Customer.AdminRole };
-        db.Customers.Add(account);
+        var account = new Administrator { Name = "Relationship Admin", Email = "relations@example.test", NormalizedEmail = "RELATIONS@EXAMPLE.TEST", PasswordHash = "test-only" };
+        db.Administrators.Add(account);
         await db.SaveChangesAsync();
-        var admin = await db.Administrators.SingleAsync(a => a.CustomerID == account.CustomerID);
-        check(admin.CustomerID == account.CustomerID, "Provisioning administrator creates linked profile");
+        var admin = await db.Administrators.SingleAsync(a => a.AdministratorID == account.AdministratorID);
+        check(admin.AdministratorID == account.AdministratorID, "Provisioning administrator creates independent account");
         http.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[] {
-            new Claim(ClaimTypes.NameIdentifier, account.CustomerID.ToString()),
+            new Claim("AdministratorID", account.AdministratorID.ToString()),
             new Claim(ClaimTypes.Role, Customer.AdminRole)
         }, "Test"));
         var category = new MenuCategory { Name = "Ownership test" };
@@ -28,11 +28,11 @@ internal static class AdministratorRelationshipChecks
         await db.SaveChangesAsync();
         check(records.All(r => r.CreatedByAdministratorID == admin.AdministratorID && r.UpdatedByAdministratorID == admin.AdministratorID), "All six managed entities record administrator attribution");
         check(dish.MenuCategoryID == category.MenuCategoryID, "New menu item receives category foreign key");
-        var second = new Customer { CustomerName = "Second Admin", Email = "second-relations@example.test", Role = Customer.AdminRole };
-        db.Customers.Add(second); await db.SaveChangesAsync();
-        var other = await db.Administrators.SingleAsync(a => a.CustomerID == second.CustomerID);
+        var second = new Administrator { Name = "Second Admin", Email = "second-relations@example.test", NormalizedEmail = "SECOND-RELATIONS@EXAMPLE.TEST", PasswordHash = "test-only" };
+        db.Administrators.Add(second); await db.SaveChangesAsync();
+        var other = await db.Administrators.SingleAsync(a => a.AdministratorID == second.AdministratorID);
         http.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[] {
-            new Claim(ClaimTypes.NameIdentifier, second.CustomerID.ToString()), new Claim(ClaimTypes.Role, Customer.AdminRole)
+            new Claim("AdministratorID", second.AdministratorID.ToString()), new Claim(ClaimTypes.Role, Customer.AdminRole)
         }, "Test"));
         dish.Price = 25; await db.SaveChangesAsync();
         check(dish.CreatedByAdministratorID == admin.AdministratorID && dish.UpdatedByAdministratorID == other.AdministratorID, "Update preserves creator and records actual updating administrator");

@@ -102,8 +102,8 @@ namespace RROMS.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Administrator>().HasOne(a => a.Account).WithOne()
-                .HasForeignKey<Administrator>(a => a.CustomerID).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Administrator>().HasIndex(a => a.NormalizedEmail).IsUnique();
+            modelBuilder.Entity<Customer>().ToTable(t => t.HasCheckConstraint("CK_Customers_CustomerRole", "[Role] = 'Customer'"));
             modelBuilder.Entity<MenuItem>().HasOne(i => i.MenuCategory).WithMany()
                 .HasForeignKey(i => i.MenuCategoryID).OnDelete(DeleteBehavior.Restrict);
             foreach (var type in new[] { typeof(Announcement), typeof(DiningArea), typeof(RestaurantSetting),

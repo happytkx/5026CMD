@@ -40,7 +40,7 @@ namespace RROMS.Models
             get; set;
         }
 
-        // Customer, Restaurant Staff or Administrator. Issued as the role claim at sign-in.
+        // Customer-only discriminator, enforced by a database constraint. Internal accounts use separate tables.
         [StringLength(30)]
         public string Role { get; set; } = CustomerRole;
 

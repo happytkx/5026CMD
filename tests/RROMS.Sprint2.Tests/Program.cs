@@ -107,10 +107,22 @@ try
         INSERT INTO MenuItems (Name, Description, Price, Category, IsAvailable, IsPopular, DietaryTags, ProteinType, SpiceLevel, Allergens)
         VALUES (N'Legacy dish', N'', 10, N'Legacy category', 1, 0, N'', N'Vegetarian', 0, N'');
         """);
+    const string legacyAdminPassword = "Legacy-admin-2026!";
+    var legacyHash = new Microsoft.AspNetCore.Identity.PasswordHasher<Customer>().HashPassword(new Customer(), legacyAdminPassword);
+    await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE Customers SET PasswordHash={legacyHash} WHERE Email='legacy-admin@example.test'");
+    var legacyStaffHash = new Microsoft.AspNetCore.Identity.PasswordHasher<Customer>().HashPassword(new Customer(), "Staff123!");
+    await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO Customers (CustomerName,Email,PhoneNo,Role,CreatedAt,FailedLoginCount,EmailConfirmed,SessionVersion,IsDemo,PasswordHash) VALUES ('Legacy staff','staff@celeste.local','','Restaurant Staff',GETDATE(),0,1,0,0,{legacyStaffHash})");
     DbInitializer.Initialize(db);
-    Check(await db.Administrators.AnyAsync(a => a.Account.Email == "legacy-admin@example.test"), "Migration preserves and links legacy administrator accounts");
+    Check(await db.Administrators.AnyAsync(a => a.Email == "legacy-admin@example.test"), "Migration preserves and links legacy administrator accounts");
     Check(await db.MenuItems.AnyAsync(i => i.Name == "Legacy dish" && i.MenuCategory.Name == "Legacy category"), "Migration backfills category foreign keys without losing menu data");
     await AdministratorRelationshipChecks.Run(options, Check);
+    await AdministratorAccountChecks.Run(options, Check);
+    Check(!await db.Customers.AnyAsync(c => c.Role != Customer.CustomerRole), "Customers contains only customer accounts after migration");
+    var migratedAdmin = await db.Administrators.SingleAsync(a => a.Email == "legacy-admin@example.test");
+    Check(new Microsoft.AspNetCore.Identity.PasswordHasher<Administrator>().VerifyHashedPassword(migratedAdmin, migratedAdmin.PasswordHash, legacyAdminPassword) != Microsoft.AspNetCore.Identity.PasswordVerificationResult.Failed,
+        "Administrator migration preserves existing password hash");
+    Check(await db.StaffAccounts.AnyAsync(a => a.Email == "staff@celeste.local" && a.PasswordHash == legacyStaffHash), "Legacy staff credentials move into StaffAccounts");
+
 
     var unusedColumns = await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.columns c JOIN sys.tables t ON c.object_id=t.object_id WHERE (t.name='Customers' AND c.name='Password') OR (t.name='DiningAreas' AND c.name IN ('AreaName','Description')) OR (t.name='RestaurantSettings' AND c.name IN ('DepositPerPerson','ReservationDurationMinutes','MaxModificationCount','GracePeriod','LateArrivalPeriod'))").SingleAsync();
     Check(unusedColumns == 0, "Unused columns removed by schema upgrade");
@@ -163,9 +175,10 @@ try
     Check(expired.ReservationStatus == "Expired" && expired.DepositStatus == "Unpaid", "Unpaid hold expiry releases room without forfeiting unpaid deposit");
     var arrival = await service.Create(customer.CustomerID, 2, "Indoor", start, null);
     await service.Change(arrival.ReservationID, customer.CustomerID, false, "Pay");
-    arrival.ReservationDate = ReservationPolicy.Now.Date;
-    arrival.StartTime = ReservationPolicy.Now.TimeOfDay.Subtract(TimeSpan.FromMinutes(5));
-    arrival.EndTime = arrival.StartTime.Add(TimeSpan.FromHours(2));
+    var arrivalStart = ReservationPolicy.Now.AddMinutes(-5);
+    arrival.ReservationDate = arrivalStart.Date;
+    arrival.StartTime = arrivalStart.TimeOfDay;
+    arrival.EndTime = TimeSpan.FromTicks(Math.Min(arrival.StartTime.Add(TimeSpan.FromHours(2)).Ticks, TimeSpan.TicksPerDay - 1));
     await db.SaveChangesAsync();
     await service.Change(arrival.ReservationID, null, true, "CheckIn");
     Check(arrival.ReservationStatus == "Seated" && arrival.OrderingEnabled && arrival.CheckedInAt != null, "Staff check-in activates ordering");
@@ -177,7 +190,8 @@ try
     var noShow = await service.Create(customer.CustomerID, 2, "Indoor", start, null);
     await service.Change(noShow.ReservationID, customer.CustomerID, false, "Pay");
     noShow.ReservationDate = ReservationPolicy.Now.Date;
-    noShow.StartTime = ReservationPolicy.Now.TimeOfDay.Subtract(TimeSpan.FromMinutes(11));
+    noShow.ReservationDate = ReservationPolicy.Now.AddMinutes(-11).Date;
+    noShow.StartTime = ReservationPolicy.Now.AddMinutes(-11).TimeOfDay;
     await db.SaveChangesAsync();
     await service.Expire();
     Check(noShow.ReservationStatus == "No-show" && noShow.DepositStatus == "Forfeited", "Automatic normal no-show forfeits deposit");
@@ -188,11 +202,13 @@ try
     await service.Change(notified.ReservationID, customer.CustomerID, false, "Pay");
     await service.Change(notified.ReservationID, customer.CustomerID, false, "Late");
     notified.ReservationDate = ReservationPolicy.Now.Date;
-    notified.StartTime = ReservationPolicy.Now.TimeOfDay.Subtract(TimeSpan.FromMinutes(11));
+    notified.ReservationDate = ReservationPolicy.Now.AddMinutes(-11).Date;
+    notified.StartTime = ReservationPolicy.Now.AddMinutes(-11).TimeOfDay;
     await db.SaveChangesAsync();
     await service.Expire();
     Check(notified.ReservationStatus == "Confirmed", "Notified booking survives 10-minute deadline");
-    notified.StartTime = ReservationPolicy.Now.TimeOfDay.Subtract(TimeSpan.FromMinutes(31));
+    notified.ReservationDate = ReservationPolicy.Now.AddMinutes(-31).Date;
+    notified.StartTime = ReservationPolicy.Now.AddMinutes(-31).TimeOfDay;
     await db.SaveChangesAsync();
     await service.Expire();
     Check(notified.ReservationStatus == "No-show", "Notified booking expires after 30 minutes");
@@ -420,6 +436,8 @@ try
             ["Id"] = registered.CustomerID.ToString(), ["Token"] = webResetToken,
             ["Password"] = "Reset-through-form-2026", ["ConfirmPassword"] = "Reset-through-form-2026",
             ["__RequestVerificationToken"] = Antiforgery(resetHtml) }));
+        if (validReset.StatusCode != System.Net.HttpStatusCode.Redirect)
+            Console.WriteLine("Reset response: " + validReset.StatusCode + " " + string.Join("; ", System.Text.RegularExpressions.Regex.Matches(await validReset.Content.ReadAsStringAsync(), "<li>([^<]+)</li>").Select(m => m.Groups[1].Value)));
         Check(validReset.StatusCode == System.Net.HttpStatusCode.Redirect && validReset.Headers.Location!.ToString().Contains("Login"),
             "Successful password reset redirects to sign in");
         Check((await http.GetAsync("/Reservations/Index")).StatusCode == System.Net.HttpStatusCode.Redirect,
@@ -480,6 +498,20 @@ try
             while (update != null && !update.Contains("Preparing"));
             Check(update != null, "Status change arrives on existing stream without page reload");
         }
+        using var adminHttp = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, CookieContainer = new System.Net.CookieContainer() }) { BaseAddress = http.BaseAddress };
+        var adminLoginHtml = await (await adminHttp.GetAsync("/Account/Login")).Content.ReadAsStringAsync();
+        var adminLogin = await adminHttp.PostAsync("/Account/Login", new FormUrlEncodedContent(new Dictionary<string,string> {
+            ["Email"] = "legacy-admin@example.test", ["Password"] = legacyAdminPassword, ["__RequestVerificationToken"] = Antiforgery(adminLoginHtml) }));
+        Check(adminLogin.StatusCode == System.Net.HttpStatusCode.Redirect && adminLogin.Headers.Location!.ToString() == "/Admin", "Migrated administrator signs in through shared login");
+        Check((await adminHttp.GetAsync("/Admin")).IsSuccessStatusCode && (await adminHttp.GetAsync("/Staff")).IsSuccessStatusCode, "Independent administrator retains admin and staff access");
+        Check((await adminHttp.GetAsync("/Reservations/Create")).StatusCode == System.Net.HttpStatusCode.Redirect, "Administrator does not gain customer booking identity");
+        var adminProfile = await (await adminHttp.GetAsync("/Account/Profile")).Content.ReadAsStringAsync();
+        Check(adminProfile.Contains("legacy-admin@example.test") && !adminProfile.Contains("name=\"Input.PhoneNo\""), "Administrator profile reads own account without customer fields");
+        var adminSave = await adminHttp.PostAsync("/Account/Profile", new FormUrlEncodedContent(new Dictionary<string,string> {
+            ["Input.FullName"] = "Updated administrator", ["__RequestVerificationToken"] = Antiforgery(adminProfile) }));
+        Check(adminSave.StatusCode == System.Net.HttpStatusCode.Redirect && await db.Administrators.AnyAsync(a => a.AdministratorID == migratedAdmin.AdministratorID && a.Name == "Updated administrator"), "Administrator can edit own name in Administrators");
+        await db.Administrators.Where(a => a.AdministratorID == migratedAdmin.AdministratorID).ExecuteUpdateAsync(u => u.SetProperty(a => a.SessionVersion, a => a.SessionVersion + 1));
+        Check((await adminHttp.GetAsync("/Admin")).StatusCode == System.Net.HttpStatusCode.Redirect, "Administrator session version revokes stale cookies");
         using var staffHttp = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, CookieContainer = new System.Net.CookieContainer() })
             { BaseAddress = http.BaseAddress };
         var staffLoginHtml = await (await staffHttp.GetAsync("/Account/Login")).Content.ReadAsStringAsync();
