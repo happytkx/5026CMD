@@ -18,6 +18,16 @@
 {
     <p class="error">@err</p>
 }
+@if (Model.OrderLoadTimedOut)
+{
+    <section class="card notice" role="alert">
+        <h2>Dining orders are temporarily unavailable</h2>
+        <p>The database took too long to respond. No orders were changed. Please try again in a moment.</p>
+        <a class="button secondary" asp-page="/Staff/Orders">Retry loading orders</a>
+    </section>
+}
+else
+{
 <div class="staff-stats">
     <section class="card">
         <small>IN PROGRESS</small>
@@ -41,11 +51,13 @@
     </section>
 </div>
 
-@if (!sessions.Any())
+}
+
+@if (!Model.OrderLoadTimedOut && !sessions.Any())
 {
     <section class="card empty-state">No dining orders yet.</section>
 }
-else
+else if (!Model.OrderLoadTimedOut)
 {
     <div class="staff-dining-sessions">
         @foreach (var session in sessions)
