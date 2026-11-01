@@ -424,17 +424,11 @@
         <article class="card"><small>AVERAGE PARTY SIZE</small><h2>@insights.AveragePartySize.ToString("N1")</h2></article>
     </section>
 
-    <section class="card">
-        <h2>Customer Activity &amp; Ordering</h2>
-        <p>Average orders per reservation: <strong>@insights.OrdersPerReservation.ToString("N2")</strong></p>
-        <p class="muted">
-            Active customers have confirmed, seated or completed bookings within the selected dates.
-            Returning customers have two or more valid bookings through the end of the period.
-        </p>
-        <a asp-page="/Admin/MenuPerformance"
-           asp-route-StartDate="@Model.StartDate.ToString("yyyy-MM-dd")"
-           asp-route-EndDate="@Model.EndDate.ToString("yyyy-MM-dd")">View menu performance separately →</a>
-    </section>
+    <p class="muted">
+        First-time customers made their earliest valid reservation within the selected period.
+        Returning customers had a valid reservation before the period began.
+        Both groups include only customers with confirmed, seated or completed reservations during the period.
+    </p>
 }
 
 }

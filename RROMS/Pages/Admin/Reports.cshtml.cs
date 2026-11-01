@@ -209,7 +209,6 @@ public class ReportsModel : PageModel
         Row("Customer Behaviour", "First-time Customers", Number(insights.NewCustomers), "");
         Row("Customer Behaviour", "Returning Customers", Number(insights.ReturningCustomers), "");
         Row("Customer Behaviour", "Average Party Size", insights.AveragePartySize.ToString("0.0", CultureInfo.InvariantCulture), "");
-        Row("Customer Behaviour", "Orders Per Reservation", insights.OrdersPerReservation.ToString("0.00", CultureInfo.InvariantCulture), "");
         Row();
         // Menu performance is exported independently from its dedicated report.
 
@@ -226,6 +225,9 @@ public class ReportsModel : PageModel
 
         Row("Notes",
             "Daily deposit collections use payment dates.");
+
+        Row("Notes",
+            "First-time customers have no valid reservation before the report start date; returning customers have one or more.");
 
         // Add a UTF-8 BOM so Excel displays text correctly.
         byte[] content =

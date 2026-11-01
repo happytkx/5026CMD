@@ -280,7 +280,144 @@ public static class DevelopmentDataSeeder
             db.ChangeTracker.Clear();
         }
         await transaction.CommitAsync();
+        // Rebalance only untouched, automatically generated reservations;
+        // keep real accounts and manually worked-on records intact.
+        await RebalanceSeasonalDemoCustomersAsync(db, config);
     }
+
+    // Existing demo calendars reused a small pool so often that nearly every
+    // reporting customer appeared to be returning. Give a proportion of
+    // untouched seasonal sample reservations their own one-time fictional
+    // customer, while regular guests draw from a bounded repeat pool.
+    // This updates linked DEMO order ownership but never payment amounts,
+    // reservation dates, real customers, or manually handled bookings.
+    private static async Task RebalanceSeasonalDemoCustomersAsync(ApplicationDbContext db, IConfiguration config)
+    {
+        var fixtures = await db.Reservations
+            .Include(r => r.Customer)
+            .Where(r => r.BookingReference.StartsWith("DEMO-RES-SEASON-") &&
+                r.Customer.IsDemo &&
+                r.ModificationCount == 0 &&
+                r.ReservationStatus != "Seated" &&
+                r.ReservationStatus != "Pending")
+            .ToListAsync();
+        if (fixtures.Count == 0) return;
+
+        var ids = fixtures.Select(r => r.ReservationID).ToList();
+        var orders = await db.Orders
+            .Where(o => ids.Contains(o.ReservationID)).ToListAsync();
+        var orderIds = orders.Select(o => o.OrderID).ToList();
+
+        // Keep any fixture that was edited by staff or used for a review,
+        // email or reservation-history event attached to its existing guest.
+        var protectedIds = orders
+            .Where(o => !o.Reference.StartsWith("DEMO", StringComparison.OrdinalIgnoreCase) ||
+                o.Status != "Completed")
+            .Select(o => o.ReservationID).ToHashSet();
+        protectedIds.UnionWith(await db.ReservationHistories.AsNoTracking()
+            .Where(h => ids.Contains(h.ReservationID))
+            .Select(h => h.ReservationID).ToListAsync());
+        protectedIds.UnionWith(await db.ReservationEmails.AsNoTracking()
+            .Where(e => ids.Contains(e.ReservationID))
+            .Select(e => e.ReservationID).ToListAsync());
+        protectedIds.UnionWith(await db.Payments.AsNoTracking()
+            .Where(p => ids.Contains(p.ReservationID) &&
+                (p.PaymentReference == null || !p.PaymentReference.StartsWith("DEMO")))
+            .Select(p => p.ReservationID).ToListAsync());
+        protectedIds.UnionWith(await db.Notifications.AsNoTracking()
+            .Where(n => ids.Contains(n.ReservationID) && n.NotificationType != "Demo")
+            .Select(n => n.ReservationID).ToListAsync());
+        if (orderIds.Count > 0)
+        {
+            var editedOrderIds = (await db.OrderLines.AsNoTracking()
+                .Where(l => orderIds.Contains(l.OrderID) &&
+                    (l.IsCancelled || l.KitchenStatus != "Served"))
+                .Select(l => l.OrderID).ToListAsync()).ToHashSet();
+            editedOrderIds.UnionWith(await db.Reviews.AsNoTracking()
+                .Where(r => orderIds.Contains(r.OrderID))
+                .Select(r => r.OrderID).ToListAsync());
+            editedOrderIds.UnionWith(await db.CustomerNotifications.AsNoTracking()
+                .Where(n => n.RelatedOrderID.HasValue &&
+                    orderIds.Contains(n.RelatedOrderID.Value))
+                .Select(n => n.RelatedOrderID!.Value).ToListAsync());
+            protectedIds.UnionWith(orders.Where(o => editedOrderIds.Contains(o.OrderID))
+                .Select(o => o.ReservationID));
+        }
+
+        var candidates = fixtures.Where(r => !protectedIds.Contains(r.ReservationID)).ToList();
+        if (candidates.Count == 0) return;
+        var regulars = await db.Customers
+            .Where(c => c.IsDemo && c.Email.StartsWith("guest") &&
+                c.Email.EndsWith("@celeste.example.test"))
+            .OrderBy(c => c.Email).Take(48).ToListAsync();
+        if (regulars.Count == 0) return;
+
+        // FNV-1a is stable across app restarts; string.GetHashCode is not.
+        static uint StableHash(string value)
+        {
+            uint hash = 2166136261u;
+            foreach (char letter in value)
+                hash = unchecked((hash ^ letter) * 16777619u);
+            return hash;
+        }
+        static bool OneTimeVisit(string reference) => StableHash(reference) % 100u < 45u;
+        static string GuestEmail(string reference) =>
+            "visit-" + reference["DEMO-RES-".Length..].ToLowerInvariant() + "@celeste.example.test";
+
+        var existingOneTime = await db.Customers
+            .Where(c => c.IsDemo && c.Email.StartsWith("visit-season-") &&
+                c.Email.EndsWith("@celeste.example.test"))
+            .ToListAsync();
+        var oneTimeByEmail = existingOneTime.ToDictionary(c => c.Email, StringComparer.OrdinalIgnoreCase);
+
+        string[] givenNames = [
+            "Aina", "Alicia", "Amir", "Chloe", "Daphne", "Emily", "Farah", "Grace",
+            "Hafiz", "Hannah", "Imran", "Jia En", "Jun Wei", "Kavitha", "Mei Ling",
+            "Nadia", "Nora", "Priya", "Rachel", "Sarah", "Siti", "Wei Jie", "Yasmin"
+        ];
+        string[] familyNames = ["Tan", "Lim", "Wong", "Lee", "Hassan", "Kumar"];
+        var passwordHasher = new PasswordHasher<Customer>();
+        foreach (var reservation in candidates.Where(r => OneTimeVisit(r.BookingReference)))
+        {
+            var email = GuestEmail(reservation.BookingReference);
+            if (oneTimeByEmail.ContainsKey(email)) continue;
+            uint hash = StableHash(reservation.BookingReference);
+            var guest = new Customer
+            {
+                CustomerName = "Demo " + givenNames[(int)(hash % (uint)givenNames.Length)] +
+                    " " + familyNames[(int)((hash / (uint)givenNames.Length) % (uint)familyNames.Length)],
+                Email = email,
+                NormalizedEmail = CustomerAccountService.Normalize(email),
+                PhoneNo = "019" + (1000000 + (int)(hash % 9000000u)).ToString("D7"),
+                CreatedAt = reservation.CreatedDate,
+                IsDemo = true,
+                EmailConfirmed = true
+            };
+            guest.PasswordHash = passwordHasher.HashPassword(
+                guest, config["DemoData:CustomerPassword"] ?? CustomerPassword);
+            db.Customers.Add(guest);
+            oneTimeByEmail[email] = guest;
+        }
+        await db.SaveChangesAsync();
+
+        var roundsByReservation = orders.ToLookup(o => o.ReservationID);
+        foreach (var reservation in candidates)
+        {
+            Customer guest = OneTimeVisit(reservation.BookingReference)
+                ? oneTimeByEmail[GuestEmail(reservation.BookingReference)]
+                : regulars[(int)(StableHash(reservation.BookingReference + "-repeat") %
+                    (uint)regulars.Count)];
+            if (reservation.CustomerID == guest.CustomerID) continue;
+
+            reservation.Customer = guest;
+            reservation.CustomerID = guest.CustomerID;
+            foreach (var order in roundsByReservation[reservation.ReservationID])
+                order.CustomerID = guest.CustomerID;
+        }
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+    }
+
     // Explicit, one-time opt-in: remove only the original calendar fixtures from the old
     // seeder, and preserve any booking that someone has used for orders or other activity.
     // Never touch real customers, manually created bookings or the new SEASON fixtures.
