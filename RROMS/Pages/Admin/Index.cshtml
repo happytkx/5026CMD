@@ -127,7 +127,9 @@
             <div class="analytics-summary-row"><span>First-time customers</span><strong>@insights.NewCustomers</strong></div>
             <div class="analytics-summary-row"><span>Returning customers</span><strong>@insights.ReturningCustomers</strong></div>
             <div class="analytics-summary-row"><span>Average party size</span><strong>@insights.AveragePartySize.ToString("N1") guests</strong></div>
-            <div class="analytics-summary-row"><span>Average orders per reservation</span><strong>@insights.OrdersPerReservation.ToString("N2")</strong></div>
+            <div class="analytics-summary-row"><span>Average dining spend per completed reservation</span><strong>@(insights.SettledCompletedReservations == 0 ? "—" : "RM " + insights.AverageDiningSpendPerCompletedReservation.ToString("N2"))</strong></div>
+            <div class="analytics-summary-row"><span>Average spend per guest</span><strong>@(insights.SettledCompletedReservations == 0 ? "—" : "RM " + insights.AverageSpendPerGuest.ToString("N2"))</strong></div>
+            <p class="muted">Spending averages use paid final bills for completed dining visits, including any applicable minimum spend and tax. Deposits are not counted twice.</p>
             <p class="muted">Returning means two or more valid reservations up to the selected end date.</p>
             <a asp-page="/Admin/ReportReservations" asp-route-StartDate="@Model.From.ToString("yyyy-MM-dd")" asp-route-EndDate="@Model.To.ToString("yyyy-MM-dd")">Explore reservations</a>
         </section>

@@ -105,8 +105,10 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
         if (SortBy is not ("Name" or "MostOrdered" or "LeastOrdered" or "HighestSales"))
         {
             SortBy = "MostOrdered";
-            ModelState.Remove(nameof(SortBy));
         }
+        // Razor's GET binding can register an implicit required-field error
+        // even when the default sort is already displayed in the dropdown.
+        ModelState.Remove(nameof(SortBy));
 
         Items = filtered.ToList();
         if (!HasValidPeriod)

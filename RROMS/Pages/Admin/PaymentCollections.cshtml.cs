@@ -40,6 +40,56 @@ public class PaymentCollectionsModel : PageModel
             .Where(payment => PaymentType == "All" || payment.PaymentType == PaymentType)
             .ToList() ?? new List<PaymentCollectionRow>();
 
+    public sealed record PaymentTrendPoint(
+        DateTime Date,
+        decimal Deposits,
+        decimal DiningPayments)
+    {
+        public decimal Total => Deposits + DiningPayments;
+    }
+
+    public List<PaymentTrendPoint> PaymentTrend { get; private set; } = new();
+    public string PaymentTrendInterval { get; private set; } = "day";
+
+    private void BuildPaymentTrend()
+    {
+        if (Report is null || Report.Daily.Count == 0)
+            return;
+
+        DateTime first = StartDate.Date;
+        DateTime last = EndDate.Date;
+        int dayCount = (last - first).Days + 1;
+        PaymentTrendInterval = dayCount <= 45 ? "day" :
+            dayCount <= 365 ? "week" : "month";
+
+        DateTime Bucket(DateTime date)
+        {
+            if (PaymentTrendInterval == "month")
+                return new DateTime(date.Year, date.Month, 1);
+            if (PaymentTrendInterval == "week")
+                return first.AddDays(((date.Date - first).Days / 7) * 7);
+            return date.Date;
+        }
+
+        var grouped = Report.Daily
+            .GroupBy(day => Bucket(day.Date))
+            .ToDictionary(group => group.Key, group => new PaymentTrendPoint(
+                group.Key,
+                group.Sum(day => day.Deposits),
+                group.Sum(day => day.DiningPayments)));
+
+        DateTime bucketStart = PaymentTrendInterval == "month"
+            ? new DateTime(first.Year, first.Month, 1)
+            : first;
+        for (DateTime date = bucketStart; date <= last;)
+        {
+            PaymentTrend.Add(grouped.TryGetValue(date, out var point)
+                ? point : new PaymentTrendPoint(date, 0m, 0m));
+            date = PaymentTrendInterval == "month" ? date.AddMonths(1) :
+                date.AddDays(PaymentTrendInterval == "week" ? 7 : 1);
+        }
+    }
+
     private void NormalizePaymentType()
     {
         if (PaymentType != "Deposit" && PaymentType != "DiningBill")
@@ -72,6 +122,8 @@ public class PaymentCollectionsModel : PageModel
 
         Report = await _reportingService
             .GetPaymentCollectionsAsync(StartDate, EndDate);
+        if (!TransactionsOnly)
+            BuildPaymentTrend();
     }
 
     // Export successful payment collections to CSV.

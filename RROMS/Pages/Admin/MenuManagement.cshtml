@@ -304,6 +304,7 @@
                                     <button type="button" class="menu-trend-mode" data-trend-mode="sales" aria-pressed="false">Sales (RM)</button>
                                 </div>
                             </div>
+                            <p class="menu-trend-explanation">Switch between the number of dishes ordered and their sales value in RM. For a fixed-price dish, both lines can have the same shape, but their scales are different.</p>
                             @if (!Model.HasValidPeriod)
                             {
                                 <p class="notice">Select a valid reporting period to view this chart.</p>
@@ -314,25 +315,38 @@
                             }
                             else
                             {
+                                var peakUnits = Math.Max(1, metrics.Trend.Max(p => p.Units));
+                                var peakSales = Math.Max(1m, metrics.Trend.Max(p => p.Sales));
                                 var dots = metrics.Trend.Select((point, index) => new
                                 {
                                     Point = point,
-                                    X = (metrics.Trend.Count == 1 ? 450d : 44d + index * 812d / (metrics.Trend.Count - 1))
+                                    X = (metrics.Trend.Count == 1 ? 465d : 90d + index * 750d / (metrics.Trend.Count - 1))
                                         .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture),
-                                    UnitY = (226d - point.Units * 170d / Math.Max(1, metrics.Trend.Max(p => p.Units)))
+                                    UnitY = (226d - point.Units * 170d / peakUnits)
                                         .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture),
-                                    SaleY = (226d - (double)(point.Sales / Math.Max(1m, metrics.Trend.Max(p => p.Sales))) * 170d)
+                                    SaleY = (226d - (double)(point.Sales / peakSales) * 170d)
                                         .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)
                                 }).ToList();
                                 var unitLine = string.Join(" ", dots.Select(p => p.X + "," + p.UnitY));
                                 var salesLine = string.Join(" ", dots.Select(p => p.X + "," + p.SaleY));
                                 var labelEvery = Math.Max(1, (int)Math.Ceiling(dots.Count / 5d));
-                                <div class="menu-trend-chart reservation-chart-interactive" data-menu-trend-chart>
+                                <div class="menu-trend-reading" aria-live="polite">
+                                    <span data-trend-axis-title>Units ordered</span>
+                                    <strong data-trend-summary>@metrics.Units units sold</strong>
+                                </div>
+                                <div class="menu-trend-chart reservation-chart-interactive" data-menu-trend-chart
+                                     data-units-total="@metrics.Units"
+                                     data-sales-total="@metrics.Sales.ToString("N2")">
                                     <div class="menu-trend-scroll">
                                         <svg viewBox="0 0 900 275" role="img" aria-label="Ordering trend for @item.Name. Hover or focus on a data point for quantity and sales.">
-                                            @foreach (var y in new[] { 56, 98, 141, 184, 226 })
+                                            @for (var tick = 0; tick <= 4; tick++)
                                             {
-                                                <line class="reservation-chart-gridline" x1="35" y1="@y" x2="862" y2="@y"></line>
+                                                var y = 226d - tick * 170d / 4d;
+                                                var yText = y.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+                                                var unitsTick = (int)Math.Round(peakUnits * tick / 4d);
+                                                var salesTick = (peakSales * tick / 4m).ToString("N0");
+                                                <line class="reservation-chart-gridline" x1="85" y1="@yText" x2="862" y2="@yText"></line>
+                                                @Html.Raw($"<text class=\"reservation-chart-axis menu-trend-axis-tick\" x=\"75\" y=\"{(y + 4d).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}\" text-anchor=\"end\" data-trend-axis data-units-label=\"{unitsTick}\" data-sales-label=\"RM {salesTick}\">{unitsTick}</text>")
                                             }
                                             <polyline class="reservation-chart-line menu-trend-line" points="@unitLine"
                                                       data-units-line="@unitLine" data-sales-line="@salesLine"></polyline>
@@ -525,7 +539,20 @@
                 button.addEventListener('click', () => {
                     const sales = button.dataset.trendMode === 'sales';
                     line.setAttribute('points', sales ? line.dataset.salesLine : line.dataset.unitsLine);
-                    points.forEach(point => point.setAttribute('cy', sales ? point.dataset.salesY : point.dataset.unitsY));
+                    line.classList.toggle('is-sales', sales);
+                    points.forEach(point => {
+                        point.setAttribute('cy', sales ? point.dataset.salesY : point.dataset.unitsY);
+                        point.classList.toggle('is-sales', sales);
+                    });
+                    container.querySelectorAll('[data-trend-axis]').forEach(tick => {
+                        tick.textContent = sales ? tick.dataset.salesLabel : tick.dataset.unitsLabel;
+                    });
+                    const axisTitle = body.querySelector('[data-trend-axis-title]');
+                    const summary = body.querySelector('[data-trend-summary]');
+                    if (axisTitle) axisTitle.textContent = sales ? 'Sales before tax (RM)' : 'Units ordered';
+                    if (summary) summary.textContent = sales
+                        ? 'RM ' + container.dataset.salesTotal + ' in sales'
+                        : container.dataset.unitsTotal + ' units sold';
                     body.querySelectorAll('[data-trend-mode]').forEach(choice => {
                         const active = choice === button;
                         choice.classList.toggle('active', active);
