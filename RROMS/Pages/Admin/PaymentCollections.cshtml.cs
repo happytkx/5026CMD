@@ -27,7 +27,27 @@ public class PaymentCollectionsModel : PageModel
     public DateTime EndDate { get; set; } =
         ReservationPolicy.Now.Date;
 
+    [BindProperty(SupportsGet = true)]
+    public string PaymentType { get; set; } = "All";
+
+    [BindProperty(SupportsGet = true)]
+    public bool TransactionsOnly { get; set; }
+
     public PaymentCollectionsResult? Report { get; set; }
+
+    public List<PaymentCollectionRow> FilteredTransactions =>
+        Report?.Transactions
+            .Where(payment => PaymentType == "All" || payment.PaymentType == PaymentType)
+            .ToList() ?? new List<PaymentCollectionRow>();
+
+    private void NormalizePaymentType()
+    {
+        if (PaymentType != "Deposit" && PaymentType != "DiningBill")
+        {
+            PaymentType = "All";
+            ModelState.Remove(nameof(PaymentType));
+        }
+    }
 
     // Validate the selected reporting period.
     private bool IsValidPeriod()
@@ -39,6 +59,8 @@ public class PaymentCollectionsModel : PageModel
     // Display the report on the website.
     public async Task OnGetAsync()
     {
+        NormalizePaymentType();
+
         if (!IsValidPeriod())
         {
             ModelState.AddModelError(
@@ -55,6 +77,8 @@ public class PaymentCollectionsModel : PageModel
     // Export successful payment collections to CSV.
     public async Task<IActionResult> OnGetExportAsync()
     {
+        NormalizePaymentType();
+
         if (!IsValidPeriod())
         {
             return BadRequest(
@@ -117,6 +141,7 @@ public class PaymentCollectionsModel : PageModel
         Row("Celeste Payment Collections Report");
         Row("Start Date", Date(StartDate));
         Row("End Date", Date(EndDate));
+        Row("Transaction Filter", PaymentType == "All" ? "All payment types" : PaymentType);
         Row();
 
         // Payment summary.
@@ -159,8 +184,9 @@ public class PaymentCollectionsModel : PageModel
 
         Row();
 
-        // Individual successful payments.
-        Row("Successful Payment Transactions");
+        // The transaction details follow the selected payment type filter;
+        // summary and daily totals above still cover all successful payments.
+        Row("Successful Payment Transactions", PaymentType == "All" ? "All types" : PaymentType);
 
         Row(
             "Payment ID",
@@ -172,7 +198,8 @@ public class PaymentCollectionsModel : PageModel
             "Payment Method",
             "Amount (RM)");
 
-        foreach (var payment in report.Transactions)
+        foreach (var payment in report.Transactions
+            .Where(payment => PaymentType == "All" || payment.PaymentType == PaymentType))
         {
             Row(
                 Number(payment.PaymentID),
@@ -198,6 +225,9 @@ public class PaymentCollectionsModel : PageModel
             "Deposit payments and final dining payments are reported separately.");
 
         Row("Notes",
+            "The transaction filter applies to individual payment rows; summary and daily totals show all payment types.");
+
+        Row("Notes",
             "Recorded collections do not represent independently verified bank settlements.");
 
         // UTF-8 BOM improves Excel compatibility.
@@ -207,7 +237,8 @@ public class PaymentCollectionsModel : PageModel
 
         string fileName =
             $"Celeste_PaymentCollections_" +
-            $"{Date(StartDate)}_to_{Date(EndDate)}.csv";
+            $"{Date(StartDate)}_to_{Date(EndDate)}" +
+            (PaymentType == "All" ? "" : $"_{PaymentType}") + ".csv";
 
         return File(
             content,

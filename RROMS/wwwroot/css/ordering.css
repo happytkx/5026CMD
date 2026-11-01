@@ -1789,3 +1789,90 @@ form.card.mybill-selector {
     padding-left: 20px;
 }
 .menu-performance-validation.validation-summary-valid { display: none; }
+
+/* Payment Collections: drill-down cards and payment-type transaction filter. */
+.payment-stat-link {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.payment-stat-link:hover,
+.payment-stat-link:focus-visible {
+    border-color: var(--olive);
+    box-shadow: 0 6px 18px #282b2019;
+    transform: translateY(-2px);
+    color: inherit;
+}
+.payment-stat-link:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
+}
+.payment-stat-link small, .payment-stat-link h2 { color: inherit; }
+.payment-stat-hint {
+    display: block;
+    margin-top: 8px;
+    color: var(--olive-deep);
+    font-size: 11px;
+    line-height: 1.45;
+}
+.payment-back-link {
+    display: inline-flex;
+    margin: 0 0 18px;
+    color: var(--olive-deep);
+    text-underline-offset: 4px;
+}
+.payment-type-filter {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin: 20px 0 12px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--paper);
+}
+.payment-type-filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    flex: 0 1 300px;
+    min-width: min(100%, 200px);
+}
+.payment-type-filter-field label {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+}
+.payment-type-filter-field select {
+    width: 100%;
+    min-height: 50px;
+    padding: 11px 36px 11px 14px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--white);
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+.payment-type-filter-field select:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+}
+.payment-type-filter > button {
+    min-width: 150px;
+    min-height: 50px;
+    margin: 0;
+    padding: 11px 18px;
+}
+.payment-filter-count {
+    margin: 0 0 16px;
+    color: var(--muted);
+    font-size: 13px;
+}
+@media (max-width: 560px) {
+    .payment-type-filter-field,
+    .payment-type-filter > button { width: 100%; flex-basis: 100%; }
+}
