@@ -1,0 +1,244 @@
+erDiagram
+    Customers ||--o{ Reservations : makes
+    DiningAreas ||--o{ RestaurantTables : contains
+    RestaurantTables ||--o{ Reservations : assigned
+    Reservations ||--o{ Payments : records
+    Reservations ||--o| Bills : has
+    Reservations ||--o{ ReservationHistories : tracks
+    Reservations ||--o{ Notifications : has
+    Reservations ||--o{ ReservationEmails : queues
+    Customers ||--o{ Orders : places
+    Reservations ||--o{ Orders : contains
+    Orders ||--o{ OrderLines : contains
+    MenuItems ||--o{ OrderLines : referenced
+    Customers ||--o{ Reviews : writes
+    Orders ||--o{ Reviews : receives
+    Customers ||--o{ CustomerNotifications : receives
+    Orders o|--o{ CustomerNotifications : relates
+    Customers ||--o| Administrators : account_profile
+    MenuCategories ||--o{ MenuItems : categorises
+    Administrators o|--o{ Announcements : created_by
+    Administrators o|--o{ Announcements : updated_by
+    Administrators o|--o{ DiningAreas : created_by
+    Administrators o|--o{ DiningAreas : updated_by
+    Administrators o|--o{ RestaurantSettings : created_by
+    Administrators o|--o{ RestaurantSettings : updated_by
+    Administrators o|--o{ StaffAccounts : created_by
+    Administrators o|--o{ StaffAccounts : updated_by
+    Administrators o|--o{ MenuCategories : created_by
+    Administrators o|--o{ MenuCategories : updated_by
+    Administrators o|--o{ MenuItems : created_by
+    Administrators o|--o{ MenuItems : updated_by
+    Administrators {
+        int AdministratorID PK
+        int CustomerID FK,UK
+    }
+    Announcements {
+        int CreatedByAdministratorID FK
+        int UpdatedByAdministratorID FK
+        int AnnouncementID PK
+        string Title
+        string Message
+        bool IsActive
+        DateTime CreatedAt
+    }
+    Bills {
+        int BillID PK
+        int ReservationID FK,UK
+        decimal FoodSubtotal
+        decimal TaxAmount
+        decimal TotalBill
+        decimal MinSpend
+        decimal DepositApplied
+        decimal BalanceToPay
+        string BillStatus
+        DateTime CreatedAt
+    }
+    Customers {
+        int CustomerID PK
+        string CustomerName
+        string Email
+        string PhoneNo
+        string Address
+        string PasswordHash
+        string Role
+        DateTime CreatedAt
+        int FailedLoginCount
+        DateTime LockoutEnd
+        string NormalizedEmail
+        bool EmailConfirmed
+        string VerificationTokenHash
+        DateTime VerificationExpiresUtc
+        DateTime VerificationSentUtc
+        DateTime LockedUntilUtc
+        string PasswordResetTokenHash
+        DateTime PasswordResetExpiresUtc
+        DateTime PasswordResetSentUtc
+        int SessionVersion
+        bool IsDemo
+    }
+    CustomerNotifications {
+        int CustomerNotificationID PK
+        int CustomerID FK
+        string Title
+        string Message
+        string Type
+        int RelatedOrderID FK
+        bool IsRead
+        DateTime CreatedAt
+    }
+    Orders {
+        int OrderID PK
+        int CustomerID FK
+        int ReservationID FK
+        DateTime CreatedAt
+        string Status
+        decimal Subtotal
+        decimal Tax
+        decimal Total
+        string Notes
+        string Reference
+    }
+    OrderLines {
+        int OrderLineID PK
+        int OrderID FK
+        int MenuItemID FK
+        string ItemName
+        decimal UnitPrice
+        int Quantity
+        decimal LineTotal
+        string KitchenStatus
+        bool IsCancelled
+        DateTime CancelledAt
+        string CancelledBy
+    }
+    DiningAreas {
+        int CreatedByAdministratorID FK
+        int UpdatedByAdministratorID FK
+        int DiningAreaID PK
+        string AreaType
+    }
+    MenuCategories {
+        int CreatedByAdministratorID FK
+        int UpdatedByAdministratorID FK
+        int MenuCategoryID PK
+        string Name
+    }
+    MenuItems {
+        int CreatedByAdministratorID FK
+        int UpdatedByAdministratorID FK
+        int MenuCategoryID FK
+        int MenuItemID PK
+        string Name
+        string Description
+        decimal Price
+        string Category
+        string ImageUrl
+        bool IsAvailable
+        bool IsPopular
+        decimal DiscountPercent
+        string DietaryTags
+        string ProteinType
+        int SpiceLevel
+        string Allergens
+    }
+    Notifications {
+        int NotificationID PK
+        int ReservationID FK
+        string NotificationType
+        string Message
+        DateTime SentDate
+    }
+    Payments {
+        int PaymentID PK
+        int ReservationID FK
+        string PaymentType
+        string PaymentReference
+        string PaymentMethod
+        decimal Amount
+        string PaymentStatus
+        DateTime PaymentDate
+    }
+    Reservations {
+        int ReservationID PK
+        int CustomerID FK
+        string TableID FK
+        string BookingReference
+        DateTime ReservationDate
+        TimeSpan StartTime
+        TimeSpan EndTime
+        int PartySize
+        string PreferredDiningOption
+        decimal DepositAmount
+        string DepositStatus
+        string ReservationStatus
+        int ModificationCount
+        DateTime OriginalStart
+        DateTime CreatedDate
+        DateTime CheckedInAt
+        DateTime CancellationDate
+        bool LateArrivalNotified
+        DateTime HoldExpiresAt
+        decimal MinimumSpend
+        byteArray RowVersion
+        string DietaryRequest
+    }
+    ReservationEmails {
+        int ReservationEmailID PK
+        int ReservationID FK
+        string EventKey
+        string Recipient
+        string Subject
+        string Body
+        DateTime BookingStart
+        DateTime DueAt
+        string Status
+        int Attempts
+        DateTime DeliveredAt
+        DateTime LeaseUntil
+        string LastError
+    }
+    ReservationHistories {
+        int HistoryID PK
+        int ReservationID FK
+        DateTime OldDate
+        TimeSpan OldTime
+        DateTime NewDate
+        TimeSpan NewTime
+        DateTime ChangedDate
+    }
+    RestaurantSettings {
+        int CreatedByAdministratorID FK
+        int UpdatedByAdministratorID FK
+        int SettingID PK
+        TimeSpan OpeningTime
+        TimeSpan ClosingTime
+    }
+    RestaurantTables {
+        string TableID PK
+        int DiningAreaID FK
+        int Capacity
+        string Status
+    }
+    Reviews {
+        int ReviewID PK
+        int CustomerID FK
+        int OrderID FK
+        int Rating
+        string Comment
+        DateTime CreatedAt
+    }
+    StaffAccounts {
+        int CreatedByAdministratorID FK
+        int UpdatedByAdministratorID FK
+        int StaffAccountID PK
+        string StaffName
+        string Email
+        string NormalizedEmail
+        string PasswordHash
+        bool IsActive
+        bool IsDemo
+        int FailedLoginCount
+        DateTime LockedUntilUtc
+        int SessionVersion
+    }

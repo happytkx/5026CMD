@@ -22,6 +22,25 @@ namespace RROMS.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("RROMS.Models.Administrator", b =>
+                {
+                    b.Property<int>("AdministratorID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AdministratorID"));
+
+                    b.Property<int>("CustomerID")
+                        .HasColumnType("int");
+
+                    b.HasKey("AdministratorID");
+
+                    b.HasIndex("CustomerID")
+                        .IsUnique();
+
+                    b.ToTable("Administrators");
+                });
+
             modelBuilder.Entity("RROMS.Models.Announcement", b =>
                 {
                     b.Property<int>("AnnouncementID")
@@ -32,6 +51,9 @@ namespace RROMS.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int?>("CreatedByAdministratorID")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -46,7 +68,14 @@ namespace RROMS.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("nvarchar(120)");
 
+                    b.Property<int?>("UpdatedByAdministratorID")
+                        .HasColumnType("int");
+
                     b.HasKey("AnnouncementID");
+
+                    b.HasIndex("CreatedByAdministratorID");
+
+                    b.HasIndex("UpdatedByAdministratorID");
 
                     b.ToTable("Announcements");
                 });
@@ -292,7 +321,17 @@ namespace RROMS.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("CreatedByAdministratorID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("UpdatedByAdministratorID")
+                        .HasColumnType("int");
+
                     b.HasKey("DiningAreaID");
+
+                    b.HasIndex("CreatedByAdministratorID");
+
+                    b.HasIndex("UpdatedByAdministratorID");
 
                     b.ToTable("DiningAreas");
                 });
@@ -305,15 +344,25 @@ namespace RROMS.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MenuCategoryID"));
 
+                    b.Property<int?>("CreatedByAdministratorID")
+                        .HasColumnType("int");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
                         .HasColumnType("nvarchar(120)");
 
+                    b.Property<int?>("UpdatedByAdministratorID")
+                        .HasColumnType("int");
+
                     b.HasKey("MenuCategoryID");
+
+                    b.HasIndex("CreatedByAdministratorID");
 
                     b.HasIndex("Name")
                         .IsUnique();
+
+                    b.HasIndex("UpdatedByAdministratorID");
 
                     b.ToTable("MenuCategories");
                 });
@@ -335,6 +384,9 @@ namespace RROMS.Migrations
                         .IsRequired()
                         .HasMaxLength(120)
                         .HasColumnType("nvarchar(120)");
+
+                    b.Property<int?>("CreatedByAdministratorID")
+                        .HasColumnType("int");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -359,6 +411,9 @@ namespace RROMS.Migrations
                     b.Property<bool>("IsPopular")
                         .HasColumnType("bit");
 
+                    b.Property<int>("MenuCategoryID")
+                        .HasColumnType("int");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -375,7 +430,16 @@ namespace RROMS.Migrations
                     b.Property<int>("SpiceLevel")
                         .HasColumnType("int");
 
+                    b.Property<int?>("UpdatedByAdministratorID")
+                        .HasColumnType("int");
+
                     b.HasKey("MenuItemID");
+
+                    b.HasIndex("CreatedByAdministratorID");
+
+                    b.HasIndex("MenuCategoryID");
+
+                    b.HasIndex("UpdatedByAdministratorID");
 
                     b.ToTable("MenuItems");
                 });
@@ -411,6 +475,12 @@ namespace RROMS.Migrations
 
             modelBuilder.Entity("RROMS.Models.OrderLine", b =>
                 {
+                    b.Property<int>("OrderLineID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderLineID"));
+
                     b.Property<DateTime?>("CancelledAt")
                         .HasColumnType("datetime2");
 
@@ -420,12 +490,6 @@ namespace RROMS.Migrations
 
                     b.Property<bool>("IsCancelled")
                         .HasColumnType("bit");
-
-                    b.Property<int>("OrderLineID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderLineID"));
 
                     b.Property<string>("ItemName")
                         .IsRequired()
@@ -701,10 +765,20 @@ namespace RROMS.Migrations
                     b.Property<TimeSpan>("ClosingTime")
                         .HasColumnType("time");
 
+                    b.Property<int?>("CreatedByAdministratorID")
+                        .HasColumnType("int");
+
                     b.Property<TimeSpan>("OpeningTime")
                         .HasColumnType("time");
 
+                    b.Property<int?>("UpdatedByAdministratorID")
+                        .HasColumnType("int");
+
                     b.HasKey("SettingID");
+
+                    b.HasIndex("CreatedByAdministratorID");
+
+                    b.HasIndex("UpdatedByAdministratorID");
 
                     b.ToTable("RestaurantSettings");
                 });
@@ -775,6 +849,9 @@ namespace RROMS.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffAccountID"));
 
+                    b.Property<int?>("CreatedByAdministratorID")
+                        .HasColumnType("int");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -809,13 +886,48 @@ namespace RROMS.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int?>("UpdatedByAdministratorID")
+                        .HasColumnType("int");
+
                     b.HasKey("StaffAccountID");
+
+                    b.HasIndex("CreatedByAdministratorID");
 
                     b.HasIndex("NormalizedEmail")
                         .IsUnique()
                         .HasFilter("[NormalizedEmail] IS NOT NULL");
 
+                    b.HasIndex("UpdatedByAdministratorID");
+
                     b.ToTable("StaffAccounts");
+                });
+
+            modelBuilder.Entity("RROMS.Models.Administrator", b =>
+                {
+                    b.HasOne("RROMS.Models.Customer", "Account")
+                        .WithOne()
+                        .HasForeignKey("RROMS.Models.Administrator", "CustomerID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+                });
+
+            modelBuilder.Entity("RROMS.Models.Announcement", b =>
+                {
+                    b.HasOne("RROMS.Models.Administrator", "CreatedByAdministrator")
+                        .WithMany()
+                        .HasForeignKey("CreatedByAdministratorID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RROMS.Models.Administrator", "UpdatedByAdministrator")
+                        .WithMany()
+                        .HasForeignKey("UpdatedByAdministratorID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedByAdministrator");
+
+                    b.Navigation("UpdatedByAdministrator");
                 });
 
             modelBuilder.Entity("RROMS.Models.Bill", b =>
@@ -862,6 +974,65 @@ namespace RROMS.Migrations
                     b.Navigation("Customer");
 
                     b.Navigation("Reservation");
+                });
+
+            modelBuilder.Entity("RROMS.Models.DiningArea", b =>
+                {
+                    b.HasOne("RROMS.Models.Administrator", "CreatedByAdministrator")
+                        .WithMany()
+                        .HasForeignKey("CreatedByAdministratorID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RROMS.Models.Administrator", "UpdatedByAdministrator")
+                        .WithMany()
+                        .HasForeignKey("UpdatedByAdministratorID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedByAdministrator");
+
+                    b.Navigation("UpdatedByAdministrator");
+                });
+
+            modelBuilder.Entity("RROMS.Models.MenuCategory", b =>
+                {
+                    b.HasOne("RROMS.Models.Administrator", "CreatedByAdministrator")
+                        .WithMany()
+                        .HasForeignKey("CreatedByAdministratorID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RROMS.Models.Administrator", "UpdatedByAdministrator")
+                        .WithMany()
+                        .HasForeignKey("UpdatedByAdministratorID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedByAdministrator");
+
+                    b.Navigation("UpdatedByAdministrator");
+                });
+
+            modelBuilder.Entity("RROMS.Models.MenuItem", b =>
+                {
+                    b.HasOne("RROMS.Models.Administrator", "CreatedByAdministrator")
+                        .WithMany()
+                        .HasForeignKey("CreatedByAdministratorID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RROMS.Models.MenuCategory", "MenuCategory")
+                        .WithMany()
+                        .HasForeignKey("MenuCategoryID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RROMS.Models.Administrator", "UpdatedByAdministrator")
+                        .WithMany()
+                        .HasForeignKey("UpdatedByAdministratorID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedByAdministrator");
+
+                    b.Navigation("MenuCategory");
+
+                    b.Navigation("UpdatedByAdministrator");
                 });
 
             modelBuilder.Entity("RROMS.Models.Notification", b =>
@@ -946,6 +1117,23 @@ namespace RROMS.Migrations
                     b.Navigation("Reservation");
                 });
 
+            modelBuilder.Entity("RROMS.Models.RestaurantSetting", b =>
+                {
+                    b.HasOne("RROMS.Models.Administrator", "CreatedByAdministrator")
+                        .WithMany()
+                        .HasForeignKey("CreatedByAdministratorID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RROMS.Models.Administrator", "UpdatedByAdministrator")
+                        .WithMany()
+                        .HasForeignKey("UpdatedByAdministratorID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedByAdministrator");
+
+                    b.Navigation("UpdatedByAdministrator");
+                });
+
             modelBuilder.Entity("RROMS.Models.RestaurantTable", b =>
                 {
                     b.HasOne("RROMS.Models.DiningArea", "DiningArea")
@@ -974,6 +1162,23 @@ namespace RROMS.Migrations
                     b.Navigation("Customer");
 
                     b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("RROMS.Models.StaffAccount", b =>
+                {
+                    b.HasOne("RROMS.Models.Administrator", "CreatedByAdministrator")
+                        .WithMany()
+                        .HasForeignKey("CreatedByAdministratorID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RROMS.Models.Administrator", "UpdatedByAdministrator")
+                        .WithMany()
+                        .HasForeignKey("UpdatedByAdministratorID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedByAdministrator");
+
+                    b.Navigation("UpdatedByAdministrator");
                 });
 
             modelBuilder.Entity("RROMS.Models.Customer", b =>

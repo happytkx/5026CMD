@@ -117,7 +117,7 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
 
         var previousName = category.Name;
         category.Name = name!;
-        foreach (var item in await db.MenuItems.Where(i => i.Category == previousName).ToListAsync())
+        foreach (var item in await db.MenuItems.Where(i => i.MenuCategoryID == categoryId).ToListAsync())
             item.Category = name!;
         await db.SaveChangesAsync();
         return Success($"Category renamed to {name}. Its dishes were moved automatically.");
@@ -127,7 +127,7 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
     {
         var category = await db.MenuCategories.FindAsync(categoryId);
         if (category is null) return NotFound();
-        if (await db.MenuItems.AnyAsync(i => i.Category == category.Name))
+        if (await db.MenuItems.AnyAsync(i => i.MenuCategoryID == categoryId))
             return Error("Move or remove the dishes in this category before deleting it.");
 
         db.MenuCategories.Remove(category);

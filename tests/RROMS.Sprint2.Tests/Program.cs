@@ -89,6 +89,8 @@ if (!args.Contains("--integration")) { Console.WriteLine($"{passed} policy check
 // This run owns a uniquely named database. Never use the application's real database.
 var database = "RROMS_Sprint2_Test_" + Guid.NewGuid().ToString("N");
 var connection = $"Server=(localdb)\\MSSQLLocalDB;Database={database};Trusted_Connection=True;TrustServerCertificate=True";
+if (Environment.GetEnvironmentVariable("RROMS_TEST_SERVER") is { Length: > 0 } testServer)
+    connection = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connection) { DataSource = testServer }.ConnectionString;
 connection = (await DevelopmentLocalDb.Resolve(connection, true))!;
 var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer(connection).Options;
 await using var db = new ApplicationDbContext(options);
@@ -97,7 +99,19 @@ try
     var migrator = db.GetService<Microsoft.EntityFrameworkCore.Migrations.IMigrator>();
     await migrator.MigrateAsync("20261011054116_InitialCreate");
     await db.Database.ExecuteSqlRawAsync("INSERT INTO RestaurantSettings (DepositPerPerson,ReservationDurationMinutes,MaxModificationCount,GracePeriod,LateArrivalPeriod) VALUES (50,150,1,10,30)");
+    await migrator.MigrateAsync("20261030210000_TrackDishKitchenStatuses");
+    await db.Database.ExecuteSqlRawAsync("""
+        INSERT INTO Customers (CustomerName, Email, PhoneNo, Role, CreatedAt, FailedLoginCount, EmailConfirmed, SessionVersion, IsDemo)
+        VALUES (N'Legacy administrator', N'legacy-admin@example.test', N'', N'Administrator', GETDATE(), 0, 1, 0, 0);
+        INSERT INTO MenuCategories (Name) VALUES (N'Legacy category');
+        INSERT INTO MenuItems (Name, Description, Price, Category, IsAvailable, IsPopular, DietaryTags, ProteinType, SpiceLevel, Allergens)
+        VALUES (N'Legacy dish', N'', 10, N'Legacy category', 1, 0, N'', N'Vegetarian', 0, N'');
+        """);
     DbInitializer.Initialize(db);
+    Check(await db.Administrators.AnyAsync(a => a.Account.Email == "legacy-admin@example.test"), "Migration preserves and links legacy administrator accounts");
+    Check(await db.MenuItems.AnyAsync(i => i.Name == "Legacy dish" && i.MenuCategory.Name == "Legacy category"), "Migration backfills category foreign keys without losing menu data");
+    await AdministratorRelationshipChecks.Run(options, Check);
+
     var unusedColumns = await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.columns c JOIN sys.tables t ON c.object_id=t.object_id WHERE (t.name='Customers' AND c.name='Password') OR (t.name='DiningAreas' AND c.name IN ('AreaName','Description')) OR (t.name='RestaurantSettings' AND c.name IN ('DepositPerPerson','ReservationDurationMinutes','MaxModificationCount','GracePeriod','LateArrivalPeriod'))").SingleAsync();
     Check(unusedColumns == 0, "Unused columns removed by schema upgrade");
     var migratedSettings = await db.RestaurantSettings.FirstAsync();

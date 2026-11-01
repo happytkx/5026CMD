@@ -4,14 +4,18 @@ using RROMS.Models;
 
 namespace RROMS.Data
 {
-    public class ApplicationDbContext : DbContext
+    public partial class ApplicationDbContext : DbContext
     {
 
         public ApplicationDbContext(
-            DbContextOptions<ApplicationDbContext> options)
+            DbContextOptions<ApplicationDbContext> options, IHttpContextAccessor? http = null)
             : base(options)
         {
+            _http = http;
         }
+
+        private readonly IHttpContextAccessor? _http;
+        public DbSet<Administrator> Administrators { get; set; }
 
         public DbSet<Customer> Customers
         {
@@ -98,6 +102,18 @@ namespace RROMS.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<Administrator>().HasOne(a => a.Account).WithOne()
+                .HasForeignKey<Administrator>(a => a.CustomerID).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<MenuItem>().HasOne(i => i.MenuCategory).WithMany()
+                .HasForeignKey(i => i.MenuCategoryID).OnDelete(DeleteBehavior.Restrict);
+            foreach (var type in new[] { typeof(Announcement), typeof(DiningArea), typeof(RestaurantSetting),
+                typeof(StaffAccount), typeof(MenuCategory), typeof(MenuItem) })
+            {
+                modelBuilder.Entity(type).HasOne(typeof(Administrator), "CreatedByAdministrator").WithMany()
+                    .HasForeignKey("CreatedByAdministratorID").OnDelete(DeleteBehavior.Restrict);
+                modelBuilder.Entity(type).HasOne(typeof(Administrator), "UpdatedByAdministrator").WithMany()
+                    .HasForeignKey("UpdatedByAdministratorID").OnDelete(DeleteBehavior.Restrict);
+            }
             modelBuilder.Entity<Customer>().HasIndex(c => c.NormalizedEmail).IsUnique().HasFilter("[NormalizedEmail] IS NOT NULL");
             modelBuilder.Entity<StaffAccount>().HasIndex(s => s.NormalizedEmail).IsUnique()
                 .HasFilter("[NormalizedEmail] IS NOT NULL");
