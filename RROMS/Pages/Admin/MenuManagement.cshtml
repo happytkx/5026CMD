@@ -85,6 +85,7 @@
             <p class="eyebrow">CUSTOMER-FACING MENU</p>
             <h2>Menu Items &amp; Prices</h2>
             <p class="muted">Changes take effect on the digital menu. Historical orders keep their recorded item names and prices.</p>
+            <p class="muted">Delete dishes that have never been ordered. For dishes linked to orders, use Disable to preserve order history.</p>
         </div>
         <span class="badge">@Model.Items.Count of @Model.AllItems.Count dishes</span>
     </div>
@@ -122,6 +123,12 @@
                     <form method="post" asp-page-handler="ToggleAvailability">
                         <input type="hidden" name="itemId" value="@item.MenuItemID" />
                         <button type="submit" class="secondary">@(item.IsAvailable ? "Disable" : "Enable")</button>
+                    </form>
+                    <form method="post" asp-page-handler="DeleteItem"
+                          data-dish-name="@item.Name"
+                          onsubmit="return confirm('Delete ' + this.dataset.dishName + '? This cannot be undone. Dishes linked to orders cannot be deleted.');">
+                        <input type="hidden" name="itemId" value="@item.MenuItemID" />
+                        <button type="submit" class="quiet danger" aria-label="Delete @item.Name">Delete</button>
                     </form>
                 </div>
                 <details class="menu-editor-panel">

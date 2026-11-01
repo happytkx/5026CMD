@@ -510,6 +510,26 @@ try
         var adminSave = await adminHttp.PostAsync("/Account/Profile", new FormUrlEncodedContent(new Dictionary<string,string> {
             ["Input.FullName"] = "Updated administrator", ["__RequestVerificationToken"] = Antiforgery(adminProfile) }));
         Check(adminSave.StatusCode == System.Net.HttpStatusCode.Redirect && await db.Administrators.AnyAsync(a => a.AdministratorID == migratedAdmin.AdministratorID && a.Name == "Updated administrator"), "Administrator can edit own name in Administrators");
+        var deletableDish = new MenuItem { Name = "Delete test dish", Category = await db.MenuCategories.Select(c => c.Name).FirstAsync(), Price = 15 };
+        db.MenuItems.Add(deletableDish); await db.SaveChangesAsync();
+        var adminMenuHtml = await (await adminHttp.GetAsync("/Admin/MenuManagement")).Content.ReadAsStringAsync();
+        Check(adminMenuHtml.Contains("handler=DeleteItem") && adminMenuHtml.Contains("This cannot be undone"), "Menu management displays confirmed deletion action");
+        var noTokenDelete = await adminHttp.PostAsync("/Admin/MenuManagement?handler=DeleteItem", new FormUrlEncodedContent(new Dictionary<string,string> { ["itemId"] = deletableDish.MenuItemID.ToString() }));
+        Check(noTokenDelete.StatusCode == System.Net.HttpStatusCode.BadRequest && await db.MenuItems.AnyAsync(i => i.MenuItemID == deletableDish.MenuItemID), "Dish deletion requires antiforgery token");
+        var deleteDish = await adminHttp.PostAsync("/Admin/MenuManagement?handler=DeleteItem", new FormUrlEncodedContent(new Dictionary<string,string> {
+            ["itemId"] = deletableDish.MenuItemID.ToString(), ["__RequestVerificationToken"] = Antiforgery(adminMenuHtml) }));
+        Check(deleteDish.StatusCode == System.Net.HttpStatusCode.Redirect && !await db.MenuItems.AnyAsync(i => i.MenuItemID == deletableDish.MenuItemID), "Administrator can delete a dish without order history");
+        var referencedDishId = await db.OrderLines.Select(l => l.MenuItemID).FirstAsync();
+        var originalOrderLineCount = await db.OrderLines.CountAsync(l => l.MenuItemID == referencedDishId);
+        var blockedDelete = await adminHttp.PostAsync("/Admin/MenuManagement?handler=DeleteItem", new FormUrlEncodedContent(new Dictionary<string,string> {
+            ["itemId"] = referencedDishId.ToString(), ["__RequestVerificationToken"] = Antiforgery(adminMenuHtml) }));
+        Check(blockedDelete.StatusCode == System.Net.HttpStatusCode.Redirect && await db.MenuItems.AnyAsync(i => i.MenuItemID == referencedDishId)
+            && await db.OrderLines.CountAsync(l => l.MenuItemID == referencedDishId) == originalOrderLineCount, "Deleting an ordered dish preserves dish and order history");
+        var blockedHtml = await (await adminHttp.GetAsync("/Admin/MenuManagement")).Content.ReadAsStringAsync();
+        Check(blockedHtml.Contains("This dish is linked to orders and cannot be deleted"), "Blocked deletion explains the Disable alternative");
+        var unknownDelete = await adminHttp.PostAsync("/Admin/MenuManagement?handler=DeleteItem", new FormUrlEncodedContent(new Dictionary<string,string> {
+            ["itemId"] = deletableDish.MenuItemID.ToString(), ["__RequestVerificationToken"] = Antiforgery(adminMenuHtml) }));
+        Check(unknownDelete.StatusCode == System.Net.HttpStatusCode.NotFound, "Already deleted dish returns not found");
         await db.Administrators.Where(a => a.AdministratorID == migratedAdmin.AdministratorID).ExecuteUpdateAsync(u => u.SetProperty(a => a.SessionVersion, a => a.SessionVersion + 1));
         Check((await adminHttp.GetAsync("/Admin")).StatusCode == System.Net.HttpStatusCode.Redirect, "Administrator session version revokes stale cookies");
         using var staffHttp = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, CookieContainer = new System.Net.CookieContainer() })
@@ -520,6 +540,9 @@ try
         Check(staffLogin.StatusCode == System.Net.HttpStatusCode.Redirect && (await staffHttp.GetAsync("/Staff")).IsSuccessStatusCode,
             "Incoming staff account can sign in and view reservation dashboard");
         Check((await staffHttp.GetAsync("/Staff/Orders")).IsSuccessStatusCode, "Staff can view the merged dine-in order queue");
+        var staffMenuDelete = await staffHttp.PostAsync("/Admin/MenuManagement?handler=DeleteItem", new FormUrlEncodedContent(new Dictionary<string,string> {
+            ["itemId"] = referencedDishId.ToString(), ["__RequestVerificationToken"] = Antiforgery(staffLoginHtml) }));
+        Check(staffMenuDelete.StatusCode == System.Net.HttpStatusCode.Redirect && await db.MenuItems.AnyAsync(i => i.MenuItemID == referencedDishId), "Staff cannot invoke administrator dish deletion");
         Check((await staffHttp.GetAsync("/Admin")).StatusCode == System.Net.HttpStatusCode.Redirect, "Staff cannot access administrator dashboard");
         ownHtml = await (await http.GetAsync("/Reservations/Index")).Content.ReadAsStringAsync();
         var logout = await http.PostAsync("/Access?handler=Logout", new FormUrlEncodedContent(new Dictionary<string, string> {
