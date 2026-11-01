@@ -1,5 +1,6 @@
 // Restaurant staff see one dining session per reservation, with individual kitchen rounds inside its details.
 using System.Data;
+using Microsoft.Data.SqlClient;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -11,9 +12,10 @@ using RROMS.Services;
 namespace RROMS.Pages.Staff;
 
 [Authorize(Policy = "Staff")]
-public class OrdersModel(ApplicationDbContext db) : PageModel
+public class OrdersModel(ApplicationDbContext db, ILogger<OrdersModel> logger) : PageModel
 {
     public List<CustomerOrder> Orders { get; set; } = [];
+    public bool OrderLoadTimedOut { get; private set; }
     public HashSet<int> PaidReservationIds { get; set; } = [];
     [BindProperty(SupportsGet = true)] public int? Expanded { get; set; }
 
@@ -44,24 +46,75 @@ public class OrdersModel(ApplicationDbContext db) : PageModel
 
     public async Task OnGetAsync()
     {
-        // Choose recent reservations first, then retrieve all their rounds so
-        // one dining session is never split across multiple screen entries.
-        var recentReservationIds = (await db.Orders.AsNoTracking()
-            .OrderByDescending(o => o.CreatedAt)
-            .Take(100)
-            .Select(o => o.ReservationID)
-            .ToListAsync()).Distinct().ToList();
-        Orders = await db.Orders.AsNoTracking()
-            .Include(o => o.Customer)
-            .Include(o => o.Lines)
-            .Include(o => o.Reservation)
-            .Where(o => recentReservationIds.Contains(o.ReservationID))
-            .OrderByDescending(o => o.CreatedAt)
-            .ToListAsync();
-        var reservationIds = Orders.Select(o => o.ReservationID).Distinct().ToList();
-        PaidReservationIds = (await db.Bills.AsNoTracking()
-            .Where(b => reservationIds.Contains(b.ReservationID) && b.BillStatus == "Paid")
-            .Select(b => b.ReservationID).ToListAsync()).ToHashSet();
+        try
+        {
+            // Select recent sessions first, then fetch their full ordering
+            // history. Keep one entry per reservation without loading every
+            // order, line, customer and booking in one large SQL JOIN.
+            var recentReservationIds = (await db.Orders.AsNoTracking()
+                .OrderByDescending(o => o.CreatedAt)
+                .ThenByDescending(o => o.OrderID)
+                .Take(100)
+                .Select(o => o.ReservationID)
+                .ToListAsync()).Distinct().ToArray();
+
+            if (recentReservationIds.Length == 0)
+                return;
+
+            // Load related data in a fixed number of small, indexed queries.
+            // This avoids multiplying the order rows by their dish lines
+            // inside a single large query on a populated demo database.
+            var orders = await db.Orders.AsNoTracking()
+                .Where(o => recentReservationIds.Contains(o.ReservationID))
+                .OrderByDescending(o => o.CreatedAt)
+                .ThenByDescending(o => o.OrderID)
+                .ToListAsync();
+
+            var orderIds = orders.Select(o => o.OrderID).ToArray();
+            var customerIds = orders.Select(o => o.CustomerID).Distinct().ToArray();
+
+            var lines = await db.OrderLines.AsNoTracking()
+                .Where(line => orderIds.Contains(line.OrderID))
+                .OrderBy(line => line.OrderLineID)
+                .ToListAsync();
+            var linesByOrder = lines.ToLookup(line => line.OrderID);
+
+            var customers = await db.Customers.AsNoTracking()
+                .Where(customer => customerIds.Contains(customer.CustomerID))
+                .ToDictionaryAsync(customer => customer.CustomerID);
+            var reservations = await db.Reservations.AsNoTracking()
+                .Where(reservation => recentReservationIds.Contains(reservation.ReservationID))
+                .ToDictionaryAsync(reservation => reservation.ReservationID);
+
+            // Rebuild the read-only graph expected by the existing Razor page.
+            // No entities are tracked or saved during this operation.
+            foreach (var order in orders)
+            {
+                if (!customers.TryGetValue(order.CustomerID, out var customer) ||
+                    !reservations.TryGetValue(order.ReservationID, out var reservation))
+                    continue;
+
+                order.Customer = customer;
+                order.Reservation = reservation;
+                order.Lines = linesByOrder[order.OrderID].ToList();
+                Orders.Add(order);
+            }
+
+            PaidReservationIds = (await db.Bills.AsNoTracking()
+                .Where(b => recentReservationIds.Contains(b.ReservationID) && b.BillStatus == "Paid")
+                .Select(b => b.ReservationID)
+                .ToListAsync()).ToHashSet();
+        }
+        catch (SqlException exception) when (exception.Number == -2)
+        {
+            // A busy SQL Server should not leave staff on a developer error
+            // screen. Preserve a useful retry message and keep the stack
+            // trace in application logs for performance investigation.
+            logger.LogError(exception, "Timed out loading staff dining orders.");
+            Orders.Clear();
+            PaidReservationIds.Clear();
+            OrderLoadTimedOut = true;
+        }
     }
 
     public async Task<IActionResult> OnPostUpdateDishesAsync(int orderId, string status, int[]? lineIds)

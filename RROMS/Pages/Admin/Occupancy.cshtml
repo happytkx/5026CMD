@@ -155,50 +155,83 @@
         </p>
 
         @{
-            int maxCount = report.ArrivalHours.Count == 0
-                ? 0
-                : report.ArrivalHours.Max(h => h.ReservationCount);
+            var arrivalHours = report.ArrivalHours;
+            var maxCount = arrivalHours.Count == 0 ? 0 : arrivalHours.Max(h => h.ReservationCount);
         }
 
         @if (maxCount == 0)
         {
-            <p>
-                No scheduled reservation arrivals
-                were found for this period.
-            </p>
+            <p>No scheduled reservation arrivals were found for this period.</p>
         }
         else
         {
-            @foreach (var hour in report.ArrivalHours)
+            string ChartCoord(double value) =>
+                value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+            var points = arrivalHours.Select((hour, index) => new
             {
-                int percentage = (int)Math.Round(
-                    hour.ReservationCount * 100.0 / maxCount);
-
-                string hourLabel =
-                    new DateTime(2000, 1, 1, hour.Hour, 0, 0)
-                        .ToString("h:mm tt");
-
-                <div class="report-status-row">
-                    <div class="report-status-label">
-                        <strong>@hourLabel</strong>
-                        <span>
-                            @hour.ReservationCount reservations
-                        </span>
-                    </div>
-
-                    <div class="report-bar-track"
-                         role="progressbar"
-                         aria-label="@hourLabel"
-                         aria-valuemin="0"
-                         aria-valuemax="@maxCount"
-                         aria-valuenow="@hour.ReservationCount">
-
-                        <div class="report-bar-fill"
-                             style="width: @(percentage)%">
+                hour.Hour,
+                Count = hour.ReservationCount,
+                Label = new DateTime(2000, 1, 1, hour.Hour, 0, 0).ToString("h:mm tt"),
+                ShortLabel = new DateTime(2000, 1, 1, hour.Hour, 0, 0).ToString("h tt"),
+                X = ChartCoord(arrivalHours.Count == 1 ? 498d :
+                    60d + index * 875d / (arrivalHours.Count - 1)),
+                Y = ChartCoord(245d - hour.ReservationCount * 215d / maxCount)
+            }).ToList();
+            var linePoints = string.Join(" ", points.Select(p => p.X + "," + p.Y));
+            <p class="muted">Hover over a point, or focus it with the keyboard, to see the exact reservation count.</p>
+            <div class="reservation-chart-interactive arrival-chart-interactive">
+                <div class="reservation-line-chart">
+                    <svg viewBox="0 0 975 310" role="img"
+                         aria-labelledby="arrival-chart-title arrival-chart-description">
+                        <title id="arrival-chart-title">Reservation arrival patterns by hour</title>
+                        <desc id="arrival-chart-description">
+                            Line chart of scheduled reservation arrivals from opening to closing.
+                            Exact hourly counts are available in the breakdown below.
+                        </desc>
+                        @for (var tick = 0; tick <= 4; tick++)
+                        {
+                            var y = ChartCoord(245d - tick * 215d / 4d);
+                            var value = (int)Math.Round(maxCount * tick / 4d);
+                            <line class="reservation-chart-gridline" x1="60" y1="@y" x2="935" y2="@y"></line>
+                            @Html.Raw($"<text class=\"reservation-chart-axis\" x=\"48\" y=\"{ChartCoord(245d - tick * 215d / 4d + 4d)}\" text-anchor=\"end\">{value}</text>")
+                        }
+                        <polyline class="reservation-chart-line" points="@linePoints"></polyline>
+                        @foreach (var point in points)
+                        {
+                            <circle class="reservation-chart-point"
+                                    cx="@point.X" cy="@point.Y" r="8" tabindex="0"
+                                    data-chart-point data-chart-count="@point.Count"
+                                    data-chart-hour="@point.Label"
+                                    aria-label="@($"{point.Label}: {point.Count} scheduled reservations")"></circle>
+                            @Html.Raw($"<text class=\"reservation-chart-axis reservation-chart-date\" x=\"{point.X}\" y=\"279\" text-anchor=\"middle\">{System.Net.WebUtility.HtmlEncode(point.ShortLabel)}</text>")
+                        }
+                    </svg>
+                </div>
+                <div class="reservation-chart-tooltip" role="tooltip" hidden>
+                    <strong data-chart-tooltip-count></strong>
+                    <span data-chart-tooltip-date></span>
+                </div>
+            </div>
+            <details class="reservation-trend-data">
+                <summary>View hourly breakdown</summary>
+                @foreach (var hour in arrivalHours)
+                {
+                    var label = new DateTime(2000, 1, 1, hour.Hour, 0, 0).ToString("h:mm tt");
+                    var percentage = (int)Math.Round(hour.ReservationCount * 100.0 / maxCount);
+                    <div class="report-status-row">
+                        <div class="report-status-label">
+                            <strong>@label</strong>
+                            <span>@hour.ReservationCount reservation@(hour.ReservationCount == 1 ? "" : "s")</span>
+                        </div>
+                        <div class="report-bar-track" role="progressbar"
+                             aria-label="@label scheduled arrivals"
+                             aria-valuemin="0" aria-valuemax="@maxCount"
+                             aria-valuenow="@hour.ReservationCount">
+                            <div class="report-bar-fill" style="width: @(percentage)%"></div>
                         </div>
                     </div>
-                </div>
-            }
+                }
+            </details>
         }
     </section>
 
@@ -217,4 +250,40 @@
         These figures represent planned table use,
         not verified physical occupancy.
     </p>
+}
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.arrival-chart-interactive').forEach(container => {
+            const tooltip = container.querySelector('.reservation-chart-tooltip');
+            const count = tooltip?.querySelector('[data-chart-tooltip-count]');
+            const hour = tooltip?.querySelector('[data-chart-tooltip-date]');
+            if (!tooltip || !count || !hour) return;
+
+            function show(point) {
+                const total = Number(point.dataset.chartCount || 0);
+                count.textContent = total + (total === 1 ? ' reservation' : ' reservations');
+                hour.textContent = point.dataset.chartHour || '';
+                tooltip.hidden = false;
+                const frame = container.getBoundingClientRect();
+                const target = point.getBoundingClientRect();
+                const width = tooltip.offsetWidth;
+                const height = tooltip.offsetHeight;
+                const centerX = target.left + target.width / 2 - frame.left;
+                const topY = target.top - frame.top - height - 14;
+                tooltip.style.left = Math.max(8, Math.min(centerX - width / 2, frame.width - width - 8)) + 'px';
+                tooltip.style.top = (topY >= 0 ? topY : target.bottom - frame.top + 12) + 'px';
+            }
+
+            function hide() { tooltip.hidden = true; }
+            container.querySelectorAll('[data-chart-point]').forEach(point => {
+                point.addEventListener('pointerenter', () => show(point));
+                point.addEventListener('pointerleave', hide);
+                point.addEventListener('focus', () => show(point));
+                point.addEventListener('blur', hide);
+            });
+            container.querySelector('.reservation-line-chart')?.addEventListener('scroll', hide, { passive: true });
+            window.addEventListener('resize', hide);
+        });
+    </script>
 }

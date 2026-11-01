@@ -1,0 +1,208 @@
+@page
+@model RROMS.Pages.Admin.MenuPerformanceModel
+@{
+    ViewData["Title"] = "Menu Performance";
+    var today = ReservationPolicy.Now.Date;
+    var thisWeek = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+    var thisMonth = new DateTime(today.Year, today.Month, 1);
+}
+
+<p class="eyebrow">REPORTING &amp; ANALYTICS</p>
+<h1>Menu Performance</h1>
+<p>See how dishes perform within one menu category at a time, including dishes with no orders.</p>
+
+<div class="report-period-presets">
+    <span>Quick periods:</span>
+    <a asp-page="/Admin/MenuPerformance" asp-route-StartDate="@today.ToString("yyyy-MM-dd")" asp-route-EndDate="@today.ToString("yyyy-MM-dd")" asp-route-Category="@Model.Category" asp-route-SortBy="@Model.SortBy">Today</a>
+    <a asp-page="/Admin/MenuPerformance" asp-route-StartDate="@thisWeek.ToString("yyyy-MM-dd")" asp-route-EndDate="@today.ToString("yyyy-MM-dd")" asp-route-Category="@Model.Category" asp-route-SortBy="@Model.SortBy">This Week</a>
+    <a asp-page="/Admin/MenuPerformance" asp-route-StartDate="@thisMonth.ToString("yyyy-MM-dd")" asp-route-EndDate="@today.ToString("yyyy-MM-dd")" asp-route-Category="@Model.Category" asp-route-SortBy="@Model.SortBy">This Month</a>
+</div>
+
+<form method="get" class="card menu-performance-filters">
+    <div class="menu-performance-filter-grid">
+        <div>
+            <label asp-for="Category">Menu category</label>
+            <select asp-for="Category" class="menu-performance-select">
+                @foreach (var category in Model.Categories)
+                {
+                    <option value="@category">@category</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label asp-for="SortBy">Order by</label>
+            <select asp-for="SortBy" class="menu-performance-select">
+                <option value="MostOrdered">Most ordered to least ordered</option>
+                <option value="LeastOrdered">Least ordered to most ordered</option>
+            </select>
+        </div>
+        <div>
+            <label asp-for="StartDate">Start date</label>
+            <input asp-for="StartDate" type="date" />
+        </div>
+        <div>
+            <label asp-for="EndDate">End date</label>
+            <input asp-for="EndDate" type="date" />
+        </div>
+    </div>
+    <div asp-validation-summary="All" class="text-danger menu-performance-validation"></div>
+    <div class="report-actions">
+        <button type="submit" class="report-action-button">Apply filters</button>
+        <button type="submit" name="handler" value="Export" class="secondary report-action-button">Export CSV</button>
+    </div>
+</form>
+
+@if (Model.HasValidPeriod && Model.Category is not null)
+{
+    <p class="menu-performance-selection">
+        Showing <strong>@Model.Category</strong> from @Model.StartDate.ToString("dd MMM yyyy")
+        to @Model.EndDate.ToString("dd MMM yyyy").
+        Choose another category above to compare its dishes.
+    </p>
+
+    <section class="staff-stats">
+        <article class="card"><small>DISHES IN CATEGORY</small><h2>@Model.Dishes.Count</h2></article>
+        <article class="card"><small>UNITS ORDERED</small><h2>@Model.TotalQuantity</h2></article>
+        <article class="card"><small>SALES BEFORE TAX</small><h2>RM @Model.TotalSales.ToString("N2")</h2></article>
+        <article class="card"><small>DISHES WITH ZERO ORDERS</small><h2>@Model.NeverOrdered</h2></article>
+    </section>
+
+    <section class="card menu-performance-panel">
+        <h2>@Model.Category: Dish Ordering</h2>
+        <p class="muted">
+            Ordered quantities, based on order placement dates.
+            Cancelled dishes and cancelled orders are excluded.
+            Zero-order dishes remain in the comparison.
+        </p>
+        @if (Model.Dishes.Count == 0)
+        {
+            <p class="empty-state">There are no dishes assigned to this category yet.</p>
+        }
+        else
+        {
+            var chartWidth = Math.Max(975, Model.Dishes.Count * 180);
+            var chartMax = Math.Max(4, Model.MaximumQuantity);
+            string ChartNumber(double value) =>
+                value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+            var points = Model.Dishes.Select((dish, index) => new
+            {
+                Dish = dish,
+                X = ChartNumber(Model.Dishes.Count == 1 ? chartWidth / 2d :
+                    95d + index * (chartWidth - 190d) / (Model.Dishes.Count - 1)),
+                Y = ChartNumber(245d - dish.Quantity * 215d / chartMax),
+                ShortName = dish.Name.Length <= 18 ? dish.Name : dish.Name[..16] + "…"
+            }).ToList();
+            var linePoints = string.Join(" ", points.Select(p => p.X + "," + p.Y));
+            <h3>Dish popularity comparison</h3>
+            <p class="muted">Each point represents a dish, arranged by the selected sort order. Hover or focus for quantity and sales. This compares dishes, not dates.</p>
+            <div class="reservation-chart-interactive menu-rank-interactive">
+                <div class="reservation-line-chart">
+                    <svg viewBox="0 0 @chartWidth 310"
+                         style="min-width: @(Math.Max(570, Model.Dishes.Count * 180))px"
+                         role="img" aria-labelledby="menu-rank-title menu-rank-description">
+                        <title id="menu-rank-title">Ordered quantities by menu item</title>
+                        <desc id="menu-rank-description">
+                            Ranked quantities for @Model.Dishes.Count dishes in @Model.Category.
+                            Exact values and sales are available in the detailed table below.
+                        </desc>
+                        @for (var tick = 0; tick <= 4; tick++)
+                        {
+                            var y = ChartNumber(245d - tick * 215d / 4d);
+                            var value = (int)Math.Round(chartMax * tick / 4d);
+                            <line class="reservation-chart-gridline" x1="80" y1="@y"
+                                  x2="@ChartNumber(chartWidth - 80d)" y2="@y"></line>
+                            @Html.Raw($"<text class=\"reservation-chart-axis\" x=\"65\" y=\"{ChartNumber(245d - tick * 215d / 4d + 4d)}\" text-anchor=\"end\">{value}</text>")
+                        }
+                        <polyline class="reservation-chart-line" points="@linePoints"></polyline>
+                        @foreach (var point in points)
+                        {
+                            <circle class="reservation-chart-point" cx="@point.X" cy="@point.Y" r="8"
+                                    tabindex="0" data-menu-point data-chart-count="@point.Dish.Quantity"
+                                    data-chart-name="@point.Dish.Name"
+                                    data-chart-sales="@point.Dish.Sales.ToString("N2")"
+                                    aria-label="@($"{point.Dish.Name}: {point.Dish.Quantity} units, RM {point.Dish.Sales:N2} in sales")"></circle>
+                            @Html.Raw($"<text class=\"reservation-chart-axis reservation-chart-date\" x=\"{point.X}\" y=\"279\" text-anchor=\"middle\">{System.Net.WebUtility.HtmlEncode(point.ShortName)}</text>")
+                        }
+                    </svg>
+                </div>
+                <div class="reservation-chart-tooltip" role="tooltip" hidden>
+                    <strong data-chart-tooltip-name></strong>
+                    <span data-chart-tooltip-count></span>
+                    <span data-chart-tooltip-sales></span>
+                </div>
+            </div>
+            <details class="menu-performance-data">
+                <summary>View bar comparison</summary>
+                <div class="menu-performance-bars" role="list" aria-label="Menu items ordered in @Model.Category">
+                    @foreach (var dish in Model.Dishes)
+                    {
+                        var percentage = Model.MaximumQuantity == 0 ? 0 : (int)Math.Round(dish.Quantity * 100.0 / Model.MaximumQuantity);
+                        <div class="menu-performance-bar-row" role="listitem">
+                            <div class="menu-performance-bar-label">
+                                <strong>@dish.Name</strong>
+                                <span>@dish.Quantity ordered · RM @dish.Sales.ToString("N2")</span>
+                            </div>
+                            <div class="menu-performance-bar-track" role="progressbar"
+                                 aria-label="@dish.Name" aria-valuemin="0" aria-valuemax="@Math.Max(1, Model.MaximumQuantity)" aria-valuenow="@dish.Quantity">
+                                <div class="menu-performance-bar-fill" style="width: @(percentage)%"></div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </details>
+            <details class="menu-performance-data">
+                <summary>View detailed data table</summary>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Dish</th><th>Qty</th><th>Sales (RM, before tax)</th></tr></thead>
+                        <tbody>
+                            @foreach (var dish in Model.Dishes)
+                            {
+                                <tr><td>@dish.Name</td><td>@dish.Quantity</td><td>RM @dish.Sales.ToString("N2")</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+        }
+        <p class="muted">Dish categories reflect the current menu. Historical sales use the original order-line prices.</p>
+    </section>
+}
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.menu-rank-interactive').forEach(container => {
+            const tooltip = container.querySelector('.reservation-chart-tooltip');
+            const name = tooltip?.querySelector('[data-chart-tooltip-name]');
+            const count = tooltip?.querySelector('[data-chart-tooltip-count]');
+            const sales = tooltip?.querySelector('[data-chart-tooltip-sales]');
+            if (!tooltip || !name || !count || !sales) return;
+
+            function show(point) {
+                name.textContent = point.dataset.chartName || '';
+                const total = Number(point.dataset.chartCount || 0);
+                count.textContent = total + (total === 1 ? ' unit ordered' : ' units ordered');
+                sales.textContent = 'RM ' + (point.dataset.chartSales || '0.00') + ' sales before tax';
+                tooltip.hidden = false;
+                const frame = container.getBoundingClientRect();
+                const target = point.getBoundingClientRect();
+                const width = tooltip.offsetWidth;
+                const height = tooltip.offsetHeight;
+                const centerX = target.left + target.width / 2 - frame.left;
+                const topY = target.top - frame.top - height - 14;
+                tooltip.style.left = Math.max(8, Math.min(centerX - width / 2, frame.width - width - 8)) + 'px';
+                tooltip.style.top = (topY >= 0 ? topY : target.bottom - frame.top + 12) + 'px';
+            }
+
+            function hide() { tooltip.hidden = true; }
+            container.querySelectorAll('[data-menu-point]').forEach(point => {
+                point.addEventListener('pointerenter', () => show(point));
+                point.addEventListener('pointerleave', hide);
+                point.addEventListener('focus', () => show(point));
+                point.addEventListener('blur', hide);
+            });
+            container.querySelector('.reservation-line-chart')?.addEventListener('scroll', hide, { passive: true });
+            window.addEventListener('resize', hide);
+        });
+    </script>
+}

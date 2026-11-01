@@ -128,6 +128,9 @@ public class CheckoutModel(ApplicationDbContext db) : PageModel
             RelatedOrder = order,
             CreatedAt = order.CreatedAt
         });
+        StaffAlerts.Add(db, "New dining order received",
+            $"Table {reservation.TableID}, booking {reservation.BookingReference}: {order.Lines.Sum(l => l.Quantity)} dishes in a new order round (RM {order.Total:0.00}).",
+            StaffAlerts.OrderUrl(reservation.ReservationID), "Order");
         await db.SaveChangesAsync();
         Basket.Clear(HttpContext.Session);
         TempData["Success"] = $"Dishes added to reservation {reservation.BookingReference}. Follow their progress in My orders.";

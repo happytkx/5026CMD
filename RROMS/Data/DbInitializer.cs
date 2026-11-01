@@ -420,6 +420,35 @@ namespace RROMS.Data
                 context.SaveChanges();
             }
 
+            // Remove obsolete, unreferenced legacy demo categories from local
+            // development data. Historical order lines always take priority:
+            // referenced dishes are retained and merely made unavailable.
+            // Production and non-demo databases are never cleaned automatically.
+            if (demoAccounts)
+            {
+                var obsoleteNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "Sides", "Starters"
+                };
+                foreach (var item in context.MenuItems.ToList()
+                    .Where(i => obsoleteNames.Contains(i.Category)))
+                {
+                    if (context.OrderLines.Any(l => l.MenuItemID == item.MenuItemID))
+                        item.IsAvailable = false;
+                    else
+                        context.MenuItems.Remove(item);
+                }
+                context.SaveChanges();
+
+                foreach (var category in context.MenuCategories.ToList()
+                    .Where(c => obsoleteNames.Contains(c.Name)))
+                {
+                    if (!context.MenuItems.Any(i => i.Category == category.Name))
+                        context.MenuCategories.Remove(category);
+                }
+                context.SaveChanges();
+            }
+
             // Seed welcome announcement
             if (!context.Announcements.Any())
             {

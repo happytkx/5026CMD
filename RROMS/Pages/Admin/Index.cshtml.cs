@@ -37,6 +37,7 @@ public class IndexModel(ApplicationDbContext db, BusinessAnalyticsService analyt
     public List<PopularRow> Popular { get; private set; } = [];
     public List<MenuItem> Menu { get; private set; } = [];
     public List<Announcement> Announcements { get; private set; } = [];
+    public DateTime CurrentTime => ReservationPolicy.Now;
 
     public record PopularRow(string Name, int Quantity, decimal Sales);
 
@@ -72,17 +73,73 @@ public class IndexModel(ApplicationDbContext db, BusinessAnalyticsService analyt
         return RedirectToPage();
     }
 
-    public async Task<IActionResult> OnPostAnnouncementAsync(string? title, string? message)
+    public async Task<IActionResult> OnPostAnnouncementAsync(string? title, string? message, string? duration, DateTime? endDate)
     {
         if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(message) || title.Trim().Length > 120 || message.Trim().Length > 1000)
         {
             TempData["Error"] = "Enter a valid title and message.";
             return RedirectToPage();
         }
-        db.Announcements.Add(new Announcement { Title = title.Trim(), Message = message.Trim(), CreatedAt = ReservationPolicy.Now });
+
+        var now = ReservationPolicy.Now;
+        if (!TryGetExpiry(duration, endDate, now, out var expiry))
+        {
+            TempData["Error"] = "Choose a valid announcement duration or an end date that is today or later.";
+            return RedirectToPage();
+        }
+
+        db.Announcements.Add(new Announcement
+        {
+            Title = title.Trim(),
+            Message = message.Trim(),
+            CreatedAt = now,
+            ExpiresAt = expiry
+        });
         await db.SaveChangesAsync();
-        TempData["Success"] = "Announcement published.";
+        TempData["Success"] = "Announcement published. It will be hidden automatically when its duration ends.";
         return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostSetAnnouncementExpiryAsync(int id, string? duration, DateTime? endDate)
+    {
+        var announcement = await db.Announcements.FindAsync(id);
+        if (announcement is null) return NotFound();
+
+        if (!TryGetExpiry(duration, endDate, ReservationPolicy.Now, out var expiry))
+        {
+            TempData["Error"] = "Choose a valid duration or an end date that is today or later.";
+            return RedirectToPage();
+        }
+
+        announcement.ExpiresAt = expiry;
+        await db.SaveChangesAsync();
+        TempData["Success"] = $"The display duration for {announcement.Title} was updated.";
+        return RedirectToPage();
+    }
+
+    private static bool TryGetExpiry(string? duration, DateTime? endDate, DateTime now, out DateTime? expiresAt)
+    {
+        expiresAt = null;
+        switch (duration)
+        {
+            case "1":
+                expiresAt = now.AddDays(1);
+                return true;
+            case "7":
+                expiresAt = now.AddDays(7);
+                return true;
+            case "30":
+                expiresAt = now.AddDays(30);
+                return true;
+            case "never":
+                return true;
+            case "custom" when endDate.HasValue && endDate.Value.Date >= now.Date
+                               && endDate.Value.Date <= now.Date.AddYears(5):
+                expiresAt = endDate.Value.Date.AddDays(1);
+                return true;
+            default:
+                return false;
+        }
     }
 
     public async Task<IActionResult> OnPostRetireAnnouncementAsync(int id)

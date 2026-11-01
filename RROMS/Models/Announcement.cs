@@ -25,6 +25,10 @@ namespace RROMS.Models
 
         public bool IsActive { get; set; } = true;
 
+        // Null means the announcement remains visible until the administrator removes it.
+        // The end is exclusive so an end date can include its entire calendar day.
+        public DateTime? ExpiresAt { get; set; }
+
         public DateTime CreatedAt
         {
             get; set;

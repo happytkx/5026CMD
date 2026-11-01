@@ -3,17 +3,29 @@
 @model RROMS.Pages.Admin.PaymentCollectionsModel
 
 @{
-    ViewData["Title"] = "Payment Collections";
+    ViewData["Title"] = Model.TransactionsOnly ? "Payment Transactions" : "Payment Collections";
 }
 
 <p class="eyebrow">REPORTING & ANALYTICS</p>
 
-<h1>Payment Collections</h1>
+<h1>@(Model.TransactionsOnly ? "Payment Transactions" : "Payment Collections")</h1>
 
-<p>
-    Review successful reservation deposits and final
-    dining payments recorded during the selected period.
-</p>
+@if (Model.TransactionsOnly)
+{
+    <p>Review successful deposit and dining-bill payments for the selected reporting period.</p>
+    <a class="payment-back-link" asp-page="/Admin/PaymentCollections"
+       asp-route-StartDate="@Model.StartDate.ToString("yyyy-MM-dd")"
+       asp-route-EndDate="@Model.EndDate.ToString("yyyy-MM-dd")">
+        &larr; Back to Payment Collections
+    </a>
+}
+else
+{
+    <p>
+        Review successful reservation deposits and final
+        dining payments recorded during the selected period.
+    </p>
+}
 
 @{
     var quickToday = ReservationPolicy.Now.Date;
@@ -22,11 +34,13 @@
 }
 <div class="report-period-presets">
     <span>Quick periods:</span>
-    <a asp-page="/Admin/PaymentCollections" asp-route-StartDate="@quickToday.ToString("yyyy-MM-dd")" asp-route-EndDate="@quickToday.ToString("yyyy-MM-dd")">Today</a>
-    <a asp-page="/Admin/PaymentCollections" asp-route-StartDate="@quickWeek.ToString("yyyy-MM-dd")" asp-route-EndDate="@quickToday.ToString("yyyy-MM-dd")">This Week</a>
-    <a asp-page="/Admin/PaymentCollections" asp-route-StartDate="@quickMonth.ToString("yyyy-MM-dd")" asp-route-EndDate="@quickToday.ToString("yyyy-MM-dd")">This Month</a>
+    <a asp-page="/Admin/PaymentCollections" asp-route-StartDate="@quickToday.ToString("yyyy-MM-dd")" asp-route-EndDate="@quickToday.ToString("yyyy-MM-dd")" asp-route-PaymentType="@Model.PaymentType" asp-route-TransactionsOnly="@Model.TransactionsOnly">Today</a>
+    <a asp-page="/Admin/PaymentCollections" asp-route-StartDate="@quickWeek.ToString("yyyy-MM-dd")" asp-route-EndDate="@quickToday.ToString("yyyy-MM-dd")" asp-route-PaymentType="@Model.PaymentType" asp-route-TransactionsOnly="@Model.TransactionsOnly">This Week</a>
+    <a asp-page="/Admin/PaymentCollections" asp-route-StartDate="@quickMonth.ToString("yyyy-MM-dd")" asp-route-EndDate="@quickToday.ToString("yyyy-MM-dd")" asp-route-PaymentType="@Model.PaymentType" asp-route-TransactionsOnly="@Model.TransactionsOnly">This Month</a>
 </div>
 <form method="get" class="report-period-form">
+    <input type="hidden" name="PaymentType" value="@Model.PaymentType" />
+    <input type="hidden" name="TransactionsOnly" value="@(Model.TransactionsOnly ? "true" : "false")" />
 
     <section class="card report-period-card">
 
@@ -73,6 +87,7 @@
 
 @if (Model.Report is { } report)
 {
+    var filteredTransactions = Model.FilteredTransactions;
     <p>
         Reporting period:
         @Model.StartDate.ToString("dd MMM yyyy")
@@ -80,26 +95,46 @@
         @Model.EndDate.ToString("dd MMM yyyy")
     </p>
 
+    @if (!Model.TransactionsOnly)
+    {
     <section class="staff-stats">
-        <article class="card">
+        <a class="card payment-stat-link" asp-page="/Admin/PaymentCollections"
+           asp-route-StartDate="@Model.StartDate.ToString("yyyy-MM-dd")"
+           asp-route-EndDate="@Model.EndDate.ToString("yyyy-MM-dd")"
+           asp-route-PaymentType="Deposit" asp-route-TransactionsOnly="true"
+           asp-fragment="successful-transactions" target="_blank" rel="noopener noreferrer"
+           aria-label="View all paid deposit transactions in a new tab">
             <small>PAID DEPOSITS</small>
             <h2>RM @report.Deposits.ToString("N2")</h2>
-        </article>
+            <span class="payment-stat-hint">View deposits in new tab &nearr;</span>
+        </a>
 
-        <article class="card">
+        <a class="card payment-stat-link" asp-page="/Admin/PaymentCollections"
+           asp-route-StartDate="@Model.StartDate.ToString("yyyy-MM-dd")"
+           asp-route-EndDate="@Model.EndDate.ToString("yyyy-MM-dd")"
+           asp-route-PaymentType="DiningBill" asp-route-TransactionsOnly="true"
+           asp-fragment="successful-transactions" target="_blank" rel="noopener noreferrer"
+           aria-label="View all final dining payments in a new tab">
             <small>FINAL DINING PAYMENTS</small>
             <h2>RM @report.DiningPayments.ToString("N2")</h2>
-        </article>
+            <span class="payment-stat-hint">View dining bills in new tab &nearr;</span>
+        </a>
 
         <article class="card">
             <small>TOTAL RECORDED COLLECTIONS</small>
             <h2>RM @report.TotalCollected.ToString("N2")</h2>
         </article>
 
-        <article class="card">
+        <a class="card payment-stat-link" asp-page="/Admin/PaymentCollections"
+           asp-route-StartDate="@Model.StartDate.ToString("yyyy-MM-dd")"
+           asp-route-EndDate="@Model.EndDate.ToString("yyyy-MM-dd")"
+           asp-route-PaymentType="All" asp-route-TransactionsOnly="true"
+           asp-fragment="successful-transactions" target="_blank" rel="noopener noreferrer"
+           aria-label="View all successful payment transactions in a new tab">
             <small>SUCCESSFUL TRANSACTIONS</small>
             <h2>@report.TransactionCount</h2>
-        </article>
+            <span class="payment-stat-hint">View transactions in new tab &nearr;</span>
+        </a>
     </section>
 
     <section class="card">
@@ -114,6 +149,79 @@
         }
         else
         {
+            @if (Model.PaymentTrend.Count > 0)
+            {
+                var trend = Model.PaymentTrend;
+                var maxTotal = Math.Max(1m, trend.Max(p => p.Total));
+                var points = trend.Select((point, index) => new
+                {
+                    Point = point,
+                    X = (trend.Count == 1 ? 465d : 90d + index * 750d / (trend.Count - 1))
+                        .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture),
+                    DepositY = (230d - (double)(point.Deposits / maxTotal) * 174d)
+                        .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture),
+                    DiningY = (230d - (double)(point.DiningPayments / maxTotal) * 174d)
+                        .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture),
+                    TotalY = (230d - (double)(point.Total / maxTotal) * 174d)
+                        .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)
+                }).ToList();
+                var depositLine = string.Join(" ", points.Select(p => p.X + "," + p.DepositY));
+                var diningLine = string.Join(" ", points.Select(p => p.X + "," + p.DiningY));
+                var totalLine = string.Join(" ", points.Select(p => p.X + "," + p.TotalY));
+                var labelEvery = Math.Max(1, (int)Math.Ceiling(points.Count / 6d));
+                <div class="payment-collection-trend" data-payment-trend>
+                    <p class="muted">
+                        Collections by payment date, grouped by @Model.PaymentTrendInterval.
+                        Hover or focus on a point to compare deposits, dining payments and the combined total.
+                        Days without payments are shown as zero.
+                    </p>
+                    <div class="payment-trend-legend" aria-label="Chart legend">
+                        <span><i class="payment-legend-key payment-legend-deposit"></i> Deposits</span>
+                        <span><i class="payment-legend-key payment-legend-dining"></i> Final dining payments</span>
+                        <span><i class="payment-legend-key payment-legend-total"></i> Total collected</span>
+                    </div>
+                    <div class="payment-trend-scroll">
+                        <svg viewBox="0 0 900 285" role="img"
+                             aria-label="Line chart comparing successful deposits, final dining payments and total collections in Malaysian ringgit">
+                            @for (var tick = 0; tick <= 4; tick++)
+                            {
+                                var gridY = (230d - tick * 174d / 4d)
+                                    .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+                                var tickY = (234d - tick * 174d / 4d)
+                                    .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+                                <line class="payment-trend-grid" x1="85" y1="@gridY" x2="860" y2="@gridY"></line>
+                                @Html.Raw($"<text class=\"payment-trend-axis\" x=\"77\" y=\"{tickY}\" text-anchor=\"end\">RM {(maxTotal * tick / 4m):N0}</text>")
+                            }
+                            <polyline class="payment-trend-line payment-trend-deposit-line" points="@depositLine"></polyline>
+                            <polyline class="payment-trend-line payment-trend-dining-line" points="@diningLine"></polyline>
+                            <polyline class="payment-trend-line payment-trend-total-line" points="@totalLine"></polyline>
+                            @for (var index = 0; index < points.Count; index++)
+                            {
+                                var chartPoint = points[index];
+                                <circle class="payment-trend-dot" cx="@chartPoint.X" cy="@chartPoint.TotalY" r="5"
+                                        tabindex="0" data-payment-trend-point
+                                        data-chart-date="@chartPoint.Point.Date.ToString(Model.PaymentTrendInterval == "month" ? "MMM yyyy" : "dd MMM yyyy")"
+                                        data-chart-deposit="@chartPoint.Point.Deposits.ToString("N2")"
+                                        data-chart-dining="@chartPoint.Point.DiningPayments.ToString("N2")"
+                                        data-chart-total="@chartPoint.Point.Total.ToString("N2")"
+                                        aria-label="@($"{chartPoint.Point.Date:dd MMM yyyy}: Deposits RM {chartPoint.Point.Deposits:N2}, dining RM {chartPoint.Point.DiningPayments:N2}, total RM {chartPoint.Point.Total:N2}")"></circle>
+                                if (index % labelEvery == 0 || index == points.Count - 1)
+                                {
+                                    var dateLabel = System.Net.WebUtility.HtmlEncode(
+                                        chartPoint.Point.Date.ToString(Model.PaymentTrendInterval == "month" ? "MMM yy" : "dd MMM"));
+                                    @Html.Raw($"<text class=\"payment-trend-axis\" x=\"{chartPoint.X}\" y=\"265\" text-anchor=\"middle\">{dateLabel}</text>")
+                                }
+                            }
+                        </svg>
+                    </div>
+                    <div class="payment-trend-tooltip" role="tooltip" hidden>
+                        <strong data-payment-date></strong>
+                        <span data-payment-deposit></span>
+                        <span data-payment-dining></span>
+                        <span data-payment-total></span>
+                    </div>
+                </div>
+            }
             <div class="table-wrap">
                 <table>
                     <thead>
@@ -151,13 +259,32 @@
             </div>
         }
     </section>
+    }
 
-    <section class="card">
+    <section class="card" id="successful-transactions">
         <h2>Successful Payment Transactions</h2>
 
-        @if (report.Transactions.Count == 0)
+        <form method="get" asp-page="/Admin/PaymentCollections" asp-fragment="successful-transactions" class="payment-type-filter" aria-label="Filter successful transactions">
+            <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+            <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+            <input type="hidden" name="TransactionsOnly" value="@(Model.TransactionsOnly ? "true" : "false")" />
+            <div class="payment-type-filter-field">
+                <label asp-for="PaymentType">Payment type</label>
+                <select asp-for="PaymentType" id="payment-type-filter">
+                    <option value="All">All payment types</option>
+                    <option value="Deposit">Deposits</option>
+                    <option value="DiningBill">Dining bills</option>
+                </select>
+            </div>
+            <button type="submit" class="report-action-button">Apply Filter</button>
+        </form>
+        <p class="payment-filter-count">
+            Showing <strong>@filteredTransactions.Count</strong> of <strong>@report.TransactionCount</strong> successful transactions.
+        </p>
+
+        @if (filteredTransactions.Count == 0)
         {
-            <p>No transactions found.</p>
+            <p>No matching successful payments were found for this period and payment type.</p>
         }
         else
         {
@@ -175,7 +302,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var payment in report.Transactions)
+                        @foreach (var payment in filteredTransactions)
                         {
                             <tr>
                                 <td>
@@ -192,7 +319,7 @@
                                 </td>
 
                                 <td>
-                                    @payment.PaymentType
+                                    @(payment.PaymentType == "DiningBill" ? "Dining bill" : "Deposit")
                                 </td>
 
                                 <td>
@@ -228,4 +355,40 @@
         not independently verified bank settlements or
         recognised accounting revenue.
     </p>
+}
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('[data-payment-trend]').forEach(chart => {
+            const tooltip = chart.querySelector('.payment-trend-tooltip');
+            const dateLabel = tooltip.querySelector('[data-payment-date]');
+            const depositLabel = tooltip.querySelector('[data-payment-deposit]');
+            const diningLabel = tooltip.querySelector('[data-payment-dining]');
+            const totalLabel = tooltip.querySelector('[data-payment-total]');
+
+            function show(point) {
+                dateLabel.textContent = point.dataset.chartDate;
+                depositLabel.textContent = 'Deposits: RM ' + point.dataset.chartDeposit;
+                diningLabel.textContent = 'Final dining payments: RM ' + point.dataset.chartDining;
+                totalLabel.textContent = 'Total: RM ' + point.dataset.chartTotal;
+                tooltip.hidden = false;
+                const root = chart.getBoundingClientRect();
+                const dot = point.getBoundingClientRect();
+                tooltip.style.left = Math.max(8, Math.min(root.width - tooltip.offsetWidth - 8,
+                    dot.left + dot.width / 2 - root.left - tooltip.offsetWidth / 2)) + 'px';
+                const above = dot.top - root.top - tooltip.offsetHeight - 12;
+                tooltip.style.top = (above > 4 ? above : dot.bottom - root.top + 12) + 'px';
+            }
+
+            chart.querySelectorAll('[data-payment-trend-point]').forEach(point => {
+                point.addEventListener('pointerenter', () => show(point));
+                point.addEventListener('pointerleave', () => { tooltip.hidden = true; });
+                point.addEventListener('focus', () => show(point));
+                point.addEventListener('blur', () => { tooltip.hidden = true; });
+            });
+            chart.querySelector('.payment-trend-scroll')?.addEventListener('scroll', () => {
+                tooltip.hidden = true;
+            });
+        });
+    </script>
 }

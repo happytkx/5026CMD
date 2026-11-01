@@ -74,6 +74,7 @@ namespace RROMS.Data
         }
 
         public DbSet<MenuCategory> MenuCategories { get; set; }
+        public DbSet<MenuOption> MenuOptions { get; set; }
 
         public DbSet<CustomerOrder> Orders
         {
@@ -99,6 +100,8 @@ namespace RROMS.Data
         {
             get; set;
         }
+        public DbSet<StaffNotification> StaffNotifications { get; set; }
+        public DbSet<StaffNotificationRead> StaffNotificationReads { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -118,6 +121,7 @@ namespace RROMS.Data
             modelBuilder.Entity<StaffAccount>().HasIndex(s => s.NormalizedEmail).IsUnique()
                 .HasFilter("[NormalizedEmail] IS NOT NULL");
             modelBuilder.Entity<MenuCategory>().HasIndex(c => c.Name).IsUnique();
+            modelBuilder.Entity<MenuOption>().HasIndex(o => new { o.Kind, o.Name }).IsUnique();
             modelBuilder.Entity<ReservationEmail>().HasIndex(e => e.EventKey).IsUnique();
             modelBuilder.Entity<ReservationEmail>().HasIndex(e => new { e.Status, e.DueAt });
             modelBuilder.Entity<Reservation>().Property(r => r.BookingReference).HasMaxLength(40);
@@ -167,6 +171,12 @@ namespace RROMS.Data
                 .HasOne(n => n.RelatedOrder).WithMany().HasForeignKey(n => n.RelatedOrderID)
                 .OnDelete(DeleteBehavior.NoAction);
             modelBuilder.Entity<CustomerNotification>().HasIndex(n => new { n.CustomerID, n.IsRead });
+            modelBuilder.Entity<StaffNotification>().HasIndex(n => new { n.Audience, n.CreatedAt });
+            modelBuilder.Entity<StaffNotificationRead>()
+                .HasOne(r => r.Notification).WithMany(n => n.Reads)
+                .HasForeignKey(r => r.StaffNotificationID).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<StaffNotificationRead>()
+                .HasIndex(r => new { r.StaffNotificationID, r.RecipientKey }).IsUnique();
         }
     }
 }

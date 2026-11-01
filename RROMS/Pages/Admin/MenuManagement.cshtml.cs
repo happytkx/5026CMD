@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -6,6 +8,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using RROMS.Data;
 using RROMS.Models;
+using RROMS.Services;
 
 namespace RROMS.Pages.Admin;
 
@@ -17,6 +20,28 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
     public List<MenuItem> Items { get; private set; } = [];
     public List<string> DietaryOptions { get; private set; } = [];
     public List<string> AllergenOptions { get; private set; } = [];
+    public List<string> ProteinOptions { get; private set; } = [];
+    public List<MenuOption> MenuOptions { get; private set; } = [];
+
+    public record TrendPoint(DateTime Date, int Units, decimal Sales);
+    public record DishMetrics(int Units, decimal Sales, List<TrendPoint> Trend);
+    public record CategoryMetrics(string Name, int Dishes, int Units, decimal Sales);
+
+    public Dictionary<int, DishMetrics> PerformanceById { get; private set; } = [];
+    public List<CategoryMetrics> CategoryPerformance { get; private set; } = [];
+    public int AvailableDishCount => Items.Count(i => i.IsAvailable);
+    public int TotalUnits => Items.Sum(i => MetricsFor(i).Units);
+    public decimal TotalSales => Items.Sum(i => MetricsFor(i).Sales);
+    public int NoOrderAvailableCount => Items.Count(i => i.IsAvailable && MetricsFor(i).Units == 0);
+    public string TrendInterval { get; private set; } = "day";
+    public DishMetrics MetricsFor(MenuItem item) => PerformanceById.TryGetValue(item.MenuItemID, out var metric)
+        ? metric : new DishMetrics(0, 0m, []);
+
+    [BindProperty(SupportsGet = true)] public DateTime StartDate { get; set; } = ReservationPolicy.Now.Date.AddDays(-29);
+    [BindProperty(SupportsGet = true)] public DateTime EndDate { get; set; } = ReservationPolicy.Now.Date;
+    [BindProperty(SupportsGet = true)] public string SortBy { get; set; } = "MostOrdered";
+    [BindProperty(SupportsGet = true)] public int? FocusItemId { get; set; }
+    public bool HasValidPeriod => StartDate.Date <= EndDate.Date && EndDate.Date != DateTime.MaxValue.Date;
 
     [BindProperty(SupportsGet = true)] public string? Search { get; set; }
     [BindProperty(SupportsGet = true)] public string? FilterCategory { get; set; }
@@ -25,11 +50,6 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
     [BindProperty] public IFormFile? DishImage { get; set; }
     [BindProperty] public string[] DietarySelections { get; set; } = [];
     [BindProperty] public string[] AllergenSelections { get; set; } = [];
-
-    private static readonly string[] DefaultDietaryTags =
-        ["Vegetarian", "Vegan", "Pescatarian", "Gluten-free", "Dairy-free", "No pork", "No beef", "No chicken", "No nuts"];
-    private static readonly string[] DefaultAllergens =
-        ["Milk", "Egg", "Wheat", "Peanuts", "Tree nuts", "Nuts", "Soy", "Fish", "Shellfish", "Sesame", "Mustard", "Celery", "Sulphites"];
 
     [BindProperty]
     public MenuItemInput Dish { get; set; } = new();
@@ -55,8 +75,17 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
         AllItems = await db.MenuItems.AsNoTracking()
             .OrderBy(i => i.Category).ThenBy(i => i.Name).ToListAsync();
 
-        DietaryOptions = Options(DefaultDietaryTags, AllItems.Select(i => i.DietaryTags));
-        AllergenOptions = Options(DefaultAllergens, AllItems.Select(i => i.Allergens));
+        MenuOptions = await db.MenuOptions.AsNoTracking()
+            .OrderBy(o => o.Kind).ThenBy(o => o.Name).ToListAsync();
+        DietaryOptions = Options(MenuOptions.Where(o => o.Kind == "Dietary").Select(o => o.Name),
+            AllItems.Select(i => i.DietaryTags));
+        AllergenOptions = Options(MenuOptions.Where(o => o.Kind == "Allergen").Select(o => o.Name),
+            AllItems.Select(i => i.Allergens));
+        ProteinOptions = MenuOptions.Where(o => o.Kind == "Protein").Select(o => o.Name)
+            .Concat(AllItems.Select(i => i.ProteinType))
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(v => v, StringComparer.OrdinalIgnoreCase).ToList();
 
         IEnumerable<MenuItem> filtered = AllItems;
         if (!string.IsNullOrWhiteSpace(Search))
@@ -73,11 +102,131 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
         else if (FilterAvailability == "Unavailable")
             filtered = filtered.Where(i => !i.IsAvailable);
 
+        if (SortBy is not ("Name" or "MostOrdered" or "LeastOrdered" or "HighestSales"))
+        {
+            SortBy = "MostOrdered";
+        }
+        // Razor's GET binding can register an implicit required-field error
+        // even when the default sort is already displayed in the dropdown.
+        ModelState.Remove(nameof(SortBy));
+
         Items = filtered.ToList();
+        if (!HasValidPeriod)
+        {
+            ModelState.AddModelError("", "Please choose a valid reporting period.");
+            return;
+        }
+
+        await LoadPerformanceAsync();
+        Items = SortBy switch
+        {
+            "LeastOrdered" => Items.OrderBy(i => MetricsFor(i).Units).ThenBy(i => i.Name).ToList(),
+            "HighestSales" => Items.OrderByDescending(i => MetricsFor(i).Sales).ThenBy(i => i.Name).ToList(),
+            "Name" => Items.OrderBy(i => i.Name).ToList(),
+            _ => Items.OrderByDescending(i => MetricsFor(i).Units).ThenBy(i => i.Name).ToList()
+        };
+
+        CategoryPerformance = Items.GroupBy(i => i.Category)
+            .Select(g => new CategoryMetrics(g.Key, g.Count(),
+                g.Sum(i => MetricsFor(i).Units), g.Sum(i => MetricsFor(i).Sales)))
+            .OrderByDescending(g => g.Units).ThenBy(g => g.Name).ToList();
     }
 
-    private static List<string> Options(IEnumerable<string> defaults, IEnumerable<string> existing) =>
-        defaults.Concat(existing.SelectMany(SplitTags))
+    private async Task LoadPerformanceAsync()
+    {
+        var days = (EndDate.Date - StartDate.Date).Days + 1;
+        TrendInterval = days <= 45 ? "day" : days <= 365 ? "week" : "month";
+        var bucketDates = new List<DateTime>();
+        if (TrendInterval == "day")
+        {
+            for (var date = StartDate.Date; date <= EndDate.Date; date = date.AddDays(1))
+                bucketDates.Add(date);
+        }
+        else if (TrendInterval == "week")
+        {
+            for (var date = StartDate.Date; date <= EndDate.Date; date = date.AddDays(7))
+                bucketDates.Add(date);
+        }
+        else
+        {
+            for (var date = new DateTime(StartDate.Year, StartDate.Month, 1);
+                date <= EndDate.Date; date = date.AddMonths(1))
+                bucketDates.Add(date);
+        }
+
+        var allItemIds = AllItems.Select(i => i.MenuItemID).ToList();
+        if (allItemIds.Count == 0) return;
+
+        // Use original order-line values and the date the order was placed.
+        // Cancelled orders and cancelled order lines do not count as sales.
+        var lines = await db.OrderLines.AsNoTracking()
+            .Where(l => allItemIds.Contains(l.MenuItemID) && !l.IsCancelled &&
+                l.Order.Status != "Cancelled" &&
+                l.Order.CreatedAt >= StartDate.Date &&
+                l.Order.CreatedAt < EndDate.Date.AddDays(1))
+            .Select(l => new { l.MenuItemID, l.Quantity, l.LineTotal, l.Order.CreatedAt })
+            .ToListAsync();
+
+        DateTime BucketFor(DateTime date) => TrendInterval switch
+        {
+            "week" => StartDate.Date.AddDays(((date.Date - StartDate.Date).Days / 7) * 7),
+            "month" => new DateTime(date.Year, date.Month, 1),
+            _ => date.Date
+        };
+
+        foreach (var item in AllItems)
+        {
+            var itemLines = lines.Where(l => l.MenuItemID == item.MenuItemID).ToList();
+            var perBucket = itemLines.GroupBy(l => BucketFor(l.CreatedAt))
+                .ToDictionary(g => g.Key, g => (Units: g.Sum(l => l.Quantity), Sales: g.Sum(l => l.LineTotal)));
+            var trend = bucketDates.Select(date => perBucket.TryGetValue(date, out var amount)
+                ? new TrendPoint(date, amount.Units, amount.Sales)
+                : new TrendPoint(date, 0, 0m)).ToList();
+            PerformanceById[item.MenuItemID] = new DishMetrics(
+                itemLines.Sum(l => l.Quantity), itemLines.Sum(l => l.LineTotal), trend);
+        }
+    }
+
+    public async Task<IActionResult> OnGetExportAsync()
+    {
+        await OnGetAsync();
+        if (!HasValidPeriod) return BadRequest("Choose a valid reporting period.");
+
+        static string Escape(string value)
+        {
+            var trimmed = value.TrimStart();
+            if (trimmed.Length > 0 && "=+-@".Contains(trimmed[0])) value = "'" + value;
+            return "\"" + value.Replace("\"", "\"\"") + "\"";
+        }
+        var csv = new StringBuilder();
+        void Row(params string[] fields) => csv.AppendLine(string.Join(",", fields.Select(Escape)));
+        Row("Celeste Menu Management & Performance Report");
+        Row("Start date", StartDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+        Row("End date", EndDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+        Row("Search", string.IsNullOrWhiteSpace(Search) ? "All dishes" : Search.Trim());
+        Row("Category filter", FilterCategory ?? "All");
+        Row("Availability filter", FilterAvailability ?? "All");
+        Row("Sort", SortBy);
+        Row();
+        Row("Dish", "Category", "Current price (RM)", "Availability", "Units sold", "Sales before tax (RM)");
+        foreach (var item in Items)
+        {
+            var metrics = MetricsFor(item);
+            Row(item.Name, item.Category, item.Price.ToString("0.00", CultureInfo.InvariantCulture),
+                item.IsAvailable ? "Available" : "Unavailable",
+                metrics.Units.ToString(CultureInfo.InvariantCulture),
+                metrics.Sales.ToString("0.00", CultureInfo.InvariantCulture));
+        }
+        Row();
+        Row("Notes", "Sales use original order-line prices and exclude cancelled orders and lines.");
+        Row("Notes", "Current menu prices and availability may differ from their historical values.");
+        var content = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(csv.ToString())).ToArray();
+        return File(content, "text/csv; charset=utf-8",
+            $"celeste-menu-performance-{StartDate:yyyyMMdd}-{EndDate:yyyyMMdd}.csv");
+    }
+
+    private static List<string> Options(IEnumerable<string> configured, IEnumerable<string> existing) =>
+        configured.Concat(existing.SelectMany(SplitTags))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -116,6 +265,7 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
             return Error("That category already exists.");
 
         var previousName = category.Name;
+        if (FilterCategory == previousName) FilterCategory = name;
         category.Name = name!;
         foreach (var item in await db.MenuItems.Where(i => i.MenuCategoryID == categoryId).ToListAsync())
             item.Category = name!;
@@ -133,6 +283,98 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
         db.MenuCategories.Remove(category);
         await db.SaveChangesAsync();
         return Success("Empty category deleted.");
+    }
+
+    private static bool ValidOptionName(string? kind, string? name) =>
+        (kind is "Protein" or "Dietary" or "Allergen") &&
+        !string.IsNullOrWhiteSpace(name) &&
+        name.Length <= (kind == "Protein" ? 40 : 60) &&
+        !name.Contains(',');
+
+    public int OptionUsageCount(MenuOption option) => option.Kind switch
+    {
+        "Protein" => AllItems.Count(i => string.Equals(i.ProteinType, option.Name, StringComparison.OrdinalIgnoreCase)),
+        "Dietary" => AllItems.Count(i => SplitTags(i.DietaryTags)
+            .Any(tag => string.Equals(tag, option.Name, StringComparison.OrdinalIgnoreCase))),
+        "Allergen" => AllItems.Count(i => SplitTags(i.Allergens)
+            .Any(tag => string.Equals(tag, option.Name, StringComparison.OrdinalIgnoreCase))),
+        _ => 0
+    };
+
+    public async Task<IActionResult> OnPostCreateOptionAsync(string? kind, string? name)
+    {
+        name = name?.Trim();
+        if (!ValidOptionName(kind, name))
+            return Error("Enter a valid option name (up to 40 characters for proteins or 60 for tags).");
+
+        if (await db.MenuOptions.AnyAsync(o => o.Kind == kind && o.Name == name))
+            return Error("That option already exists.");
+
+        db.MenuOptions.Add(new MenuOption { Kind = kind!, Name = name! });
+        await db.SaveChangesAsync();
+        return Success($"{name} added to the {kind!.ToLowerInvariant()} choices.");
+    }
+
+    public async Task<IActionResult> OnPostRenameOptionAsync(int optionId, string? name)
+    {
+        name = name?.Trim();
+        var option = await db.MenuOptions.FindAsync(optionId);
+        if (option is null) return NotFound();
+        if (!ValidOptionName(option.Kind, name))
+            return Error("Enter a valid name for this option.");
+
+        if (await db.MenuOptions.AnyAsync(o => o.MenuOptionID != optionId && o.Kind == option.Kind && o.Name == name))
+            return Error("That option already exists.");
+
+        var oldName = option.Name;
+        var items = await db.MenuItems.ToListAsync();
+        foreach (var item in items)
+        {
+            if (option.Kind == "Protein")
+            {
+                if (string.Equals(item.ProteinType, oldName, StringComparison.OrdinalIgnoreCase))
+                    item.ProteinType = name!;
+            }
+            else if (option.Kind == "Dietary")
+            {
+                item.DietaryTags = JoinTags(SplitTags(item.DietaryTags)
+                    .Select(tag => string.Equals(tag, oldName, StringComparison.OrdinalIgnoreCase) ? name! : tag));
+                if (item.DietaryTags.Length > 250)
+                    return Error("The new tag name would exceed a dish's dietary-tag limit.");
+            }
+            else
+            {
+                item.Allergens = JoinTags(SplitTags(item.Allergens)
+                    .Select(tag => string.Equals(tag, oldName, StringComparison.OrdinalIgnoreCase) ? name! : tag));
+                if (item.Allergens.Length > 300)
+                    return Error("The new allergen name would exceed a dish's allergen limit.");
+            }
+        }
+
+        option.Name = name!;
+        await db.SaveChangesAsync();
+        return Success($"{oldName} renamed to {name}. Any dishes using it were updated.");
+    }
+
+    public async Task<IActionResult> OnPostDeleteOptionAsync(int optionId)
+    {
+        var option = await db.MenuOptions.FindAsync(optionId);
+        if (option is null) return NotFound();
+        var items = await db.MenuItems.AsNoTracking().ToListAsync();
+        bool inUse = option.Kind switch
+        {
+            "Protein" => items.Any(i => string.Equals(i.ProteinType, option.Name, StringComparison.OrdinalIgnoreCase)),
+            "Dietary" => items.Any(i => SplitTags(i.DietaryTags)
+                .Any(tag => string.Equals(tag, option.Name, StringComparison.OrdinalIgnoreCase))),
+            "Allergen" => items.Any(i => SplitTags(i.Allergens)
+                .Any(tag => string.Equals(tag, option.Name, StringComparison.OrdinalIgnoreCase))),
+            _ => true
+        };
+        if (inUse) return Error("This option is used by a dish. Change those dishes before deleting it.");
+
+        db.MenuOptions.Remove(option);
+        await db.SaveChangesAsync();
+        return Success($"{option.Name} removed from the list of choices.");
     }
 
     public async Task<IActionResult> OnPostSaveItemAsync()
@@ -158,6 +400,15 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
 
         if (!await db.MenuCategories.AnyAsync(c => c.Name == category))
             return Error("Choose an existing category.");
+
+        var configuredOptions = await db.MenuOptions.AsNoTracking()
+            .Select(o => new { o.Kind, o.Name }).ToListAsync();
+        bool HasOption(string kind, string selected) => configuredOptions.Any(o =>
+            o.Kind == kind && string.Equals(o.Name, selected.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (!HasOption("Protein", protein) ||
+            DietarySelections.Any(tag => !HasOption("Dietary", tag)) ||
+            AllergenSelections.Any(tag => !HasOption("Allergen", tag)))
+            return Error("Choose only configured protein, dietary and allergen options.");
 
         if (await db.MenuItems.AnyAsync(i => i.MenuItemID != Dish.MenuItemID && i.Name == name))
             return Error("A dish with that name already exists.");
@@ -202,7 +453,7 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
         }
 
         await db.SaveChangesAsync();
-        return Success($"Dish {item.Name} {(Dish.MenuItemID == 0 ? "created" : "updated")}. Changes appear on the customer menu.");
+        return Success($"Dish {item.Name} {(Dish.MenuItemID == 0 ? "created" : "updated")}. Changes appear on the customer menu.", item.MenuItemID);
     }
 
     private static async Task<bool> ValidImageAsync(IFormFile file)
@@ -258,7 +509,7 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
         if (item is null) return NotFound();
         item.IsAvailable = !item.IsAvailable;
         await db.SaveChangesAsync();
-        return Success($"{item.Name} is now {(item.IsAvailable ? "available" : "unavailable")}.");
+        return Success($"{item.Name} is now {(item.IsAvailable ? "available" : "unavailable")}.", item.MenuItemID);
     }
 
     public async Task<IActionResult> OnPostDeleteItemAsync(int itemId)
@@ -284,15 +535,26 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
     private static bool ValidCategoryName(string? name) =>
         !string.IsNullOrWhiteSpace(name) && name.Length <= 120;
 
+    private IActionResult ReturnToWorkspace(int? focusId = null) => RedirectToPage(new
+    {
+        Search,
+        FilterCategory,
+        FilterAvailability,
+        SortBy,
+        StartDate = StartDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+        EndDate = EndDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+        FocusItemId = focusId
+    });
+
     private IActionResult Error(string message)
     {
         TempData["Error"] = message;
-        return RedirectToPage();
+        return ReturnToWorkspace(Dish.MenuItemID > 0 ? Dish.MenuItemID : null);
     }
 
-    private IActionResult Success(string message)
+    private IActionResult Success(string message, int? focusId = null)
     {
         TempData["Success"] = message;
-        return RedirectToPage();
+        return ReturnToWorkspace(focusId);
     }
 }

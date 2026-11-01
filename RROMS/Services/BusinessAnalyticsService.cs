@@ -11,7 +11,9 @@ public record BusinessAnalyticsReport(
     int NewCustomers,
     int ReturningCustomers,
     decimal AveragePartySize,
-    decimal OrdersPerReservation,
+    decimal AverageDiningSpendPerCompletedReservation,
+    decimal AverageSpendPerGuest,
+    int SettledCompletedReservations,
     List<MenuPerformanceRow> LeastOrdered,
     List<CategorySalesRow> CategorySales);
 
@@ -32,7 +34,7 @@ public class BusinessAnalyticsService(ApplicationDbContext db)
                 (r.ReservationStatus == "Confirmed" ||
                  r.ReservationStatus == "Seated" ||
                  r.ReservationStatus == "Completed"))
-            .Select(r => new { r.CustomerID, r.ReservationID, r.ReservationDate, r.PartySize })
+            .Select(r => new { r.CustomerID, r.ReservationID, r.ReservationDate, r.PartySize, r.ReservationStatus })
             .ToListAsync();
 
         var currentBookings = bookings
@@ -42,10 +44,14 @@ public class BusinessAnalyticsService(ApplicationDbContext db)
         var currentCustomers = currentBookings
             .Select(r => r.CustomerID).Distinct().ToHashSet();
 
-        var repeatCustomerIds = bookings.GroupBy(r => r.CustomerID)
-            .Where(g => g.Count() >= 2).Select(g => g.Key).ToHashSet();
+        // Classify each active customer relative to the START of the selected
+        // period. A guest who books twice for the first time this month is still
+        // a new customer, not automatically a returning customer.
+        var priorCustomerIds = bookings
+            .Where(r => r.ReservationDate < from)
+            .Select(r => r.CustomerID).ToHashSet();
 
-        int returning = currentCustomers.Count(id => repeatCustomerIds.Contains(id));
+        int returning = currentCustomers.Count(id => priorCustomerIds.Contains(id));
         int firstTime = currentCustomers.Count - returning;
         decimal averageGuests = currentBookings.Count == 0 ? 0m :
             Math.Round((decimal)currentBookings.Average(r => r.PartySize), 1);
@@ -81,13 +87,29 @@ public class BusinessAnalyticsService(ApplicationDbContext db)
                 g.Key, g.Sum(l => l.Quantity), g.Sum(l => l.LineTotal)))
             .OrderByDescending(row => row.Sales).ToList();
 
-        var currentIds = currentBookings.Select(r => r.ReservationID).ToHashSet();
-        decimal ordersPerReservation = currentIds.Count == 0 ? 0m :
-            Math.Round((decimal)orders.Count(o => currentIds.Contains(o.ReservationID)) /
-                currentIds.Count, 2);
+        // Average spend is based on settled final bills attached to completed
+        // dining visits. Deposits are already applied within TotalBill and
+        // must not be added again as extra restaurant revenue.
+        var completedIds = currentBookings
+            .Where(r => r.ReservationStatus == "Completed")
+            .Select(r => r.ReservationID).ToHashSet();
+        var settledBills = await db.Bills.AsNoTracking()
+            .Where(b => b.BillStatus == "Paid" && completedIds.Contains(b.ReservationID))
+            .Select(b => new { b.ReservationID, b.TotalBill })
+            .ToListAsync();
+        var billedIds = settledBills.Select(b => b.ReservationID).ToHashSet();
+        var billedVisits = currentBookings.Where(r => billedIds.Contains(r.ReservationID)).ToList();
+        decimal totalBilled = settledBills.Sum(b => b.TotalBill);
+        decimal spendPerReservation = billedVisits.Count == 0 ? 0m :
+            Math.Round(totalBilled / billedVisits.Count, 2);
+        int totalGuests = billedVisits.Sum(r => r.PartySize);
+        decimal spendPerGuest = totalGuests == 0 ? 0m :
+            Math.Round(totalBilled / totalGuests, 2);
 
         return new BusinessAnalyticsReport(
             currentCustomers.Count, firstTime, returning,
-            averageGuests, ordersPerReservation, leastOrdered, categorySales);
+            averageGuests,
+            spendPerReservation, spendPerGuest, billedVisits.Count,
+            leastOrdered, categorySales);
     }
 }

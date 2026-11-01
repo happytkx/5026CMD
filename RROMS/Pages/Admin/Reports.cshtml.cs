@@ -37,6 +37,37 @@ public class ReportsModel : PageModel
     public List<DailyDepositCollection> DailyDeposits
     { get; set; } = new();
 
+    // Keep charts legible across longer reporting periods while preserving the daily CSV.
+    public record ReservationChartPoint(DateTime StartDate, DateTime EndDate, int Count);
+    public List<ReservationChartPoint> TrendPoints { get; private set; } = [];
+    public string TrendGranularity { get; private set; } = "day";
+
+    private void PrepareTrendChart()
+    {
+        var days = DailyReservations;
+        if (days.Count > 365)
+        {
+            TrendGranularity = "month";
+            TrendPoints = days.GroupBy(d => new DateTime(d.Date.Year, d.Date.Month, 1))
+                .OrderBy(g => g.Key)
+                .Select(g => new ReservationChartPoint(g.First().Date, g.Last().Date, g.Sum(d => d.Count)))
+                .ToList();
+        }
+        else if (days.Count > 45)
+        {
+            TrendGranularity = "week";
+            TrendPoints = days.GroupBy(d => d.Date.AddDays(-(((int)d.Date.DayOfWeek + 6) % 7)))
+                .OrderBy(g => g.Key)
+                .Select(g => new ReservationChartPoint(g.First().Date, g.Last().Date, g.Sum(d => d.Count)))
+                .ToList();
+        }
+        else
+        {
+            TrendGranularity = "day";
+            TrendPoints = days.Select(d => new ReservationChartPoint(d.Date, d.Date, d.Count)).ToList();
+        }
+    }
+
     // Display reports on the website.
     public async Task OnGetAsync()
     {
@@ -55,6 +86,7 @@ public class ReportsModel : PageModel
 
         DailyReservations = await _reportingService
             .GetDailyReservationTrendAsync(StartDate, EndDate);
+        PrepareTrendChart();
 
         DailyDeposits = await _reportingService
             .GetDailyDepositCollectionAsync(StartDate, EndDate);
@@ -177,12 +209,8 @@ public class ReportsModel : PageModel
         Row("Customer Behaviour", "First-time Customers", Number(insights.NewCustomers), "");
         Row("Customer Behaviour", "Returning Customers", Number(insights.ReturningCustomers), "");
         Row("Customer Behaviour", "Average Party Size", insights.AveragePartySize.ToString("0.0", CultureInfo.InvariantCulture), "");
-        Row("Customer Behaviour", "Orders Per Reservation", insights.OrdersPerReservation.ToString("0.00", CultureInfo.InvariantCulture), "");
         Row();
-        foreach (var item in insights.LeastOrdered)
-            Row("Least-Ordered Menu", item.Name + " (" + item.Category + ")", Number(item.Quantity), Money(item.Sales));
-        foreach (var category in insights.CategorySales)
-            Row("Menu Category Sales", category.Category, Number(category.Quantity), Money(category.Sales));
+        // Menu performance is exported independently from its dedicated report.
 
         // Explain the different date rules.
         Row();
@@ -197,6 +225,9 @@ public class ReportsModel : PageModel
 
         Row("Notes",
             "Daily deposit collections use payment dates.");
+
+        Row("Notes",
+            "First-time customers have no valid reservation before the report start date; returning customers have one or more.");
 
         // Add a UTF-8 BOM so Excel displays text correctly.
         byte[] content =

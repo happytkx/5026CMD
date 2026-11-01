@@ -26,9 +26,13 @@
         <a class="text-link" href="#dining-spaces">
             Discover our spaces
         </a>
+        @if (Model.Announcements.Count > 0)
+        {
+            <a class="text-link" href="#announcements">Latest announcements</a>
+        }
     </div>
     <figure>
-        <img src="~/images/celeste-indoor.jpg" alt="An intimate dining room with warm architectural lighting and elegantly set tables" fetchpriority="high" />
+        <img src="~/images/celeste-indoor-2.png" alt="An intimate dining room with warm architectural lighting and elegantly set tables" fetchpriority="high" />
     </figure>
 </section>
 <section id="dining-spaces" class="dining-spaces">
@@ -41,7 +45,7 @@
     </div>
     <div class="space-grid">
         <article class="space-card">
-            <img src="~/images/celeste-indoor.jpg" alt="Warm, curved walls surrounding intimate indoor dining tables" loading="lazy"/>
+            <img src="~/images/celeste-indoor.png" alt="Warm, curved walls surrounding intimate indoor dining tables" loading="lazy"/>
             <div>
                 <h3>Indoor Dining</h3>
                 <p>
@@ -71,7 +75,7 @@
             </div>
         </article>
         <article class="space-card">
-            <img src="~/images/celeste-private-dining.jpg" alt="A private dining room with a beautifully set long table" loading="lazy"/>
+            <img src="~/images/celeste-private-dining.png" alt="A private dining room with a beautifully set long table" loading="lazy"/>
             <div>
                 <h3>Private Dining</h3>
                 <p>
@@ -87,6 +91,109 @@
         </article>
     </div>
 </section>
+@if (Model.Announcements.Count > 0)
+{
+    <section class="celeste-announcements" id="announcements" aria-labelledby="announcements-heading">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">NEWS FROM CÉLESTE</p>
+                <h2 id="announcements-heading">Announcements</h2>
+            </div>
+            <p class="muted">Missed the welcome message? You can always read our latest news here.</p>
+        </div>
+        @if (Model.Announcements.Count > 1)
+        {
+            <div class="announcement-carousel-actions" aria-label="Browse announcements">
+                <span class="muted">Swipe or use the arrows to read more.</span>
+                <button type="button" class="announcement-carousel-arrow" data-announcement-prev
+                        aria-controls="celeste-announcement-track" aria-label="Previous announcements">←</button>
+                <button type="button" class="announcement-carousel-arrow" data-announcement-next
+                        aria-controls="celeste-announcement-track" aria-label="Next announcements">→</button>
+            </div>
+        }
+        <div class="celeste-announcement-list @(Model.Announcements.Count == 1 ? "single" : "")" id="celeste-announcement-track"
+             tabindex="0" role="region" aria-label="Latest announcements, horizontally scrollable">
+            @foreach (var announcement in Model.Announcements)
+            {
+                <article class="celeste-announcement">
+                    <p class="eyebrow">@announcement.CreatedAt.ToString("dd MMM yyyy")</p>
+                    <h3>@announcement.Title</h3>
+                    <p>@announcement.Message</p>
+                </article>
+            }
+        </div>
+    </section>
+    <dialog id="celeste-announcement-dialog" class="celeste-announcement-dialog" aria-labelledby="celeste-announcement-title">
+        <div class="celeste-announcement-dialog-body">
+            <p class="eyebrow">A NOTE FROM CÉLESTE</p>
+            <h2 id="celeste-announcement-title">What's new at Céleste</h2>
+            <div class="celeste-announcement-dialog-items">
+                @foreach (var announcement in Model.Announcements)
+                {
+                    <article data-announcement-id="@announcement.AnnouncementID" class="celeste-announcement-dialog-item">
+                        <h3>@announcement.Title</h3>
+                        <p>@announcement.Message</p>
+                    </article>
+                }
+            </div>
+            <form method="dialog" class="celeste-announcement-dialog-actions">
+                <a href="#announcements" class="text-link" id="celeste-announcements-later">Read again later</a>
+                <button type="submit" class="button">Dismiss</button>
+            </form>
+        </div>
+    </dialog>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const track = document.getElementById('celeste-announcement-track');
+            const previous = document.querySelector('[data-announcement-prev]');
+            const next = document.querySelector('[data-announcement-next]');
+            const controls = document.querySelector('.announcement-carousel-actions');
+            if (track) {
+                const updateArrows = () => {
+                    if (controls) controls.hidden = track.scrollWidth <= track.clientWidth + 2;
+                    const atStart = track.scrollLeft <= 2;
+                    const atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 2;
+                    if (previous) previous.disabled = atStart;
+                    if (next) next.disabled = atEnd;
+                };
+                const advance = direction => {
+                    const first = track.querySelector('.celeste-announcement');
+                    if (!first) return;
+                    const gap = parseFloat(getComputedStyle(track).columnGap) || 0;
+                    track.scrollBy({ left: direction * (first.getBoundingClientRect().width + gap), behavior: 'smooth' });
+                };
+                previous?.addEventListener('click', () => advance(-1));
+                next?.addEventListener('click', () => advance(1));
+                track.addEventListener('scroll', updateArrows, { passive: true });
+                window.addEventListener('resize', updateArrows);
+                updateArrows();
+            }
+            const dialog = document.getElementById("celeste-announcement-dialog");
+            if (!dialog || typeof dialog.showModal !== "function") return;
+            const key = "celeste-dismissed-announcements-v1";
+            let dismissed = [];
+            try {
+                const saved = JSON.parse(window.localStorage.getItem(key) || "[]");
+                if (Array.isArray(saved)) dismissed = saved.map(String);
+            } catch (_) { /* Storage may be disabled by the browser. */ }
+            const dismissedIds = new Set(dismissed);
+            const items = Array.from(dialog.querySelectorAll("[data-announcement-id]"));
+            const freshItems = items.filter(item => !dismissedIds.has(item.dataset.announcementId));
+            items.forEach(item => { item.hidden = !freshItems.includes(item); });
+            if (!freshItems.length) return;
+            dialog.addEventListener("close", function () {
+                freshItems.forEach(item => dismissedIds.add(item.dataset.announcementId));
+                try { window.localStorage.setItem(key, JSON.stringify(Array.from(dismissedIds))); }
+                catch (_) { /* Announcements remain readable on the homepage. */ }
+            });
+            dialog.showModal();
+            document.getElementById("celeste-announcements-later")?.addEventListener("click", function () {
+                dialog.close();
+                window.location.hash = "announcements";
+            });
+        });
+    </script>
+}
 @if (Model.Popular.Count > 0)
 {
     <section class="dining-spaces">

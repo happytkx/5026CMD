@@ -27,7 +27,77 @@ public class PaymentCollectionsModel : PageModel
     public DateTime EndDate { get; set; } =
         ReservationPolicy.Now.Date;
 
+    [BindProperty(SupportsGet = true)]
+    public string PaymentType { get; set; } = "All";
+
+    [BindProperty(SupportsGet = true)]
+    public bool TransactionsOnly { get; set; }
+
     public PaymentCollectionsResult? Report { get; set; }
+
+    public List<PaymentCollectionRow> FilteredTransactions =>
+        Report?.Transactions
+            .Where(payment => PaymentType == "All" || payment.PaymentType == PaymentType)
+            .ToList() ?? new List<PaymentCollectionRow>();
+
+    public sealed record PaymentTrendPoint(
+        DateTime Date,
+        decimal Deposits,
+        decimal DiningPayments)
+    {
+        public decimal Total => Deposits + DiningPayments;
+    }
+
+    public List<PaymentTrendPoint> PaymentTrend { get; private set; } = new();
+    public string PaymentTrendInterval { get; private set; } = "day";
+
+    private void BuildPaymentTrend()
+    {
+        if (Report is null || Report.Daily.Count == 0)
+            return;
+
+        DateTime first = StartDate.Date;
+        DateTime last = EndDate.Date;
+        int dayCount = (last - first).Days + 1;
+        PaymentTrendInterval = dayCount <= 45 ? "day" :
+            dayCount <= 365 ? "week" : "month";
+
+        DateTime Bucket(DateTime date)
+        {
+            if (PaymentTrendInterval == "month")
+                return new DateTime(date.Year, date.Month, 1);
+            if (PaymentTrendInterval == "week")
+                return first.AddDays(((date.Date - first).Days / 7) * 7);
+            return date.Date;
+        }
+
+        var grouped = Report.Daily
+            .GroupBy(day => Bucket(day.Date))
+            .ToDictionary(group => group.Key, group => new PaymentTrendPoint(
+                group.Key,
+                group.Sum(day => day.Deposits),
+                group.Sum(day => day.DiningPayments)));
+
+        DateTime bucketStart = PaymentTrendInterval == "month"
+            ? new DateTime(first.Year, first.Month, 1)
+            : first;
+        for (DateTime date = bucketStart; date <= last;)
+        {
+            PaymentTrend.Add(grouped.TryGetValue(date, out var point)
+                ? point : new PaymentTrendPoint(date, 0m, 0m));
+            date = PaymentTrendInterval == "month" ? date.AddMonths(1) :
+                date.AddDays(PaymentTrendInterval == "week" ? 7 : 1);
+        }
+    }
+
+    private void NormalizePaymentType()
+    {
+        if (PaymentType != "Deposit" && PaymentType != "DiningBill")
+        {
+            PaymentType = "All";
+            ModelState.Remove(nameof(PaymentType));
+        }
+    }
 
     // Validate the selected reporting period.
     private bool IsValidPeriod()
@@ -39,6 +109,8 @@ public class PaymentCollectionsModel : PageModel
     // Display the report on the website.
     public async Task OnGetAsync()
     {
+        NormalizePaymentType();
+
         if (!IsValidPeriod())
         {
             ModelState.AddModelError(
@@ -50,11 +122,15 @@ public class PaymentCollectionsModel : PageModel
 
         Report = await _reportingService
             .GetPaymentCollectionsAsync(StartDate, EndDate);
+        if (!TransactionsOnly)
+            BuildPaymentTrend();
     }
 
     // Export successful payment collections to CSV.
     public async Task<IActionResult> OnGetExportAsync()
     {
+        NormalizePaymentType();
+
         if (!IsValidPeriod())
         {
             return BadRequest(
@@ -117,6 +193,7 @@ public class PaymentCollectionsModel : PageModel
         Row("Celeste Payment Collections Report");
         Row("Start Date", Date(StartDate));
         Row("End Date", Date(EndDate));
+        Row("Transaction Filter", PaymentType == "All" ? "All payment types" : PaymentType);
         Row();
 
         // Payment summary.
@@ -159,8 +236,9 @@ public class PaymentCollectionsModel : PageModel
 
         Row();
 
-        // Individual successful payments.
-        Row("Successful Payment Transactions");
+        // The transaction details follow the selected payment type filter;
+        // summary and daily totals above still cover all successful payments.
+        Row("Successful Payment Transactions", PaymentType == "All" ? "All types" : PaymentType);
 
         Row(
             "Payment ID",
@@ -172,7 +250,8 @@ public class PaymentCollectionsModel : PageModel
             "Payment Method",
             "Amount (RM)");
 
-        foreach (var payment in report.Transactions)
+        foreach (var payment in report.Transactions
+            .Where(payment => PaymentType == "All" || payment.PaymentType == PaymentType))
         {
             Row(
                 Number(payment.PaymentID),
@@ -198,6 +277,9 @@ public class PaymentCollectionsModel : PageModel
             "Deposit payments and final dining payments are reported separately.");
 
         Row("Notes",
+            "The transaction filter applies to individual payment rows; summary and daily totals show all payment types.");
+
+        Row("Notes",
             "Recorded collections do not represent independently verified bank settlements.");
 
         // UTF-8 BOM improves Excel compatibility.
@@ -207,7 +289,8 @@ public class PaymentCollectionsModel : PageModel
 
         string fileName =
             $"Celeste_PaymentCollections_" +
-            $"{Date(StartDate)}_to_{Date(EndDate)}.csv";
+            $"{Date(StartDate)}_to_{Date(EndDate)}" +
+            (PaymentType == "All" ? "" : $"_{PaymentType}") + ".csv";
 
         return File(
             content,

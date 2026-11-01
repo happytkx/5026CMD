@@ -94,6 +94,8 @@ namespace RROMS.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("datetime2");
                     b.Property<int?>("CreatedByAdministratorID")
                         .HasColumnType("int");
 
@@ -410,6 +412,32 @@ namespace RROMS.Migrations
                     b.HasIndex("UpdatedByAdministratorID");
 
                     b.ToTable("MenuCategories");
+                });
+
+            modelBuilder.Entity("RROMS.Models.MenuOption", b =>
+                {
+                    b.Property<int>("MenuOptionID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MenuOptionID"));
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.HasKey("MenuOptionID");
+
+                    b.HasIndex("Kind", "Name")
+                        .IsUnique();
+
+                    b.ToTable("MenuOptions");
                 });
 
             modelBuilder.Entity("RROMS.Models.MenuItem", b =>
@@ -886,6 +914,76 @@ namespace RROMS.Migrations
                     b.ToTable("Reviews");
                 });
 
+            modelBuilder.Entity("RROMS.Models.StaffNotification", b =>
+                {
+                    b.Property<int>("StaffNotificationID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffNotificationID"));
+
+                    b.Property<string>("Audience")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(700)
+                        .HasColumnType("nvarchar(700)");
+
+                    b.Property<string>("TargetUrl")
+                        .IsRequired()
+                        .HasMaxLength(240)
+                        .HasColumnType("nvarchar(240)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.HasKey("StaffNotificationID");
+
+                    b.HasIndex("Audience", "CreatedAt");
+
+                    b.ToTable("StaffNotifications");
+                });
+
+            modelBuilder.Entity("RROMS.Models.StaffNotificationRead", b =>
+                {
+                    b.Property<int>("StaffNotificationReadID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffNotificationReadID"));
+
+                    b.Property<DateTime>("ReadAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RecipientKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("StaffNotificationID")
+                        .HasColumnType("int");
+
+                    b.HasKey("StaffNotificationReadID");
+
+                    b.HasIndex("StaffNotificationID", "RecipientKey")
+                        .IsUnique();
+
+                    b.ToTable("StaffNotificationReads");
+                });
+
             modelBuilder.Entity("RROMS.Models.StaffAccount", b =>
                 {
                     b.Property<int>("StaffAccountID")
@@ -1198,6 +1296,15 @@ namespace RROMS.Migrations
                     b.Navigation("Order");
                 });
 
+            modelBuilder.Entity("RROMS.Models.StaffNotificationRead", b =>
+                {
+                    b.HasOne("RROMS.Models.StaffNotification", "Notification")
+                        .WithMany("Reads")
+                        .HasForeignKey("StaffNotificationID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Notification");
             modelBuilder.Entity("RROMS.Models.StaffAccount", b =>
                 {
                     b.HasOne("RROMS.Models.Administrator", "CreatedByAdministrator")
@@ -1235,6 +1342,11 @@ namespace RROMS.Migrations
                     b.Navigation("Payments");
 
                     b.Navigation("ReservationHistories");
+                });
+
+            modelBuilder.Entity("RROMS.Models.StaffNotification", b =>
+                {
+                    b.Navigation("Reads");
                 });
 
             modelBuilder.Entity("RROMS.Models.RestaurantTable", b =>

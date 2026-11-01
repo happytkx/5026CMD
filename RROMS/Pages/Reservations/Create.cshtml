@@ -9,8 +9,8 @@
     var photo = Model.Area switch
     {
         "Outdoor" => "celeste-outdoor.jpg",
-        "VIP Room" => "celeste-private-dining.jpg",
-        _ => "celeste-indoor.jpg"
+        "VIP Room" => "celeste-private-dining.png",
+        _ => "celeste-indoor-2.png"
     };
 }
 
@@ -25,7 +25,7 @@
             <p>A special occasion, an intimate dinner, or simply time well spent. Your dining experience begins here.</p>
             <p class="eyebrow">INDOOR · OUTDOOR · PRIVATE DINING</p>
         </div>
-        <img src="~/images/celeste-indoor.jpg" alt="Warm Céleste dining room" />
+        <img src="~/images/celeste-indoor.png" alt="Warm Céleste dining room" />
     </section>
 }
 
@@ -71,8 +71,8 @@
                 var img = area switch
                 {
                     "Outdoor" => "celeste-outdoor.jpg",
-                    "VIP Room" => "celeste-private-dining.jpg",
-                    _ => "celeste-indoor.jpg"
+                    "VIP Room" => "celeste-private-dining.png",
+                    _ => "celeste-indoor.png"
                 };
                 var allowed = ReservationPolicy.Areas(Model.PartySize).Contains(area);
 

@@ -84,10 +84,6 @@
 		new { Label = "Expired", Count = report.ExpiredReservations }
 	};
 
-	// Find the highest number of reservations on a single day
-	int maxDailyCount = Model.DailyReservations.Count == 0
-		? 0
-		: Model.DailyReservations.Max(d => d.Count);
 
 	<p>
 		Reporting period:
@@ -244,67 +240,93 @@
 		}
 	</section>
 
-	<!-- Daily reservation trend chart -->
-	<section class="card report-chart">
-		<h2>Daily Reservation Trend</h2>
+    <!-- Responsive reservation trend line, with exact numbers in an expandable table. -->
+    <section class="card report-chart reservation-line-panel">
+        <h2>Reservation Trend</h2>
+        <p class="muted">
+            Reservations by scheduled dining date.
+            The chart groups by @Model.TrendGranularity for this reporting period.
+            Hover or focus on a point to see its count.
+        </p>
+        @if (Model.TrendPoints.Count == 0 || Model.TrendPoints.All(p => p.Count == 0))
+        {
+            <p class="empty-state">No reservations were scheduled during this period.</p>
+        }
+        else
+        {
+            var maxCount = Model.TrendPoints.Max(p => p.Count);
+            string Coord(double value) => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+            var plotted = Model.TrendPoints.Select((point, index) => new
+            {
+                Point = point,
+                X = Coord(Model.TrendPoints.Count == 1 ? 498d : 60d + index * 875d / (Model.TrendPoints.Count - 1)),
+                Y = Coord(245d - point.Count * 225d / Math.Max(1, maxCount))
+            }).ToList();
+            var linePoints = string.Join(" ", plotted.Select(point => point.X + "," + point.Y));
+            var step = Math.Max(1, (int)Math.Ceiling(plotted.Count / 7.0));
+            <div class="reservation-chart-interactive">
+                <div class="reservation-line-chart">
+                <svg viewBox="0 0 975 310" role="img" aria-labelledby="reservation-trend-title reservation-trend-description">
+                    <title id="reservation-trend-title">Reservation trend over the selected reporting period</title>
+                    <desc id="reservation-trend-description">
+                        A line representing @Model.TrendPoints.Sum(p => p.Count) scheduled reservations grouped by @Model.TrendGranularity.
+                        Exact counts are available in the table below.
+                    </desc>
+                    @for (var tick = 0; tick <= 4; tick++)
+                    {
+                        var y = Coord(245d - tick * 225d / 4d);
+                        var count = (int)Math.Round(maxCount * tick / 4d);
+                        <line class="reservation-chart-gridline" x1="60" y1="@y" x2="935" y2="@y"></line>
+                        @Html.Raw($"<text class=\"reservation-chart-axis\" x=\"48\" y=\"{Coord(245d - tick * 225d / 4d + 4d)}\" text-anchor=\"end\">{count}</text>")
+                    }
+                    <polyline class="reservation-chart-line" points="@linePoints"></polyline>
+                    @for (var index = 0; index < plotted.Count; index++)
+                    {
+                        var point = plotted[index];
+                        <circle class="reservation-chart-point" cx="@point.X" cy="@point.Y" r="8" tabindex="0"
+                                data-chart-point data-chart-count="@point.Point.Count"
+                                data-chart-start="@point.Point.StartDate.ToString("dd MMM yyyy")"
+                                data-chart-end="@point.Point.EndDate.ToString("dd MMM yyyy")"
+                                aria-label="@point.Point.Count scheduled reservations, @point.Point.StartDate.ToString("dd MMM yyyy") to @point.Point.EndDate.ToString("dd MMM yyyy")"></circle>
+                        @if (index % step == 0 || index == plotted.Count - 1)
+                        {
+                            @Html.Raw($"<text class=\"reservation-chart-axis reservation-chart-date\" x=\"{point.X}\" y=\"279\" text-anchor=\"middle\">{point.Point.StartDate.ToString(Model.TrendGranularity == "month" ? "MMM yy" : "dd MMM")}</text>")
+                        }
+                    }
+                </svg>
+                </div>
+                <div class="reservation-chart-tooltip" role="tooltip" hidden>
+                    <strong data-chart-tooltip-count></strong>
+                    <span data-chart-tooltip-date></span>
+                </div>
+            </div>
+            <details class="reservation-trend-data">
+                <summary>View exact values and open reservations</summary>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Scheduled date / period</th><th>Reservations</th></tr></thead>
+                        <tbody>
+                            @foreach (var point in Model.TrendPoints)
+                            {
+                                <tr>
+                                    <td>
+                                        <a asp-page="/Admin/ReportReservations"
+                                           asp-route-StartDate="@point.StartDate.ToString("yyyy-MM-dd")"
+                                           asp-route-EndDate="@point.EndDate.ToString("yyyy-MM-dd")">
+                                            @point.StartDate.ToString("dd MMM yyyy")
+                                            @if (point.EndDate != point.StartDate) { <span>– @point.EndDate.ToString("dd MMM yyyy")</span> }
+                                        </a>
+                                    </td>
+                                    <td>@point.Count</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+        }
+    </section>
 
-		<p>
-			Number of reservations scheduled for each date
-			in the selected reporting period.
-		</p>
-
-		@if (maxDailyCount == 0)
-		{
-			<p>No reservations found for this period.</p>
-		}
-		else
-		{
-			<div class="report-trend-scroll">
-				@foreach (var day in Model.DailyReservations)
-				{
-					int percentage = (int)Math.Round(
-						day.Count * 100.0 / maxDailyCount);
-
-					string dateLabel = day.Date.ToString("dd MMM yyyy");
-
-					<div class="report-status-row">
-						
-						<div class="report-status-label">
-
-							<a class="text-reset text-decoration-none"
-							   asp-page="/Admin/ReportReservations"
-							   asp-route-StartDate="@day.Date.ToString("yyyy-MM-dd")"
-							   asp-route-EndDate="@day.Date.ToString("yyyy-MM-dd")">
-
-								<strong>@dateLabel</strong>
-
-								<span>
-									@day.Count reservations
-								</span>
-
-							</a>
-
-						</div>
-
-
-						<div class="report-bar-track"
-							role="progressbar"
-							aria-label="@dateLabel"
-							aria-valuemin="0"
-							aria-valuemax="@maxDailyCount"
-							aria-valuenow="@day.Count">
-
-							<div class="report-bar-fill"
-								style="width: @(percentage)%">
-							</div>
-						</div>
-					</div>
-				}
-			</div>
-		}
-	</section>
-
-	
 	<!-- Daily deposit collection chart -->
 	<section class="card report-chart">
 		<h2>Daily Deposit Collections</h2>
@@ -402,47 +424,49 @@
         <article class="card"><small>AVERAGE PARTY SIZE</small><h2>@insights.AveragePartySize.ToString("N1")</h2></article>
     </section>
 
-    <div class="grid">
-        <section class="card">
-            <h2>Customer Activity &amp; Ordering</h2>
-            <p>Average orders per reservation: <strong>@insights.OrdersPerReservation.ToString("N2")</strong></p>
-            <p class="muted">Active customers have confirmed, seated or completed bookings within the selected dates. Returning customers have two or more valid bookings through the end of the period.</p>
-        </section>
-        <section class="card">
-            <h2>Least-Ordered Dishes</h2>
-            <div class="table-wrap">
-                <table>
-                    <thead><tr><th>Dish</th><th>Category</th><th>Qty</th><th>Sales (pre-tax)</th></tr></thead>
-                    <tbody>
-                    @foreach (var item in insights.LeastOrdered)
-                    {
-                        <tr><td>@item.Name</td><td>@item.Category</td><td>@item.Quantity</td><td>RM @item.Sales.ToString("N2")</td></tr>
-                    }
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    </div>
-    <section class="card">
-        <h2>Sales by Menu Category</h2>
-        <p class="muted">Food and beverage sales from non-cancelled orders, before tax.</p>
-        <div class="table-wrap">
-            <table>
-                <thead><tr><th>Category</th><th>Quantity</th><th>Sales (RM)</th></tr></thead>
-                <tbody>
-                @foreach (var category in insights.CategorySales)
-                {
-                    <tr><td>@category.Category</td><td>@category.Quantity</td><td>RM @category.Sales.ToString("N2")</td></tr>
-                }
-                </tbody>
-            </table>
-        </div>
-        @if (insights.CategorySales.Count == 0)
-        {
-            <p>No orders in this period.</p>
-        }
-        <a asp-page="/Admin/Index" asp-route-from="@Model.StartDate.ToString("yyyy-MM-dd")" asp-route-to="@Model.EndDate.ToString("yyyy-MM-dd")">Open combined dashboard</a>
-    </section>
+    <p class="muted">
+        First-time customers made their earliest valid reservation within the selected period.
+        Returning customers had a valid reservation before the period began.
+        Both groups include only customers with confirmed, seated or completed reservations during the period.
+    </p>
 }
 
+}
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.reservation-chart-interactive').forEach(function (container) {
+            const tooltip = container.querySelector('.reservation-chart-tooltip');
+            const count = tooltip?.querySelector('[data-chart-tooltip-count]');
+            const date = tooltip?.querySelector('[data-chart-tooltip-date]');
+            if (!tooltip || !count || !date) return;
+
+            function show(point) {
+                const number = Number(point.dataset.chartCount || 0);
+                count.textContent = number + (number === 1 ? ' reservation' : ' reservations');
+                const start = point.dataset.chartStart || '';
+                const end = point.dataset.chartEnd || '';
+                date.textContent = start === end ? start : start + ' – ' + end;
+                tooltip.hidden = false;
+                const frame = container.getBoundingClientRect();
+                const target = point.getBoundingClientRect();
+                const width = tooltip.offsetWidth;
+                const height = tooltip.offsetHeight;
+                const centerX = target.left + target.width / 2 - frame.left;
+                const topY = target.top - frame.top - height - 14;
+                tooltip.style.left = Math.max(8, Math.min(centerX - width / 2, frame.width - width - 8)) + 'px';
+                tooltip.style.top = (topY >= 0 ? topY : target.bottom - frame.top + 12) + 'px';
+            }
+
+            function hide() { tooltip.hidden = true; }
+            container.querySelectorAll('[data-chart-point]').forEach(point => {
+                point.addEventListener('pointerenter', () => show(point));
+                point.addEventListener('pointerleave', hide);
+                point.addEventListener('focus', () => show(point));
+                point.addEventListener('blur', hide);
+            });
+            container.querySelector('.reservation-line-chart')?.addEventListener('scroll', hide, { passive: true });
+            window.addEventListener('resize', hide);
+        });
+    </script>
 }
