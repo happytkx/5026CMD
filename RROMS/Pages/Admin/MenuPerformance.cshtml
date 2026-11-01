@@ -80,21 +80,19 @@
         }
         else
         {
-            @{
-                var chartWidth = Math.Max(975, Model.Dishes.Count * 180);
-                var chartMax = Math.Max(4, Model.MaximumQuantity);
-                string ChartNumber(double value) =>
-                    value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
-                var points = Model.Dishes.Select((dish, index) => new
-                {
-                    Dish = dish,
-                    X = ChartNumber(Model.Dishes.Count == 1 ? chartWidth / 2d :
-                        95d + index * (chartWidth - 190d) / (Model.Dishes.Count - 1)),
-                    Y = ChartNumber(245d - dish.Quantity * 215d / chartMax),
-                    ShortName = dish.Name.Length <= 18 ? dish.Name : dish.Name[..16] + "…"
-                }).ToList();
-                var linePoints = string.Join(" ", points.Select(p => p.X + "," + p.Y));
-            }
+            var chartWidth = Math.Max(975, Model.Dishes.Count * 180);
+            var chartMax = Math.Max(4, Model.MaximumQuantity);
+            string ChartNumber(double value) =>
+                value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+            var points = Model.Dishes.Select((dish, index) => new
+            {
+                Dish = dish,
+                X = ChartNumber(Model.Dishes.Count == 1 ? chartWidth / 2d :
+                    95d + index * (chartWidth - 190d) / (Model.Dishes.Count - 1)),
+                Y = ChartNumber(245d - dish.Quantity * 215d / chartMax),
+                ShortName = dish.Name.Length <= 18 ? dish.Name : dish.Name[..16] + "…"
+            }).ToList();
+            var linePoints = string.Join(" ", points.Select(p => p.X + "," + p.Y));
             <h3>Dish popularity comparison</h3>
             <p class="muted">Each point represents a dish, arranged by the selected sort order. Hover or focus for quantity and sales. This compares dishes, not dates.</p>
             <div class="reservation-chart-interactive menu-rank-interactive">
