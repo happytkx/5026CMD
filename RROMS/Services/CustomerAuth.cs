@@ -34,7 +34,7 @@ public static class CustomerAuth
             new Claim("CustomerID", customer.CustomerID.ToString()),
             new Claim("SessionVersion", customer.SessionVersion.ToString()),
             new Claim(ClaimTypes.Name, customer.CustomerName),
-            new Claim(ClaimTypes.Role, customer.Role)
+            new Claim(ClaimTypes.Role, Customer.CustomerRole)
         };
         return http.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,

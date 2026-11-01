@@ -4,8 +4,17 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RROMS.Models
 {
-    public class MenuItem
+    public class MenuItem : IAdministratorManaged
     {
+        // Null for legacy/seeded records whose author is unknown.
+        public int? CreatedByAdministratorID { get; set; }
+        public Administrator? CreatedByAdministrator { get; set; }
+        public int? UpdatedByAdministratorID { get; set; }
+        public Administrator? UpdatedByAdministrator { get; set; }
+
+        public int MenuCategoryID { get; set; }
+        public MenuCategory MenuCategory { get; set; } = null!;
+
         [Key]
         public int MenuItemID
         {

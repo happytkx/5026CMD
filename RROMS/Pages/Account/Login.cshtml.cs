@@ -4,15 +4,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using RROMS.Models;
 using RROMS.Services;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace RROMS.Pages.Account;
 
 [EnableRateLimiting("staff-accounts")]
-public class LoginModel(CustomerAccountService accounts, StaffAccountService staffAccounts) : PageModel
+public class LoginModel(CustomerAccountService accounts, StaffAccountService staffAccounts, AdministratorAccountService administrators) : PageModel
 {
     [BindProperty, Required, EmailAddress, StringLength(100)]
     public string Email { get; set; } = "";
@@ -35,6 +32,12 @@ public class LoginModel(CustomerAccountService accounts, StaffAccountService sta
     {
         if (!ModelState.IsValid)
             return Page();
+        var administrator = await administrators.Authenticate(Email, Password);
+        if (administrator != null)
+        {
+            await InternalAccountAuth.SignInAsync(HttpContext, administrator, RememberMe);
+            return LocalRedirect(Destination(Customer.AdminRole));
+        }
         var customer = await accounts.Authenticate(Email, Password);
         if (customer != null)
         {
@@ -44,16 +47,7 @@ public class LoginModel(CustomerAccountService accounts, StaffAccountService sta
 
         var staff = await staffAccounts.Authenticate(Email, Password);
         if (staff == null) return Fail();
-        var identity = new ClaimsIdentity(new[] {
-            new Claim(ClaimTypes.NameIdentifier, "staff:" + staff.StaffAccountID),
-            new Claim("StaffAccountID", staff.StaffAccountID.ToString()),
-            new Claim(ClaimTypes.Name, staff.StaffName),
-            new Claim(ClaimTypes.Email, staff.Email),
-            new Claim(ClaimTypes.Role, Customer.StaffRole),
-            new Claim("SessionVersion", staff.SessionVersion.ToString())
-        }, CookieAuthenticationDefaults.AuthenticationScheme);
-        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
-            new ClaimsPrincipal(identity), new AuthenticationProperties { IsPersistent = RememberMe });
+        await InternalAccountAuth.SignInAsync(HttpContext, staff, RememberMe);
         return LocalRedirect(Destination(Customer.StaffRole));
     }
 

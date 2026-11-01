@@ -24,6 +24,8 @@ builder.Services.AddScoped<IPasswordHasher<Customer>, PasswordHasher<Customer>>(
 builder.Services.AddScoped<CustomerAccountService>();
 builder.Services.AddScoped<IPasswordHasher<StaffAccount>, PasswordHasher<StaffAccount>>();
 builder.Services.AddScoped<StaffAccountService>();
+builder.Services.AddScoped<IPasswordHasher<Administrator>, PasswordHasher<Administrator>>();
+builder.Services.AddScoped<AdministratorAccountService>();
 builder.Services.AddScoped<CustomerCookieEvents>();
 builder.Services.AddRateLimiter(options => {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;

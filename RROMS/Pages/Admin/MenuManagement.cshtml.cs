@@ -267,7 +267,7 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
         var previousName = category.Name;
         if (FilterCategory == previousName) FilterCategory = name;
         category.Name = name!;
-        foreach (var item in await db.MenuItems.Where(i => i.Category == previousName).ToListAsync())
+        foreach (var item in await db.MenuItems.Where(i => i.MenuCategoryID == categoryId).ToListAsync())
             item.Category = name!;
         await db.SaveChangesAsync();
         return Success($"Category renamed to {name}. Its dishes were moved automatically.");
@@ -277,7 +277,7 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
     {
         var category = await db.MenuCategories.FindAsync(categoryId);
         if (category is null) return NotFound();
-        if (await db.MenuItems.AnyAsync(i => i.Category == category.Name))
+        if (await db.MenuItems.AnyAsync(i => i.MenuCategoryID == categoryId))
             return Error("Move or remove the dishes in this category before deleting it.");
 
         db.MenuCategories.Remove(category);
@@ -510,6 +510,26 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
         item.IsAvailable = !item.IsAvailable;
         await db.SaveChangesAsync();
         return Success($"{item.Name} is now {(item.IsAvailable ? "available" : "unavailable")}.", item.MenuItemID);
+    }
+
+    public async Task<IActionResult> OnPostDeleteItemAsync(int itemId)
+    {
+        var item = await db.MenuItems.FindAsync(itemId);
+        if (item is null) return NotFound();
+        if (await db.OrderLines.AnyAsync(line => line.MenuItemID == itemId))
+            return Error("This dish is linked to orders and cannot be deleted. Use Disable to stop customers ordering it while preserving order history.");
+
+        db.MenuItems.Remove(item);
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is Microsoft.Data.SqlClient.SqlException { Number: 547 })
+        {
+            // An order may have referenced the dish after the initial check.
+            return Error("This dish is now linked to another record and cannot be deleted. Use Disable instead.");
+        }
+        return Success($"Dish {item.Name} deleted.");
     }
 
     private static bool ValidCategoryName(string? name) =>

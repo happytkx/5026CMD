@@ -8,13 +8,6 @@ namespace RROMS.Data
 {
     public static class DbInitializer
     {
-        // Development staff/administrator sign-ins; created only when demoAccounts is true and the email is not yet registered.
-        private static readonly (string Name, string Email, string Password, string Role)[] DemoAccounts =
-        [
-            ("Celeste Administrator", "admin@celeste.local", "Admin123!", Customer.AdminRole),
-            ("Restaurant Staff", "staff@celeste.local", "Staff123!", Customer.StaffRole)
-        ];
-
         public static void Initialize(ApplicationDbContext context, bool demoAccounts = false)
         {
             context.Database.Migrate();
@@ -124,22 +117,17 @@ namespace RROMS.Data
             // Seed demo staff and administrator accounts (Development only)
             if (demoAccounts)
             {
-                var hasher = new PasswordHasher<Customer>();
-
-                foreach (var (name, email, password, role) in DemoAccounts)
+                if (!context.Administrators.Any(a => a.Email == "admin@celeste.local"))
                 {
-                    if (context.Customers.Any(c => c.Email == email))
-                        continue;
-
-                    var account = new Customer
-                    {
-                        CustomerName = name,
-                        Email = email,
-                        Role = role,
-                        CreatedAt = ReservationPolicy.Now
-                    };
-                    account.PasswordHash = hasher.HashPassword(account, password);
-                    context.Customers.Add(account);
+                    var admin = new Administrator { Name = "Celeste Administrator", Email = "admin@celeste.local", NormalizedEmail = "ADMIN@CELESTE.LOCAL", IsDemo = true };
+                    admin.PasswordHash = new PasswordHasher<Administrator>().HashPassword(admin, "Admin123!");
+                    context.Administrators.Add(admin);
+                }
+                if (!context.StaffAccounts.Any(a => a.Email == "staff@celeste.local"))
+                {
+                    var staff = new StaffAccount { StaffName = "Restaurant Staff", Email = "staff@celeste.local", NormalizedEmail = "STAFF@CELESTE.LOCAL", IsDemo = true };
+                    staff.PasswordHash = new PasswordHasher<StaffAccount>().HashPassword(staff, "Staff123!");
+                    context.StaffAccounts.Add(staff);
                 }
 
                 context.SaveChanges();

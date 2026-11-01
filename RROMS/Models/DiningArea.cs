@@ -2,8 +2,14 @@
 using System.ComponentModel.DataAnnotations;
 namespace RROMS.Models;
 
-public class DiningArea
+public class DiningArea : IAdministratorManaged
 {
+        // Null for legacy/seeded records whose author is unknown.
+        public int? CreatedByAdministratorID { get; set; }
+        public Administrator? CreatedByAdministrator { get; set; }
+        public int? UpdatedByAdministratorID { get; set; }
+        public Administrator? UpdatedByAdministrator { get; set; }
+
     [Key]
     public int DiningAreaID
     {
