@@ -1305,6 +1305,8 @@ namespace RROMS.Migrations
                         .IsRequired();
 
                     b.Navigation("Notification");
+                });
+
             modelBuilder.Entity("RROMS.Models.StaffAccount", b =>
                 {
                     b.HasOne("RROMS.Models.Administrator", "CreatedByAdministrator")
