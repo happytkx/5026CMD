@@ -505,6 +505,8 @@ try
         Check(adminLogin.StatusCode == System.Net.HttpStatusCode.Redirect && adminLogin.Headers.Location!.ToString() == "/Admin", "Migrated administrator signs in through shared login");
         Check((await adminHttp.GetAsync("/Admin")).IsSuccessStatusCode && (await adminHttp.GetAsync("/Staff")).IsSuccessStatusCode, "Independent administrator retains admin and staff access");
         Check((await adminHttp.GetAsync("/Reservations/Create")).StatusCode == System.Net.HttpStatusCode.Redirect, "Administrator does not gain customer booking identity");
+        foreach (var mergedPage in new[] { "/Admin/MenuPerformance?handler=Export", "/Admin/Reports", "/Admin/PaymentCollections", "/Admin/Occupancy", "/Staff/Notifications" })
+            Check((await adminHttp.GetAsync(mergedPage)).IsSuccessStatusCode, "Merged page renders for administrator: " + mergedPage);
         var adminProfile = await (await adminHttp.GetAsync("/Account/Profile")).Content.ReadAsStringAsync();
         Check(adminProfile.Contains("legacy-admin@example.test") && !adminProfile.Contains("name=\"Input.PhoneNo\""), "Administrator profile reads own account without customer fields");
         var adminSave = await adminHttp.PostAsync("/Account/Profile", new FormUrlEncodedContent(new Dictionary<string,string> {
@@ -590,13 +592,15 @@ try
     await DevelopmentDataSeeder.Seed(db, new ConfigurationBuilder().Build());
     var demoCustomers = await db.Customers.CountAsync(c => c.IsDemo);
     var demoBookings = await db.Reservations.CountAsync(r => r.BookingReference.StartsWith("DEMO-RES-"));
-    Check(demoCustomers == 4 && demoBookings > 0 && await db.StaffAccounts.AnyAsync(s => s.IsDemo),
+    Check(demoCustomers >= 184 && await db.Customers.CountAsync(c => c.IsDemo && c.Email.StartsWith("guest") && c.Email.EndsWith("@celeste.example.test")) == 180 && demoBookings > 0 && await db.StaffAccounts.AnyAsync(s => s.IsDemo),
         "Development seed creates fictional staff, customers and bookings");
     var annualBookings = await db.Reservations.Include(r => r.Customer)
-        .Where(r => r.BookingReference.StartsWith("DEMO-RES-YEAR-")).ToListAsync();
-    Check(annualBookings.Select(r => r.ReservationDate.Month).Distinct().Count() == 12 &&
+        .Where(r => r.BookingReference.StartsWith("DEMO-RES-SEASON-")).ToListAsync();
+    Check(annualBookings.Any(r => r.ReservationDate < ReservationPolicy.Now.Date) &&
+        annualBookings.Any(r => r.ReservationDate > ReservationPolicy.Now.Date) &&
+        annualBookings.All(r => r.ReservationDate <= ReservationPolicy.Now.Date.AddDays(28)) &&
         annualBookings.All(r => r.ReservationDate.Year == ReservationPolicy.Now.Year && r.Customer.IsDemo),
-        "Annual reservation samples cover every month and only demo customers");
+        "Seasonal reservation samples cover past and upcoming visits using only demo customers");
     Check(annualBookings.All(r => r.CreatedDate <= ReservationPolicy.Now) &&
         annualBookings.Where(r => r.ReservationDate.Add(r.StartTime) > ReservationPolicy.Now).All(r => r.ReservationStatus == "Confirmed"),
         "Annual bookings have valid creation dates and confirmed future visits");
