@@ -2159,6 +2159,23 @@ form.card.mybill-selector {
 .menu-trend-axis-tick { font-size: 13px; }
 
 /* Daily payment collection trend, in the same style as reservation analytics. */
+/* Consolidated dashboard menu panel: table uses the full width, with one action. */
+.dashboard-popular-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px 24px;
+    margin-bottom: 18px;
+}
+.dashboard-popular-heading > div { flex: 1 1 360px; min-width: 0; }
+.dashboard-popular-heading h2 { margin-bottom: 10px; }
+.dashboard-popular-heading p { margin: 0; }
+.dashboard-popular-heading > .button { flex: 0 0 auto; margin: 0; text-align: center; }
+@media (max-width: 640px) {
+    .dashboard-popular-heading > .button { width: 100%; }
+}
+
 .payment-collection-trend { position: relative; padding: 18px 0 12px; }
 .payment-collection-trend > .muted { margin: 0 0 14px; font-size: 13px; }
 .payment-trend-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; margin-bottom: 16px; color: var(--muted); font-size: 13px; }

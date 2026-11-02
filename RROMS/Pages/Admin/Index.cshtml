@@ -57,44 +57,42 @@
         <p>All customer accounts</p>
     </section>
 </div>
-<div class="grid">
-    <section class="card">
-        <h2>Popular menu items</h2>
-        <p class="muted">Quantity ordered within the selected period.</p>
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Dish</th>
-                        <th>Quantity</th>
-                        <th>Gross sales</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var x in Model.Popular)
-                    {
-                        <tr>
-                            <td>@x.Name</td>
-                            <td>@x.Quantity</td>
-                            <td>RM @x.Sales.ToString("0.00")</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-            @if (!Model.Popular.Any())
-            {
-                <p class="empty-state">No orders in this period.</p>
-            }
+<section class="card dashboard-popular-menu">
+    <div class="dashboard-popular-heading">
+        <div>
+            <h2>Popular menu items</h2>
+            <p class="muted">Top dishes by quantity ordered within the selected period. Sales use the original order-line amounts.</p>
         </div>
-    </section>
-    <section class="card">
-        <p class="eyebrow">MENU OPERATIONS</p>
-        <h2>Manage the Céleste menu</h2>
-        <p class="muted">Create and edit categories and dishes, set prices, and control availability for customers.</p>
-        <p>All changes are saved to the live restaurant menu. Previously placed orders retain their original dish names and prices.</p>
-        <a class="button" asp-page="/Admin/MenuManagement">Open Menu Management</a>
-    </section>
-</div>
+        <a class="button" asp-page="/Admin/MenuManagement"
+           asp-route-StartDate="@Model.From.ToString("yyyy-MM-dd")"
+           asp-route-EndDate="@Model.To.ToString("yyyy-MM-dd")">Open Menu Management</a>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Dish</th>
+                    <th>Quantity</th>
+                    <th>Gross sales</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var x in Model.Popular)
+                {
+                    <tr>
+                        <td>@x.Name</td>
+                        <td>@x.Quantity</td>
+                        <td>RM @x.Sales.ToString("N2")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (!Model.Popular.Any())
+        {
+            <p class="empty-state">No orders in this period.</p>
+        }
+    </div>
+</section>
 @if (Model.Insights is { } insights)
 {
     <section class="staff-stats">
