@@ -151,8 +151,13 @@ else if (!Model.OrderLoadTimedOut)
                                 {
                                     <p class="order-notes">Special request: @o.Notes</p>
                                 }
+                                @{
+                                    var canCancelAnyDish = o.Status != "Cancelled" &&
+                                        booking.ReservationStatus == "Seated" && !isPaid &&
+                                        o.Lines.Any(l => !l.IsCancelled && OrdersModel.CanCancelDish(l.KitchenStatus));
+                                }
                                 <div class="table-wrap">
-                                    <table class="order-detail-table staff-detail-table">
+                                    <table class="order-detail-table staff-detail-table @(canCancelAnyDish ? "" : "no-dish-actions")">
                                         <thead>
                                             <tr>
                                                 <th>Dish</th>
@@ -160,7 +165,10 @@ else if (!Model.OrderLoadTimedOut)
                                                 <th>Unit Price</th>
                                                 <th>Total Price</th>
                                                 <th>Status</th>
-                                                <th>Action</th>
+                                                @if (canCancelAnyDish)
+                                                {
+                                                    <th>Cancel dish</th>
+                                                }
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -173,20 +181,23 @@ else if (!Model.OrderLoadTimedOut)
                                                 <td>RM @line.UnitPrice.ToString("N2")</td>
                                                 <td>@(cancelled ? "Excluded" : $"RM {line.LineTotal:N2}")</td>
                                                 <td><span class="@(cancelled ? "dish-cancelled" : "dish-active")">@(cancelled ? "Cancelled" : line.KitchenStatus)</span></td>
-                                                <td>
-                                                    @if (!cancelled && OrdersModel.CanCancelDish(line.KitchenStatus) && booking.ReservationStatus == "Seated" && !isPaid)
-                                                    {
-                                                        <form method="post" asp-page-handler="CancelDish" class="dish-cancel-form"
-                                                              onsubmit="return confirm('Cancel this dish and remove its cost from the bill?');">
-                                                            <input type="hidden" name="orderLineId" value="@line.OrderLineID" />
-                                                            <button type="submit" class="dish-cancel-button" aria-label="Cancel @line.Quantity × @line.ItemName">Cancel Dish</button>
-                                                        </form>
-                                                    }
-                                                    else
-                                                    {
-                                                        <small class="muted">@(cancelled ? "Cancelled" : "Unavailable")</small>
-                                                    }
-                                                </td>
+                                                @if (canCancelAnyDish)
+                                                {
+                                                    <td>
+                                                        @if (!cancelled && OrdersModel.CanCancelDish(line.KitchenStatus))
+                                                        {
+                                                            <form method="post" asp-page-handler="CancelDish" class="dish-cancel-form"
+                                                                  onsubmit="return confirm('Cancel this dish and remove its cost from the bill?');">
+                                                                <input type="hidden" name="orderLineId" value="@line.OrderLineID" />
+                                                                <button type="submit" class="dish-cancel-button" aria-label="Cancel @line.Quantity × @line.ItemName">Cancel Dish</button>
+                                                            </form>
+                                                        }
+                                                        else
+                                                        {
+                                                            <small class="muted">@(cancelled ? "Already cancelled" : line.KitchenStatus == "Served" ? "Already served" : "Cannot cancel")</small>
+                                                        }
+                                                    </td>
+                                                }
                                             </tr>
                                         }
                                         </tbody>

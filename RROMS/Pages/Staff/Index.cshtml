@@ -116,9 +116,13 @@
                             @r.TableID
                         </td>
                         <td class="staff-reservation-table-actions">
-                            <a class="button secondary staff-reservation-manage-link"
-                               asp-page="/Reservations/Details" asp-route-id="@r.ReservationID">
-                                Manage
+                            @{
+                                var canManageReservation = r.ReservationStatus is "Pending" or "Confirmed";
+                            }
+                            <a class="button @(canManageReservation ? "" : "secondary") staff-reservation-manage-link"
+                               asp-page="/Reservations/Details" asp-route-id="@r.ReservationID"
+                               aria-label="@(canManageReservation ? "Manage" : "View details for") reservation @r.BookingReference">
+                                @(canManageReservation ? "Manage" : "View details")
                             </a>
                             @if (r.ReservationStatus == "Pending")
                             {

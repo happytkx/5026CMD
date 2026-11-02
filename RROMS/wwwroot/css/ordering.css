@@ -1208,6 +1208,12 @@ form.card.mybill-selector {
 .staff-detail-table th:nth-child(4) { width: 16%; }
 .staff-detail-table th:nth-child(5) { width: 16%; }
 .staff-detail-table th:nth-child(6) { width: 18%; }
+/* All dishes served/closed: omit the unusable cancellation column and rebalance widths. */
+.staff-detail-table.no-dish-actions th:nth-child(1) { width: 32%; }
+.staff-detail-table.no-dish-actions th:nth-child(2) { width: 10%; }
+.staff-detail-table.no-dish-actions th:nth-child(3) { width: 19%; }
+.staff-detail-table.no-dish-actions th:nth-child(4) { width: 19%; }
+.staff-detail-table.no-dish-actions th:nth-child(5) { width: 20%; }
 .order-detail-table th:nth-child(n+2),
 .order-detail-table td:nth-child(n+2) { text-align: center; }
 .order-detail-table td:first-child { overflow-wrap: anywhere; }
@@ -2349,12 +2355,14 @@ form.card.mybill-selector {
 .payment-trend-tooltip [data-payment-total] { color: var(--ink); font-weight: 700; }
 
 /* Staff reservation management: make the coursework actions visible and consistent. */
-.staff-reservation-table-actions { min-width: 190px; }
+.staff-reservation-table-actions { min-width: 190px; vertical-align: top; }
 .staff-reservation-manage-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    min-width: 122px;
     min-height: 40px;
+    margin: 0;
     padding: 8px 16px;
     white-space: nowrap;
 }

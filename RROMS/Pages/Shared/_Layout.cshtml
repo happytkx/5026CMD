@@ -92,13 +92,6 @@
                     <a class="@(currentPage == "/Staff/Index" ? "active" : "")" asp-page="/Staff/Index">
                         Daily Reservations
                     </a>
-                    <a class="@(currentPage == "/Staff/Notifications" ? "active" : "")" asp-page="/Staff/Notifications">
-                        Notifications
-                        @if (unreadStaffNotifications > 0)
-                        {
-                            <span class="staff-alert-count">@(unreadStaffNotifications > 99 ? "99+" : unreadStaffNotifications.ToString())</span>
-                        }
-                    </a>
                     <a class="@(currentPage == "/Staff/Seating" ? "active" : "")" asp-page="/Staff/Seating">
                         Seating &amp; Allocation
                     </a>
@@ -107,6 +100,13 @@
                     </a>
                     <a class="@(currentPage == "/Staff/Billing" || currentPage == "/Staff/BillDetails" || currentPage == "/Staff/BillingHistory" || currentPage == "/Staff/PaymentReceipt" ? "active" : "")" asp-page="/Staff/Billing">
                         Billing &amp; Checkout
+                    </a>
+                    <a class="@(currentPage == "/Staff/Notifications" ? "active" : "")" asp-page="/Staff/Notifications">
+                        Notifications
+                        @if (unreadStaffNotifications > 0)
+                        {
+                            <span class="staff-alert-count">@(unreadStaffNotifications > 99 ? "99+" : unreadStaffNotifications.ToString())</span>
+                        }
                     </a>
                 </nav>
                 <p class="sidebar-label sidebar-group-divider">QUICK LINKS</p>
