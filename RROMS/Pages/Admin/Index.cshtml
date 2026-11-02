@@ -154,7 +154,7 @@
                 <p class="muted">To review: @string.Join(", ", Model.ZeroOrderDishNames.Take(3))@(Model.ZeroOrderDishCount > 3 ? "…" : "")</p>
             }
             <p class="muted">Figures exclude cancelled orders and dishes. Zero-order dishes are currently available menu items.</p>
-            <a class="button secondary" asp-page="/Admin/MenuManagement"
+            <a class="button" asp-page="/Admin/MenuManagement"
                asp-route-StartDate="@Model.From.ToString("yyyy-MM-dd")"
                asp-route-EndDate="@Model.To.ToString("yyyy-MM-dd")">Open Menu Workspace</a>
         </section>
