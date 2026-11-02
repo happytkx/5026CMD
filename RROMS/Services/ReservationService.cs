@@ -29,7 +29,7 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
             throw new InvalidOperationException("Choose a future half-hour slot within opening hours. Indoor and Outdoor require two hours before closing.");
         return end;
     }
-
+    x
     public async Task<List<DateTime>> Slots(int size, string area, DateTime date, int? excluding = null)
     {
         await Expire();
