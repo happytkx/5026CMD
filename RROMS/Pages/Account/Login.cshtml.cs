@@ -1,4 +1,4 @@
-// Email and password sign-in for customers, staff and administrators, with a temporary lockout after repeated failures.
+// Customer-only sign-in. Staff and administrators use the separate internal login page.
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -8,23 +8,17 @@ using Microsoft.AspNetCore.RateLimiting;
 
 namespace RROMS.Pages.Account;
 
-[EnableRateLimiting("staff-accounts")]
-public class LoginModel(CustomerAccountService accounts, StaffAccountService staffAccounts, AdministratorAccountService administrators) : PageModel
+[EnableRateLimiting("accounts")]
+public class LoginModel(CustomerAccountService accounts) : PageModel
 {
     [BindProperty, Required, EmailAddress, StringLength(100)]
     public string Email { get; set; } = "";
     [BindProperty, Required, DataType(DataType.Password)]
     public string Password { get; set; } = "";
     [BindProperty]
-    public bool RememberMe
-    {
-        get; set;
-    }
+    public bool RememberMe { get; set; }
     [BindProperty(SupportsGet = true)]
-    public string? ReturnUrl
-    {
-        get; set;
-    }
+    public string? ReturnUrl { get; set; }
 
     public IActionResult OnGet() => Page();
 
@@ -32,31 +26,17 @@ public class LoginModel(CustomerAccountService accounts, StaffAccountService sta
     {
         if (!ModelState.IsValid)
             return Page();
-        var administrator = await administrators.Authenticate(Email, Password);
-        if (administrator != null)
-        {
-            await InternalAccountAuth.SignInAsync(HttpContext, administrator, RememberMe);
-            return LocalRedirect(Destination(Customer.AdminRole));
-        }
+
         var customer = await accounts.Authenticate(Email, Password);
-        if (customer != null)
+        if (customer is null)
         {
-            await CustomerAuth.SignInAsync(HttpContext, customer, RememberMe);
-            return LocalRedirect(Destination(customer.Role));
+            ModelState.AddModelError("", "Invalid email or password.");
+            return Page();
         }
 
-        var staff = await staffAccounts.Authenticate(Email, Password);
-        if (staff == null) return Fail();
-        await InternalAccountAuth.SignInAsync(HttpContext, staff, RememberMe);
-        return LocalRedirect(Destination(Customer.StaffRole));
+        await CustomerAuth.SignInAsync(HttpContext, customer, RememberMe);
+        return LocalRedirect(Url.IsLocalUrl(ReturnUrl)
+            ? ReturnUrl!
+            : Url.Page(CustomerAuth.LandingPage(Customer.CustomerRole))!);
     }
-
-    private IActionResult Fail()
-    {
-        ModelState.AddModelError("", "Invalid email or password.");
-        return Page();
-    }
-
-    private string Destination(string role) =>
-        Url.IsLocalUrl(ReturnUrl) ? ReturnUrl! : Url.Page(CustomerAuth.LandingPage(role))!;
 }

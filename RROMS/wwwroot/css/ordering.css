@@ -18,6 +18,26 @@
     margin-top: 28px;
 }
 
+/* Keep customer registration and staff/admin access at opposite sides of the sign-in card. */
+.auth-login-footer
+{
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    margin-top: 14px;
+}
+.auth-login-footer p
+{
+    margin: 0;
+}
+.auth-login-footer .auth-switch-link
+{
+    margin-left: auto;
+    text-align: right;
+}
+
 .announcement
 {
     margin: 0 0 24px;
