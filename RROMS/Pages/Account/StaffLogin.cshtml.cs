@@ -30,6 +30,7 @@ public class StaffLoginModel(StaffAccountService staffAccounts, AdministratorAcc
         var administrator = await administrators.Authenticate(Email, Password);
         if (administrator is not null)
         {
+            Basket.Clear(HttpContext.Session);
             await InternalAccountAuth.SignInAsync(HttpContext, administrator, RememberMe);
             return LocalRedirect(Destination(Customer.AdminRole));
         }
@@ -41,6 +42,7 @@ public class StaffLoginModel(StaffAccountService staffAccounts, AdministratorAcc
             return Page();
         }
 
+        Basket.Clear(HttpContext.Session);
         await InternalAccountAuth.SignInAsync(HttpContext, staff, RememberMe);
         return LocalRedirect(Destination(Customer.StaffRole));
     }

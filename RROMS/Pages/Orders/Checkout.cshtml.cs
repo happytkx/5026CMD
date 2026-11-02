@@ -10,7 +10,7 @@ using RROMS.Services;
 
 namespace RROMS.Pages.Orders;
 
-[Authorize]
+[Authorize(Policy = "Customer")]
 public class CheckoutModel(ApplicationDbContext db) : PageModel
 {
     // Service tax added to dine-in orders.
@@ -40,8 +40,7 @@ public class CheckoutModel(ApplicationDbContext db) : PageModel
         var basket = Basket.Read(HttpContext.Session);
         var items = await db.MenuItems.AsNoTracking().Where(i => basket.Keys.Contains(i.MenuItemID) && i.IsAvailable).ToListAsync();
         Lines = items.Select(i => new BasketLine(i.MenuItemID, i.Name, i.Price, Math.Clamp(basket[i.MenuItemID], 1, Basket.MaxQuantity))).ToList();
-        EligibleReservations = await db.Reservations.AsNoTracking()
-            .Where(r => r.CustomerID == CustomerId && r.ReservationStatus == "Seated")
+        EligibleReservations = await DineInOrdering.EligibleReservations(db, CustomerId)
             .OrderByDescending(r => r.ReservationDate).ThenByDescending(r => r.StartTime)
             .ToListAsync();
         if (ReservationId == 0 && EligibleReservations.Count > 0)
@@ -89,10 +88,13 @@ public class CheckoutModel(ApplicationDbContext db) : PageModel
         }
         // Re-checked in the database: ownership and the Seated status are never trusted from the form.
         var reservation = await db.Reservations.AsNoTracking()
-            .FirstOrDefaultAsync(r => r.ReservationID == ReservationId && r.CustomerID == CustomerId && r.ReservationStatus == "Seated");
+            .FirstOrDefaultAsync(r => r.ReservationID == ReservationId &&
+                                      r.CustomerID == CustomerId &&
+                                      r.ReservationStatus == "Seated" &&
+                                      r.ReservationDate == ReservationPolicy.Now.Date);
         if (reservation == null)
         {
-            TempData["Error"] = "Dine-in orders can only be placed through your active reservation after staff have checked you in and marked you Seated.";
+            TempData["Error"] = "Dine-in orders require your reservation for today to be checked in and marked Seated.";
             return RedirectToPage();
         }
         // A paid dining session is closed to new dishes, even if staff have

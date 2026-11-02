@@ -9,7 +9,7 @@ using RROMS.Services;
 
 namespace RROMS.Pages.Orders;
 
-[Authorize]
+[Authorize(Policy = "Customer")]
 public class IndexModel(ApplicationDbContext db) : PageModel
 {
     public List<CustomerOrder> Items { get; set; } = [];

@@ -12,6 +12,7 @@ public class MenuModel(ApplicationDbContext db) : PageModel
 {
     public List<MenuItem> Items { get; set; } = [];
     public List<string> Categories { get; set; } = [];
+    public bool CanOrder { get; private set; }
     [BindProperty(SupportsGet = true)]
     public string? Q
     {
@@ -35,6 +36,8 @@ public class MenuModel(ApplicationDbContext db) : PageModel
 
     public async Task OnGetAsync()
     {
+        CanOrder = User.IsInRole(Customer.CustomerRole) &&
+            await DineInOrdering.EligibleReservations(db, ReservationIdentity.CustomerId(User)).AnyAsync();
         var query = db.MenuItems.AsNoTracking().Where(i => i.IsAvailable);
         if (!string.IsNullOrWhiteSpace(Q))
             query = query.Where(i => i.Name.Contains(Q) || i.Description.Contains(Q));
@@ -50,9 +53,17 @@ public class MenuModel(ApplicationDbContext db) : PageModel
 
     public async Task<IActionResult> OnPostAddAsync(int itemId)
     {
-        // Adding to the basket requires a signed-in account.
         if (User.Identity?.IsAuthenticated != true)
             return Challenge();
+        // Internal personnel can browse the menu but cannot order using their staff role.
+        if (!User.IsInRole(Customer.CustomerRole))
+            return RedirectToPage("/Account/Denied", new { ReturnUrl = Url.Page("/Menu") });
+        // Re-check on POST so a crafted request cannot bypass the Seated requirement.
+        if (!await DineInOrdering.EligibleReservations(db, ReservationIdentity.CustomerId(User)).AnyAsync())
+        {
+            TempData["Error"] = "Dishes can be added only after staff check you in for today's reservation and mark you Seated, while the bill is still open.";
+            return RedirectToPage(new { q = Q, category = Category, dietary = Dietary, protein = Protein });
+        }
         var item = await db.MenuItems.AsNoTracking().FirstOrDefaultAsync(i => i.MenuItemID == itemId && i.IsAvailable);
         if (item is null)
         {
