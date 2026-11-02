@@ -2347,3 +2347,67 @@ form.card.mybill-selector {
 .payment-trend-tooltip[hidden] { display: none; }
 .payment-trend-tooltip span { color: var(--muted); }
 .payment-trend-tooltip [data-payment-total] { color: var(--ink); font-weight: 700; }
+
+/* Staff reservation management: make the coursework actions visible and consistent. */
+.staff-reservation-table-actions { min-width: 190px; }
+.staff-reservation-manage-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 8px 16px;
+    white-space: nowrap;
+}
+.staff-reservation-shortcut {
+    display: block;
+    width: fit-content;
+    margin-top: 9px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #626849;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.staff-reservation-shortcut:hover,
+.staff-reservation-shortcut:focus-visible { color: #3e4634; }
+.staff-booking-management { margin: 20px 0 24px; }
+.staff-booking-management h2 { margin: 5px 0 10px; }
+.staff-booking-management > .muted { margin: 10px 0 0; }
+.staff-booking-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 18px;
+}
+.staff-booking-actions > form { margin: 0; }
+.staff-booking-actions .button,
+.staff-booking-actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    margin: 0;
+    padding: 12px 18px;
+}
+.staff-booking-actions .quiet.danger {
+    border: 1px solid #a04b4b;
+    background: transparent;
+    color: #a04b4b;
+}
+.staff-booking-actions .quiet.danger:hover,
+.staff-booking-actions .quiet.danger:focus-visible {
+    background: #fcf2f0;
+    color: #8a3434;
+}
+.staff-action-unavailable {
+    color: #77736a;
+    font-size: 13px;
+    max-width: 330px;
+}
+@media (max-width: 640px) {
+    .staff-booking-actions { align-items: stretch; flex-direction: column; }
+    .staff-booking-actions > form,
+    .staff-booking-actions .button,
+    .staff-booking-actions button { width: 100%; }
+}

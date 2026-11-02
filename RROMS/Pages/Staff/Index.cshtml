@@ -6,7 +6,7 @@
 }
 <p class="eyebrow">YOUR SERVICE OVERVIEW</p>
 <h1>Daily Reservations</h1>
-<p>Manage arrivals, guest preferences, seating and live reservation statuses.</p>
+<p>View daily bookings, manage deposit confirmation, rescheduling and cancellation, and coordinate guest arrivals.</p>
 <section class="staff-stats">
     <article class="card">
         <small>TOTAL RESERVATIONS</small>
@@ -44,7 +44,7 @@
 </section>
 <section class="card">
     <h3>Reservation Schedule</h3>
-    <p>Review bookings and open a reservation for seating or check-in.</p>
+    <p>Choose a service date, filter bookings, then open a reservation to manage it. Confirmation requires the RM50-per-guest deposit.</p>
     <form method="get" class="staff-search">
         <input asp-for="Search" aria-label="Search reference or guest name" placeholder="Search reference or guest name…"/>
         <select asp-for="Status" aria-label="Reservation status">
@@ -83,8 +83,7 @@
                     <th>
                         Assigned
                     </th>
-                    <th>
-                    </th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -116,10 +115,26 @@
                         <td>
                             @r.TableID
                         </td>
-                        <td>
-                            <a asp-page="/Reservations/Details" asp-route-id="@r.ReservationID">
-                                View →
+                        <td class="staff-reservation-table-actions">
+                            <a class="button secondary staff-reservation-manage-link"
+                               asp-page="/Reservations/Details" asp-route-id="@r.ReservationID">
+                                Manage
                             </a>
+                            @if (r.ReservationStatus == "Pending")
+                            {
+                                <a class="staff-reservation-shortcut" asp-page="/Reservations/Details"
+                                   asp-route-id="@r.ReservationID" asp-route-View="Payment">
+                                    Collect deposit &amp; confirm
+                                </a>
+                            }
+                            else if (r.ReservationStatus == "Confirmed" &&
+                                     ReservationPolicy.CanModify(r.OriginalStart, r.ModificationCount, ReservationPolicy.Now))
+                            {
+                                <a class="staff-reservation-shortcut" asp-page="/Reservations/Details"
+                                   asp-route-id="@r.ReservationID" asp-route-View="Modify">
+                                    Reschedule
+                                </a>
+                            }
                         </td>
                     </tr>
                 }
