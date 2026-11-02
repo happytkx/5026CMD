@@ -32,7 +32,7 @@
         }
     </div>
     <figure>
-        <img src="~/images/celeste-indoor-2.png" alt="An intimate dining room with warm architectural lighting and elegantly set tables" fetchpriority="high" />
+        <img src="~/images/celeste-indoor.png" alt="An intimate dining room with warm architectural lighting and elegantly set tables" fetchpriority="high" />
     </figure>
 </section>
 <section id="dining-spaces" class="dining-spaces">
@@ -209,14 +209,8 @@
             {
                 <article class="dish">
                     <div class="dish-art">
-                        @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
-                        {
-                            <img src="@item.ImageUrl" alt="@item.Name" loading="lazy" />
-                        }
-                        else
-                        {
-                            <span aria-hidden="true">✳</span>
-                        }
+                        <img src="@MenuImages.Url(item)" alt="@MenuImages.Alt(item)" loading="lazy"
+                             onerror="this.onerror=null; this.src='/images/celeste-indoor.png'; this.alt='Dining at Céleste';" />
                     </div>
                     <div class="dish-body">
                         <h3>@item.Name</h3>
