@@ -17,6 +17,14 @@ public record HourlyArrival(
     int Hour,
     int ReservationCount);
 
+public record WeeklyBusyHour(
+    int DayIndex,
+    int Hour,
+    int DaysSampled,
+    decimal? AverageUtilisationPercent,
+    decimal? AverageOccupiedTables,
+    decimal? AverageArrivals);
+
 public record OccupancyReport(
     DateTime StartDate,
     DateTime EndDate,
@@ -28,7 +36,10 @@ public record OccupancyReport(
     decimal AvailableHours,
     decimal UtilisationPercent,
     List<AreaUtilisation> Areas,
-    List<HourlyArrival> ArrivalHours);
+    List<HourlyArrival> ArrivalHours)
+{
+    public List<WeeklyBusyHour> WeeklyBusyHours { get; init; } = [];
+}
 
 public class OccupancyReportingService
 {
@@ -205,7 +216,79 @@ public class OccupancyReportingService
             totalAvailable,
             overallPercentage,
             areaResults,
-            arrivalHours);
+            arrivalHours)
+        {
+            WeeklyBusyHours = CalculateWeeklyBusyHours(bookings, tables.Count, from, days, opening, closing)
+        };
+    }
+
+    // A Google-style weekly view uses average scheduled table occupancy during
+    // each hour, not the number of reservations starting that hour.
+    // Each weekday is divided by how often it appears in the reporting period.
+    private static List<WeeklyBusyHour> CalculateWeeklyBusyHours(
+        List<BookingSlot> bookings,
+        int tableCount,
+        DateTime from,
+        int days,
+        TimeSpan opening,
+        TimeSpan closing)
+    {
+        var sampledDays = new int[7];
+        for (var offset = 0; offset < days; offset++)
+        {
+            var dayIndex = ((int)from.AddDays(offset).DayOfWeek + 6) % 7;
+            sampledDays[dayIndex]++;
+        }
+
+        var bookingsByWeekday = bookings
+            .GroupBy(b => ((int)b.Date.DayOfWeek + 6) % 7)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var result = new List<WeeklyBusyHour>();
+        var firstHour = opening.Hours;
+        var lastHourExclusive = (int)Math.Ceiling(closing.TotalHours);
+
+        for (var dayIndex = 0; dayIndex < 7; dayIndex++)
+        {
+            var samples = sampledDays[dayIndex];
+            var weekdayBookings = bookingsByWeekday.TryGetValue(dayIndex, out var matching)
+                ? matching : new List<BookingSlot>();
+
+            for (var hour = firstHour; hour < lastHourExclusive; hour++)
+            {
+                var hourStart = TimeSpan.FromHours(hour);
+                var hourEnd = TimeSpan.FromHours(hour + 1);
+                var slotStart = hourStart > opening ? hourStart : opening;
+                var slotEnd = hourEnd < closing ? hourEnd : closing;
+                if (slotEnd <= slotStart)
+                    continue;
+
+                if (samples == 0 || tableCount == 0)
+                {
+                    result.Add(new WeeklyBusyHour(dayIndex, hour, samples, null, null, null));
+                    continue;
+                }
+
+                var hoursInSlot = (decimal)(slotEnd - slotStart).TotalHours;
+                var occupiedHours = CalculateBookedHours(weekdayBookings, slotStart, slotEnd);
+                var availableHours = tableCount * samples * hoursInSlot;
+                var occupancy = availableHours == 0m ? 0m
+                    : Math.Round(occupiedHours / availableHours * 100m, 1);
+                var averageOccupiedTables = Math.Round(
+                    occupiedHours / (samples * hoursInSlot), 1);
+                var arrivalCount = weekdayBookings.Count(b =>
+                    b.Start >= slotStart && b.Start < slotEnd);
+                var averageArrivals = Math.Round(arrivalCount / (decimal)samples, 1);
+
+                result.Add(new WeeklyBusyHour(
+                    dayIndex, hour, samples,
+                    Math.Min(100m, occupancy),
+                    averageOccupiedTables,
+                    averageArrivals));
+            }
+        }
+
+        return result;
     }
 
     // Count reserved hours without double-counting

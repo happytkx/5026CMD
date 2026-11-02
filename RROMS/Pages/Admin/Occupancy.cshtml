@@ -97,6 +97,103 @@
         </article>
     </section>
 
+    <section class="card weekly-busy-panel" data-weekly-busy>
+        <div class="weekly-busy-heading">
+            <div>
+                <p class="eyebrow">WEEKLY PATTERNS</p>
+                <h2>Typical Busy Times</h2>
+                <p class="muted">Average scheduled table occupancy by weekday and hour, using the selected reporting dates.</p>
+            </div>
+            <div class="weekly-busy-toggle" role="group" aria-label="Busy times metric">
+                <button type="button" class="is-active" data-busy-mode="occupancy" aria-pressed="true">Table occupancy</button>
+                <button type="button" data-busy-mode="arrivals" aria-pressed="false">Reservation arrivals</button>
+            </div>
+        </div>
+
+        @if (report.Areas.Count == 0)
+        {
+            <p class="empty-state">Configure restaurant tables to display scheduled busy times.</p>
+        }
+        else
+        {
+            var weekdays = new[] { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
+            var hours = report.WeeklyBusyHours.Select(h => h.Hour).Distinct().OrderBy(h => h).ToList();
+            var maximumArrivals = report.WeeklyBusyHours.Max(h => h.AverageArrivals ?? 0m);
+            <p class="muted weekly-busy-caption">
+                Darker cells indicate higher scheduled table use. Choose a metric, then hover or focus on a cell for its detailed averages.
+            </p>
+            <div class="weekly-busy-scroll">
+                <table class="weekly-busy-table" aria-label="Weekly average scheduled restaurant busyness by hour">
+                    <thead>
+                        <tr>
+                            <th scope="col">Day</th>
+                            @foreach (var hour in hours)
+                            {
+                                <th scope="col">@(new DateTime(2000, 1, 1).AddHours(hour).ToString("h tt"))</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var dayIndex = 0; dayIndex < 7; dayIndex++)
+                        {
+                            <tr>
+                                <th scope="row">@weekdays[dayIndex]</th>
+                                @foreach (var slot in report.WeeklyBusyHours.Where(h => h.DayIndex == dayIndex).OrderBy(h => h.Hour))
+                                {
+                                    var hasData = slot.AverageUtilisationPercent.HasValue;
+                                    var utilisation = slot.AverageUtilisationPercent ?? 0m;
+                                    var arrivalAverage = slot.AverageArrivals ?? 0m;
+                                    var occupancyLevel = hasData ? Math.Clamp((int)Math.Ceiling(utilisation / 20m), 0, 5) : -1;
+                                    var arrivalLevel = hasData && maximumArrivals > 0m
+                                        ? Math.Clamp((int)Math.Ceiling(arrivalAverage / maximumArrivals * 5m), 0, 5)
+                                        : (hasData ? 0 : -1);
+                                    var startLabel = new DateTime(2000, 1, 1).AddHours(slot.Hour).ToString("h:mm tt");
+                                    var endLabel = new DateTime(2000, 1, 1).AddHours(slot.Hour + 1).ToString("h:mm tt");
+                                    var intervalLabel = $"{startLabel}–{endLabel}";
+                                    var details = $"{weekdays[dayIndex]} {intervalLabel}: {utilisation:N1}% average table occupancy; {slot.AverageOccupiedTables:N1} occupied tables; {arrivalAverage:N1} arrivals per day, based on {slot.DaysSampled} sampled days.";
+                                    <td>
+                                        <button type="button" class="weekly-busy-cell heat-@occupancyLevel"
+                                                data-weekly-cell
+                                                data-weekday="@weekdays[dayIndex]"
+                                                data-time="@intervalLabel"
+                                                data-samples="@slot.DaysSampled"
+                                                data-occupancy="@utilisation.ToString("N1")"
+                                                data-tables="@slot.AverageOccupiedTables?.ToString("N1")"
+                                                data-arrivals="@arrivalAverage.ToString("N1")"
+                                                data-occupancy-level="@occupancyLevel"
+                                                data-arrival-level="@arrivalLevel"
+                                                title="@(hasData ? details : $"{weekdays[dayIndex]}: No dates in this reporting period.")"
+                                                aria-label="@(hasData ? details : $"{weekdays[dayIndex]}: No dates in this reporting period.")"
+                                                disabled="@(!hasData)">
+                                            @(hasData ? utilisation.ToString("N0") + "%" : "—")
+                                        </button>
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="weekly-busy-legend">
+                <span>Quiet</span>
+                @for (var level = 0; level <= 5; level++)
+                {
+                    <span class="weekly-busy-swatch heat-@level" aria-hidden="true"></span>
+                }
+                <span>Busy</span>
+                <span class="muted" data-weekly-legend>Percentage of scheduled table capacity occupied</span>
+            </div>
+            <div class="weekly-busy-detail" data-weekly-detail>
+                <strong data-weekly-detail-title>Select a time to view its details</strong>
+                <span data-weekly-detail-value>Hover over a weekday and hour, or focus on a cell using the keyboard.</span>
+            </div>
+            <p class="muted weekly-busy-footnote">
+                Weekdays are averaged across their occurrences in the selected period, so a five-Monday period is comparable to a four-Tuesday period.
+                Cells marked “—” have no matching dates. Figures use scheduled reservation times, not live check-ins.
+            </p>
+        }
+    </section>
+
     <section class="card">
         <h2>Dining Area Performance</h2>
 
@@ -146,8 +243,8 @@
         }
     </section>
 
-    <section class="card report-chart">
-        <h2>Peak Reservation Arrival Hours</h2>
+    <details class="card report-chart arrival-chart-panel">
+        <summary class="arrival-chart-summary">Peak Reservation Arrival Hours</summary>
 
         <p>
             Number of scheduled reservations beginning
@@ -233,7 +330,7 @@
                 }
             </details>
         }
-    </section>
+    </details>
 
     <p class="notice">
         This report estimates scheduled table utilisation
@@ -254,6 +351,69 @@
 
 @section Scripts {
     <script>
+        const weeklyBusy = document.querySelector('[data-weekly-busy]');
+        if (weeklyBusy) {
+            const cells = [...weeklyBusy.querySelectorAll('[data-weekly-cell]')];
+            const modes = [...weeklyBusy.querySelectorAll('[data-busy-mode]')];
+            const detailTitle = weeklyBusy.querySelector('[data-weekly-detail-title]');
+            const detailValue = weeklyBusy.querySelector('[data-weekly-detail-value]');
+            const legend = weeklyBusy.querySelector('[data-weekly-legend]');
+            let metric = 'occupancy';
+            let focusedCell = null;
+
+            function showDetails(cell) {
+                if (!cell || !detailTitle || !detailValue) return;
+                detailTitle.textContent = cell.dataset.weekday + ' · ' + cell.dataset.time;
+                const occupancy = cell.dataset.occupancy + '% scheduled table occupancy';
+                const arrivals = cell.dataset.arrivals + ' reservation arrivals per matching day';
+                const tables = cell.dataset.tables + ' occupied tables on average';
+                detailValue.textContent = (metric === 'occupancy'
+                    ? occupancy + '; ' + tables + '; ' + arrivals
+                    : arrivals + '; ' + occupancy + '; ' + tables) +
+                    '. Based on ' + cell.dataset.samples + ' matching day(s).';
+            }
+
+            function switchMetric(next) {
+                metric = next;
+                modes.forEach(button => {
+                    const active = button.dataset.busyMode === metric;
+                    button.classList.toggle('is-active', active);
+                    button.setAttribute('aria-pressed', String(active));
+                });
+                cells.forEach(cell => {
+                    for (let level = -1; level <= 5; level++)
+                        cell.classList.remove('heat-' + level);
+                    const level = metric === 'occupancy'
+                        ? cell.dataset.occupancyLevel : cell.dataset.arrivalLevel;
+                    cell.classList.add('heat-' + level);
+                    if (!cell.disabled)
+                        cell.textContent = (metric === 'occupancy'
+                            ? Math.round(Number(cell.dataset.occupancy)) + '%'
+                            : cell.dataset.arrivals);
+                });
+                if (legend)
+                    legend.textContent = metric === 'occupancy'
+                        ? 'Percentage of scheduled table capacity occupied'
+                        : 'Relative arrival intensity; cells show average bookings per day';
+                showDetails(focusedCell);
+            }
+
+            cells.forEach(cell => {
+                cell.addEventListener('pointerenter', () => {
+                    focusedCell = cell;
+                    showDetails(cell);
+                });
+                cell.addEventListener('focus', () => {
+                    focusedCell = cell;
+                    showDetails(cell);
+                });
+            });
+            modes.forEach(button => {
+                button.addEventListener('click', () => switchMetric(button.dataset.busyMode));
+            });
+            switchMetric('occupancy');
+        }
+
         document.querySelectorAll('.arrival-chart-interactive').forEach(container => {
             const tooltip = container.querySelector('.reservation-chart-tooltip');
             const count = tooltip?.querySelector('[data-chart-tooltip-count]');
