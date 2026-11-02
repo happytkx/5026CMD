@@ -136,7 +136,24 @@
         <section class="card">
             <p class="eyebrow">MENU INSIGHTS</p>
             <h2>Manage Menu &amp; Performance</h2>
-            <p class="muted">View dish sales and ordering trends alongside prices, availability and editing controls.</p>
+            <p class="muted">See which dishes are performing best and which may need attention during this reporting period.</p>
+            <div class="analytics-summary-row">
+                <span>Most ordered dish</span>
+                <strong>@(Model.MostOrderedDish is null ? "No orders" : $"{Model.MostOrderedDish.Name} ({Model.MostOrderedDish.Units:N0} units)")</strong>
+            </div>
+            <div class="analytics-summary-row">
+                <span>Highest sales dish</span>
+                <strong>@(Model.HighestSalesDish is null ? "No sales" : $"{Model.HighestSalesDish.Name} (RM {Model.HighestSalesDish.Sales:N2})")</strong>
+            </div>
+            <div class="analytics-summary-row">
+                <span>Dishes with zero orders</span>
+                <strong>@Model.ZeroOrderDishCount</strong>
+            </div>
+            @if (Model.ZeroOrderDishCount > 0)
+            {
+                <p class="muted">To review: @string.Join(", ", Model.ZeroOrderDishNames.Take(3))@(Model.ZeroOrderDishCount > 3 ? "…" : "")</p>
+            }
+            <p class="muted">Figures exclude cancelled orders and dishes. Zero-order dishes are currently available menu items.</p>
             <a class="button secondary" asp-page="/Admin/MenuManagement"
                asp-route-StartDate="@Model.From.ToString("yyyy-MM-dd")"
                asp-route-EndDate="@Model.To.ToString("yyyy-MM-dd")">Open Menu Workspace</a>
@@ -157,13 +174,19 @@
     @foreach (var a in Model.Announcements)
     {
         var expired = a.ExpiresAt.HasValue && a.ExpiresAt.Value <= Model.CurrentTime;
+        var expiryText = !a.ExpiresAt.HasValue ? "No scheduled expiry"
+            : a.DurationMode == "custom" ? $"Through {a.ExpiresAt.Value.AddDays(-1):dd MMM yyyy}"
+            : $"Ends {a.ExpiresAt.Value:dd MMM yyyy, h:mm tt}";
+        var selectedEndDate = a.ExpiresAt?.Date;
+        if (a.DurationMode == "custom" && selectedEndDate.HasValue)
+            selectedEndDate = selectedEndDate.Value.AddDays(-1);
         <div class="announcement-admin-row">
             <div class="announcement-admin-copy">
                 <strong>@a.Title</strong>
                 <p>@a.Message</p>
                 <small class="@(expired ? "announcement-expired" : "muted")">
                     @(expired ? "Expired" : "Visible")
-                    · @(a.ExpiresAt.HasValue ? $"Ends {a.ExpiresAt.Value:dd MMM yyyy, h:mm tt}" : "No scheduled expiry")
+                    · @expiryText
                 </small>
             </div>
             <div class="announcement-admin-actions">
@@ -172,17 +195,17 @@
                     <input type="hidden" name="id" value="@a.AnnouncementID" />
                     <label for="duration-@a.AnnouncementID">Display for</label>
                     <select id="duration-@a.AnnouncementID" name="duration" data-announcement-duration>
-                        <option value="1">1 day from now</option>
-                        <option value="7">7 days from now</option>
-                        <option value="30">30 days from now</option>
-                        <option value="custom" selected="@a.ExpiresAt.HasValue">Until a date</option>
-                        <option value="never" selected="@(!a.ExpiresAt.HasValue)">No expiry</option>
+                        <option value="1" selected="@(a.DurationMode == "1")">1 day from now</option>
+                        <option value="7" selected="@(a.DurationMode == "7")">7 days from now</option>
+                        <option value="30" selected="@(a.DurationMode == "30")">30 days from now</option>
+                        <option value="custom" selected="@(a.DurationMode == "custom")">Until a date</option>
+                        <option value="never" selected="@(a.DurationMode == "never")">No expiry</option>
                     </select>
                     <label class="announcement-expiry-picker" for="end-@a.AnnouncementID" data-custom-end>
                         End date
                         <input id="end-@a.AnnouncementID" type="date" name="endDate"
                                min="@Model.CurrentTime.ToString("yyyy-MM-dd")"
-                               value="@(a.ExpiresAt?.Date.ToString("yyyy-MM-dd"))" />
+                               value="@(selectedEndDate?.ToString("yyyy-MM-dd"))" />
                     </label>
                     <button type="submit" class="secondary">Update duration</button>
                 </form>

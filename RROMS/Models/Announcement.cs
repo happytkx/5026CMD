@@ -25,6 +25,10 @@ namespace RROMS.Models
 
         public bool IsActive { get; set; } = true;
 
+        // Remembers which duration option the administrator selected.
+        [Required, StringLength(12)]
+        public string DurationMode { get; set; } = "never";
+
         // Null means the announcement remains visible until the administrator removes it.
         // The end is exclusive so an end date can include its entire calendar day.
         public DateTime? ExpiresAt { get; set; }

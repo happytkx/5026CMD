@@ -34,6 +34,12 @@ public class IndexModel(ApplicationDbContext db, BusinessAnalyticsService analyt
     {
         get; private set;
     }
+    public DishHighlight? MostOrderedDish { get; private set; }
+    public DishHighlight? HighestSalesDish { get; private set; }
+    public int ZeroOrderDishCount { get; private set; }
+    public List<string> ZeroOrderDishNames { get; private set; } = [];
+    public record DishHighlight(string Name, int Units, decimal Sales);
+
     public List<PopularRow> Popular { get; private set; } = [];
     public List<MenuItem> Menu { get; private set; } = [];
     public List<Announcement> Announcements { get; private set; } = [];
@@ -59,6 +65,24 @@ public class IndexModel(ApplicationDbContext db, BusinessAnalyticsService analyt
             .Select(g => new PopularRow(g.Key, g.Sum(l => l.Quantity), g.Sum(l => l.LineTotal)))
             .OrderByDescending(p => p.Quantity).Take(8).ToList();
         Menu = await db.MenuItems.AsNoTracking().OrderBy(i => i.Category).ThenBy(i => i.Name).ToListAsync();
+
+        // Use the same dates and cancellation rules as the menu performance report.
+        // Historical order-line totals are kept even when a dish's current price changes.
+        var dishTotals = orders.SelectMany(o => o.Lines.Where(l => !l.IsCancelled))
+            .GroupBy(l => l.MenuItemID)
+            .ToDictionary(g => g.Key, g => (Units: g.Sum(l => l.Quantity), Sales: g.Sum(l => l.LineTotal)));
+        var dishHighlights = Menu
+            .Where(item => dishTotals.ContainsKey(item.MenuItemID))
+            .Select(item => new DishHighlight(item.Name, dishTotals[item.MenuItemID].Units, dishTotals[item.MenuItemID].Sales))
+            .ToList();
+        MostOrderedDish = dishHighlights.OrderByDescending(d => d.Units)
+            .ThenByDescending(d => d.Sales).ThenBy(d => d.Name).FirstOrDefault();
+        HighestSalesDish = dishHighlights.OrderByDescending(d => d.Sales)
+            .ThenByDescending(d => d.Units).ThenBy(d => d.Name).FirstOrDefault();
+        ZeroOrderDishNames = Menu.Where(item => item.IsAvailable && !dishTotals.ContainsKey(item.MenuItemID))
+            .Select(item => item.Name).ToList();
+        ZeroOrderDishCount = ZeroOrderDishNames.Count;
+
         Announcements = await db.Announcements.AsNoTracking().Where(a => a.IsActive).OrderByDescending(a => a.CreatedAt).ToListAsync();
     }
 
@@ -93,7 +117,8 @@ public class IndexModel(ApplicationDbContext db, BusinessAnalyticsService analyt
             Title = title.Trim(),
             Message = message.Trim(),
             CreatedAt = now,
-            ExpiresAt = expiry
+            ExpiresAt = expiry,
+            DurationMode = duration!
         });
         await db.SaveChangesAsync();
         TempData["Success"] = "Announcement published. It will be hidden automatically when its duration ends.";
@@ -112,6 +137,7 @@ public class IndexModel(ApplicationDbContext db, BusinessAnalyticsService analyt
         }
 
         announcement.ExpiresAt = expiry;
+        announcement.DurationMode = duration!;
         await db.SaveChangesAsync();
         TempData["Success"] = $"The display duration for {announcement.Title} was updated.";
         return RedirectToPage();

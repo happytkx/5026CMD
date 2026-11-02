@@ -1793,6 +1793,71 @@ form.card.mybill-selector {
     outline-offset: 3px;
 }
 
+/* Announcement duration controls: fixed grid tracks prevent date fields from wrapping
+   buttons and keep all announcement rows aligned when custom dates are toggled. */
+.announcement-admin-row {
+    display: grid;
+    grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+    align-items: start;
+}
+.announcement-admin-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 156px;
+    align-items: end;
+    gap: 12px;
+}
+.announcement-duration-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 170px;
+    grid-template-rows: auto auto auto;
+    align-items: end;
+    gap: 10px 12px;
+}
+.announcement-duration-form > label:first-of-type {
+    grid-column: 1 / -1;
+    grid-row: 1;
+}
+.announcement-duration-form > select {
+    grid-column: 1;
+    grid-row: 2;
+    width: 100%;
+    min-width: 0;
+}
+.announcement-duration-form > .announcement-expiry-picker {
+    grid-column: 2;
+    grid-row: 2;
+    min-width: 0;
+}
+.announcement-duration-form > .announcement-expiry-picker[hidden] {
+    display: flex !important;
+    visibility: hidden;
+    pointer-events: none;
+}
+.announcement-duration-form > button.secondary {
+    grid-column: 1;
+    grid-row: 3;
+    justify-self: start;
+}
+.announcement-admin-actions > form:last-child {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: end;
+}
+@media (max-width: 1240px) {
+    .announcement-admin-row { grid-template-columns: 1fr; }
+    .announcement-admin-actions { width: 100%; }
+}
+@media (max-width: 640px) {
+    .announcement-admin-actions { grid-template-columns: 1fr; }
+    .announcement-duration-form { grid-template-columns: 1fr; }
+    .announcement-duration-form > label:first-of-type,
+    .announcement-duration-form > select,
+    .announcement-duration-form > .announcement-expiry-picker,
+    .announcement-duration-form > button.secondary { grid-column: 1; grid-row: auto; }
+    .announcement-duration-form > .announcement-expiry-picker[hidden] { display: none !important; }
+    .announcement-admin-actions > form:last-child { grid-column: 1; grid-row: 2; justify-self: start; }
+}
+
 /* Reserve breathing room for genuine filter errors and hide empty validation summaries. */
 .menu-performance-validation.validation-summary-errors {
     margin: 16px 0 2px;

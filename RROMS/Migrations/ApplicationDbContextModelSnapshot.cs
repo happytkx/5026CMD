@@ -96,6 +96,11 @@ namespace RROMS.Migrations
 
                     b.Property<DateTime?>("ExpiresAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("DurationMode")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("nvarchar(12)");
                     b.Property<int?>("CreatedByAdministratorID")
                         .HasColumnType("int");
 
