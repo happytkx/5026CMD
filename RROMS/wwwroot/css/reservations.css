@@ -3195,3 +3195,121 @@ td small
 .reservation-chart-tooltip strong { font-weight: 600; }
 .reservation-chart-tooltip span { color: var(--muted); }
 .reservation-chart-tooltip[hidden] { display: none; }
+
+/* Administrator table management: dining-area inventory and compact per-table editing. */
+.table-management-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin: 26px 0;
+}
+.table-management-summary .card { padding: 23px 24px; }
+.table-management-summary small {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--muted);
+}
+.table-management-summary strong {
+    display: block;
+    margin-top: 15px;
+    font: 36px/1.1 var(--serif);
+    color: var(--ink);
+}
+.table-management-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    margin-bottom: 22px;
+}
+.table-management-header h2 { margin: 4px 0 10px; }
+.table-management-header p { margin-bottom: 0; }
+.table-management-create,
+.table-management-area { margin: 25px 0; }
+.table-management-add-form {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+    align-items: end;
+    gap: 16px;
+}
+.table-management-add-form > div,
+.table-management-edit form > div {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+.table-management-add-form label,
+.table-management-edit label {
+    font-size: 13px;
+    font-weight: 600;
+}
+.table-management-add-form input,
+.table-management-add-form select,
+.table-management-edit select {
+    width: 100%;
+    min-width: 0;
+    height: 48px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: #fff;
+    padding: 10px 12px;
+    color: var(--ink);
+}
+.table-management-add-form button { min-height: 48px; white-space: nowrap; }
+.table-management-policy { margin: 15px 0 0; font-size: 13px; }
+.table-management-warning { margin: 16px 0 23px; }
+.table-management-error { color: #9e3c3c; border-color: #e0b5af; }
+.table-management-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 17px;
+}
+.table-management-tile {
+    border: 1px solid var(--line);
+    background: #fdfbf7;
+    padding: 20px;
+    border-radius: 5px;
+    min-width: 0;
+}
+.table-management-tile-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.table-management-tile-top strong { font-size: 20px; }
+.table-management-tile > p { margin: 13px 0 7px; }
+.table-management-tile > small { display: block; color: var(--muted); font-size: 12px; }
+.table-management-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    font-size: 11px;
+    border-radius: 20px;
+}
+.table-management-status.is-available { background: #e8eddf; color: #566341; }
+.table-management-status.is-unavailable { background: #f4e4df; color: #984c3b; }
+.table-management-edit { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; }
+.table-management-edit summary {
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--olive);
+    font-weight: 600;
+}
+.table-management-edit form { margin-top: 15px; display: grid; gap: 12px; }
+.table-management-edit form button { width: 100%; min-height: 46px; }
+.table-management-edit form p { font-size: 12px; line-height: 1.55; margin: 0; }
+.table-management-policy-note { margin: 22px 0 32px; }
+@media (max-width: 1250px) {
+    .table-management-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .table-management-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .table-management-add-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 680px) {
+    .table-management-summary,
+    .table-management-grid,
+    .table-management-add-form { grid-template-columns: 1fr; }
+    .table-management-header { flex-direction: column; align-items: stretch; }
+}
