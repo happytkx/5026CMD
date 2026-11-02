@@ -143,19 +143,21 @@ public class IndexModel(ApplicationDbContext db, BusinessAnalyticsService analyt
         return RedirectToPage();
     }
 
+    // Calendar-day durations include today; expiry is midnight after the last visible day.
+    // For example, 7 days selected on 2 Nov means visible through 8 Nov, expiring 9 Nov at 00:00.
     private static bool TryGetExpiry(string? duration, DateTime? endDate, DateTime now, out DateTime? expiresAt)
     {
         expiresAt = null;
         switch (duration)
         {
             case "1":
-                expiresAt = now.AddDays(1);
+                expiresAt = now.Date.AddDays(1);
                 return true;
             case "7":
-                expiresAt = now.AddDays(7);
+                expiresAt = now.Date.AddDays(7);
                 return true;
             case "30":
-                expiresAt = now.AddDays(30);
+                expiresAt = now.Date.AddDays(30);
                 return true;
             case "never":
                 return true;
