@@ -255,12 +255,15 @@
         else
         {
             var maxCount = Model.TrendPoints.Max(p => p.Count);
+            // Use exact whole-number grid intervals so dots match the values printed on the Y axis.
+            var tickStep = Math.Max(1, (int)Math.Ceiling(maxCount / 4d));
+            var axisMax = tickStep * 4;
             string Coord(double value) => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
             var plotted = Model.TrendPoints.Select((point, index) => new
             {
                 Point = point,
                 X = Coord(Model.TrendPoints.Count == 1 ? 498d : 60d + index * 875d / (Model.TrendPoints.Count - 1)),
-                Y = Coord(245d - point.Count * 225d / Math.Max(1, maxCount))
+                Y = Coord(245d - point.Count * 225d / axisMax)
             }).ToList();
             var linePoints = string.Join(" ", plotted.Select(point => point.X + "," + point.Y));
             var step = Math.Max(1, (int)Math.Ceiling(plotted.Count / 7.0));
@@ -275,7 +278,7 @@
                     @for (var tick = 0; tick <= 4; tick++)
                     {
                         var y = Coord(245d - tick * 225d / 4d);
-                        var count = (int)Math.Round(maxCount * tick / 4d);
+                        var count = tick * tickStep;
                         <line class="reservation-chart-gridline" x1="60" y1="@y" x2="935" y2="@y"></line>
                         @Html.Raw($"<text class=\"reservation-chart-axis\" x=\"48\" y=\"{Coord(245d - tick * 225d / 4d + 4d)}\" text-anchor=\"end\">{count}</text>")
                     }

@@ -3093,7 +3093,7 @@ td small
 .reservation-chart-axis { font: 12px var(--body); fill: var(--muted); }
 .reservation-chart-date { font-size: 11px; }
 .reservation-chart-line { fill: none; stroke: var(--olive-deep); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-.reservation-chart-point { fill: var(--gold); stroke: var(--white); stroke-width: 2; outline-offset: 5px; }
+.reservation-chart-point { fill: var(--gold); stroke: var(--olive-deep); stroke-width: 1.5; outline-offset: 5px; }
 .reservation-chart-point:hover, .reservation-chart-point:focus { fill: var(--terracotta); stroke: var(--olive-deep); stroke-width: 3; }
 .reservation-trend-data { margin-top: 20px; }
 .reservation-trend-data summary, .menu-performance-data summary { cursor: pointer; color: var(--olive-deep); font-weight: 600; margin-bottom: 12px; }
