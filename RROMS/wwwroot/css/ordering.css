@@ -2214,8 +2214,13 @@ form.card.mybill-selector {
     font-weight: 600;
     padding: 9px 2px;
 }
+.weekly-busy-table thead th:first-child,
 .weekly-busy-table tbody th {
-    width: 112px;
+    width: 150px;
+    min-width: 150px;
+    white-space: nowrap;
+}
+.weekly-busy-table tbody th {
     padding-right: 12px;
     text-align: left;
     color: #3f4237;
