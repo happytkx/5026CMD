@@ -99,6 +99,26 @@
                         </div>
                         <p>@table.Capacity guests · @table.DiningArea.AreaType</p>
                         <small>@upcoming active or upcoming @(upcoming == 1 ? "reservation" : "reservations")</small>
+                        <form method="post" asp-page-handler="ToggleTable" class="table-management-toggle">
+                            <input type="hidden" name="tableId" value="@table.TableID" />
+                            @if (table.Status == "Available")
+                            {
+                                <button type="submit" class="table-management-toggle-button disable"
+                                        disabled="@(upcoming > 0)"
+                                        title="@(upcoming > 0 ? "Resolve active or upcoming reservations first." : "Disable this table for new reservations.")">
+                                    Disable table
+                                </button>
+                                @if (upcoming > 0)
+                                {
+                                    <small>Resolve the @upcoming existing @(upcoming == 1 ? "reservation" : "reservations") before disabling.</small>
+                                }
+                            }
+                            else
+                            {
+                                <button type="submit" class="table-management-toggle-button enable">Enable table</button>
+                                <small>This table is excluded from new reservations.</small>
+                            }
+                        </form>
                         <details class="table-management-edit">
                             <summary>Edit table details</summary>
                             <form method="post" asp-page-handler="UpdateTable">

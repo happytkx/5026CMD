@@ -111,6 +111,53 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
         return Success($"Table {tableId} added to {area.AreaType}.");
     }
 
+    // Reversible availability switch: preserve table records and reservation history.
+    public async Task<IActionResult> OnPostToggleTableAsync(string? tableId)
+    {
+        if (string.IsNullOrWhiteSpace(tableId))
+            return Error("Select a table to enable or disable.");
+
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var table = await db.RestaurantTables.SingleOrDefaultAsync(t => t.TableID == tableId);
+        if (table is null) return NotFound();
+
+        if (table.Status == "Available")
+        {
+            // A table with live holds or scheduled guests must be resolved before closing it.
+            var now = ReservationPolicy.Now;
+            var bookings = await db.Reservations.AsNoTracking()
+                .Where(r => r.TableID == table.TableID && r.ReservationDate >= now.Date &&
+                    (r.ReservationStatus == "Pending" || r.ReservationStatus == "Confirmed" ||
+                     r.ReservationStatus == "Seated"))
+                .Select(r => new { r.ReservationDate, r.EndTime, r.ReservationStatus, r.HoldExpiresAt })
+                .ToListAsync();
+            if (bookings.Any(r => r.ReservationDate.Add(r.EndTime) > now &&
+                (r.ReservationStatus != "Pending" || r.HoldExpiresAt > now)))
+                return Error($"Table {table.TableID} has active or upcoming reservations. Resolve them before disabling it.");
+
+            table.Status = "Unavailable";
+        }
+        else if (table.Status == "Unavailable")
+        {
+            table.Status = "Available";
+        }
+        else
+        {
+            return Error("This table has an unsupported availability status.");
+        }
+
+        try
+        {
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (DbUpdateException)
+        {
+            return Error("Unable to change table availability. Refresh and retry.");
+        }
+        return Success($"Table {table.TableID} is now {table.Status.ToLowerInvariant()} for new reservations.");
+    }
+
     public async Task<IActionResult> OnPostUpdateTableAsync(
         string? tableId, int diningAreaId, int capacity, string? status)
     {

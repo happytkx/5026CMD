@@ -3291,6 +3291,39 @@ td small
 }
 .table-management-status.is-available { background: #e8eddf; color: #566341; }
 .table-management-status.is-unavailable { background: #f4e4df; color: #984c3b; }
+.table-management-toggle {
+    display: grid;
+    gap: 8px;
+    margin-top: 18px;
+}
+.table-management-toggle-button {
+    width: 100%;
+    min-height: 43px;
+    padding: 10px 14px;
+    border: 1px solid;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.table-management-toggle-button.disable {
+    border-color: #b58b7b;
+    background: #fff;
+    color: #894b3a;
+}
+.table-management-toggle-button.enable {
+    border-color: var(--olive-deep);
+    background: var(--olive-deep);
+    color: #fff;
+}
+.table-management-toggle-button:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+.table-management-toggle small {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.5;
+}
 .table-management-edit { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; }
 .table-management-edit summary {
     cursor: pointer;
