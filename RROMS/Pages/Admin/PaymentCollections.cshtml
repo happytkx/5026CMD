@@ -27,6 +27,22 @@ else
     </p>
 }
 
+@if (Model.Report is not null)
+{
+    <nav class="report-section-nav payment-section-nav" aria-label="Jump to payment sections">
+        <span class="report-section-nav-label">Jump to</span>
+        @if (!Model.TransactionsOnly)
+        {
+            <a href="#daily-collections">Daily Collections Chart</a>
+            @if (Model.Report.Daily.Count > 0)
+            {
+                <a href="#daily-breakdown" data-payment-open="daily-breakdown">Daily Breakdown</a>
+            }
+        }
+        <a href="#successful-transactions" data-payment-open="successful-transaction-table">Transactions</a>
+    </nav>
+}
+
 @{
     var quickToday = ReservationPolicy.Now.Date;
     var quickWeek = quickToday.AddDays(-(((int)quickToday.DayOfWeek + 6) % 7));
@@ -137,7 +153,7 @@ else
         </a>
     </section>
 
-    <section class="card">
+    <section class="card payment-section-target" id="daily-collections">
         <h2>Daily Payment Collections</h2>
 
         @if (report.Daily.Count == 0)
@@ -228,11 +244,13 @@ else
                     </div>
                 </div>
             }
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Payment Date</th>
+            <details class="payment-table-disclosure" id="daily-breakdown">
+                <summary>Daily Payment Breakdown <span>@report.Daily.Count @(report.Daily.Count == 1 ? "date" : "dates")</span></summary>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Payment Date</th>
                             <th>Deposits</th>
                             <th>Final Payments</th>
                             <th>Total</th>
@@ -260,14 +278,15 @@ else
                                 </td>
                             </tr>
                         }
-                    </tbody>
-                </table>
-            </div>
+                        </tbody>
+                    </table>
+                </div>
+            </details>
         }
     </section>
     }
 
-    <section class="card" id="successful-transactions">
+    <section class="card payment-section-target" id="successful-transactions">
         <h2>Successful Payment Transactions</h2>
 
         <form method="get" asp-page="/Admin/PaymentCollections" asp-fragment="successful-transactions" class="payment-type-filter" aria-label="Filter successful transactions">
@@ -294,11 +313,13 @@ else
         }
         else
         {
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
+            <details class="payment-table-disclosure" id="successful-transaction-table">
+                <summary>Transaction List <span>@filteredTransactions.Count @(filteredTransactions.Count == 1 ? "record" : "records")</span></summary>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
                             <th>Booking Reference</th>
                             <th>Customer</th>
                             <th>Payment Type</th>
@@ -344,9 +365,10 @@ else
                                 </td>
                             </tr>
                         }
-                    </tbody>
-                </table>
-            </div>
+                        </tbody>
+                    </table>
+                </div>
+            </details>
         }
     </section>
 
@@ -365,6 +387,27 @@ else
 
 @section Scripts {
     <script>
+        // Jump links reveal the requested table without requiring another click.
+        function revealPaymentTableForHash() {
+            const targetId = window.location.hash === '#daily-breakdown'
+                ? 'daily-breakdown'
+                : window.location.hash === '#successful-transactions'
+                    ? 'successful-transaction-table'
+                    : null;
+            if (targetId) {
+                const table = document.getElementById(targetId);
+                if (table) table.open = true;
+            }
+        }
+        document.querySelectorAll('[data-payment-open]').forEach(link => {
+            link.addEventListener('click', () => {
+                const table = document.getElementById(link.dataset.paymentOpen);
+                if (table) table.open = true;
+            });
+        });
+        window.addEventListener('hashchange', revealPaymentTableForHash);
+        revealPaymentTableForHash();
+
         document.querySelectorAll('[data-payment-trend]').forEach(chart => {
             const tooltip = chart.querySelector('.payment-trend-tooltip');
             const dateLabel = tooltip.querySelector('[data-payment-date]');

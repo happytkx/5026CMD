@@ -1963,6 +1963,36 @@ form.card.mybill-selector {
     color: var(--muted);
     font-size: 13px;
 }
+/* Keep long payment tables available on demand; section links open them automatically. */
+.payment-section-target,
+.payment-table-disclosure { scroll-margin-top: 110px; }
+.payment-table-disclosure { margin-top: 24px; }
+.payment-table-disclosure > summary {
+    padding: 14px 18px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--paper);
+    color: var(--olive-deep);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.payment-table-disclosure > summary::marker { color: var(--olive-deep); }
+.payment-table-disclosure > summary span {
+    float: right;
+    margin-left: 12px;
+    color: var(--muted);
+    font-weight: 400;
+}
+.payment-table-disclosure > summary:focus-visible {
+    outline: 2px solid var(--olive-deep);
+    outline-offset: 3px;
+}
+.payment-table-disclosure[open] > summary {
+    border-radius: 4px 4px 0 0;
+    border-bottom-color: transparent;
+}
+.payment-table-disclosure > .table-wrap { margin-top: 0; }
 @media (max-width: 560px) {
     .payment-type-filter-field,
     .payment-type-filter > button { width: 100%; flex-basis: 100%; }
@@ -2567,6 +2597,8 @@ form.card.mybill-selector {
     .staff-stats.report-deposit-stats { grid-template-columns: 1fr; }
     .customer-mix-panel { padding: 20px; }
     .customer-mix-header h3 { font-size: 21px; }
+    .payment-section-target,
+    .payment-table-disclosure { scroll-margin-top: 155px; }
 }
 @media (prefers-reduced-motion: reduce) {
     .report-section-nav a { transition: none; }
