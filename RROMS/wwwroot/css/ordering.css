@@ -2419,3 +2419,72 @@ form.card.mybill-selector {
     .staff-booking-actions .button,
     .staff-booking-actions button { width: 100%; }
 }
+
+/* Reservation Reports: quick section navigation and grouped analytics. */
+.report-section-nav {
+    position: sticky;
+    top: 10px;
+    z-index: 12;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin: 18px 0 32px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    box-shadow: 0 8px 24px rgba(42, 39, 31, 0.07);
+}
+.report-section-nav-label {
+    margin-right: 4px;
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+}
+.report-section-nav a {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 40px;
+    padding: 9px 14px;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    background: var(--white);
+    color: var(--olive-deep);
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+    text-decoration: none;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+.report-section-nav a:hover,
+.report-section-nav a:focus-visible {
+    background: var(--beige);
+    border-color: var(--olive-deep);
+    color: var(--olive-deep);
+}
+.report-section {
+    margin-top: 36px;
+    padding-top: 30px;
+    border-top: 1px solid var(--line);
+    scroll-margin-top: 100px;
+}
+.report-section-heading .eyebrow { margin-bottom: 8px; }
+.report-section-heading h2 { margin: 0 0 8px; font-size: clamp(26px, 2.5vw, 35px); }
+.report-section-heading > p:last-child { margin: 0; color: var(--muted); font-size: 13px; }
+.report-section > .notice { margin-top: 22px; }
+.report-section .report-chart { margin-top: 26px; }
+.staff-stats.report-deposit-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 700px) {
+    .report-section-nav { top: 0; gap: 8px; padding: 10px; }
+    .report-section-nav-label { flex-basis: 100%; }
+    .report-section-nav a { flex: 1 1 155px; }
+    .report-section { scroll-margin-top: 155px; }
+    .staff-stats.report-deposit-stats { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .report-section-nav a { transition: none; }
+}
+@media print {
+    .report-section-nav { display: none; }
+}
