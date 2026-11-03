@@ -2252,6 +2252,12 @@ form.card.mybill-selector {
     box-shadow: 0 0 0 2px rgba(181, 147, 96, .35);
     outline: none;
 }
+.weekly-busy-cell.is-selected,
+.weekly-busy-cell.is-selected:not(:disabled):hover {
+    position: relative;
+    border-color: #8e6b35;
+    box-shadow: 0 0 0 3px rgba(181, 147, 96, .6);
+}
 .weekly-busy-cell:disabled { cursor: default; opacity: .65; }
 .weekly-busy-cell.heat--1,
 .weekly-busy-swatch.heat--1 { background: #f7f6f2; color: #797a70; }

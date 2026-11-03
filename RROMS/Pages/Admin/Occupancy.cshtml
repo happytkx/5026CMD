@@ -120,7 +120,7 @@
             var hours = report.WeeklyBusyHours.Select(h => h.Hour).Distinct().OrderBy(h => h).ToList();
             var maximumArrivals = report.WeeklyBusyHours.Max(h => h.AverageArrivals ?? 0m);
             <p class="muted weekly-busy-caption">
-                Darker cells indicate higher scheduled table use. Choose a metric, then hover or focus on a cell for its detailed averages.
+                Darker cells indicate higher scheduled table use. Click a cell to keep its details visible, or hover and focus for a preview.
             </p>
             <div class="weekly-busy-scroll">
                 <table class="weekly-busy-table" aria-label="Weekly average scheduled restaurant busyness by hour">
@@ -185,7 +185,7 @@
             </div>
             <div class="weekly-busy-detail" data-weekly-detail>
                 <strong data-weekly-detail-title>Select a time to view its details</strong>
-                <span data-weekly-detail-value>Hover over a weekday and hour, or focus on a cell using the keyboard.</span>
+                <span data-weekly-detail-value>Click a weekday and hour to pin its details here. You can then click another cell to change the selection.</span>
             </div>
             <p class="muted weekly-busy-footnote">
                 Weekdays are averaged across their occurrences in the selected period, so a five-Monday period is comparable to a four-Tuesday period.
@@ -359,10 +359,16 @@
             const detailValue = weeklyBusy.querySelector('[data-weekly-detail-value]');
             const legend = weeklyBusy.querySelector('[data-weekly-legend]');
             let metric = 'occupancy';
-            let focusedCell = null;
+            let selectedCell = null;
+            let previewCell = null;
 
             function showDetails(cell) {
-                if (!cell || !detailTitle || !detailValue) return;
+                if (!detailTitle || !detailValue) return;
+                if (!cell) {
+                    detailTitle.textContent = 'Select a time to view its details';
+                    detailValue.textContent = 'Click a weekday and hour to pin its details here. You can then click another cell to change the selection.';
+                    return;
+                }
                 detailTitle.textContent = cell.dataset.weekday + ' · ' + cell.dataset.time;
                 const occupancy = cell.dataset.occupancy + '% scheduled table occupancy';
                 const arrivals = cell.dataset.arrivals + ' reservation arrivals per matching day';
@@ -371,6 +377,21 @@
                     ? occupancy + '; ' + tables + '; ' + arrivals
                     : arrivals + '; ' + occupancy + '; ' + tables) +
                     '. Based on ' + cell.dataset.samples + ' matching day(s).';
+            }
+
+            function refreshDetails() {
+                // Once selected, other hovered cells must not replace the pinned description.
+                showDetails(selectedCell || previewCell);
+            }
+
+            function selectCell(cell) {
+                selectedCell = cell;
+                cells.forEach(other => {
+                    const selected = other === cell;
+                    other.classList.toggle('is-selected', selected);
+                    other.setAttribute('aria-pressed', String(selected));
+                });
+                refreshDetails();
             }
 
             function switchMetric(next) {
@@ -395,18 +416,28 @@
                     legend.textContent = metric === 'occupancy'
                         ? 'Percentage of scheduled table capacity occupied'
                         : 'Relative arrival intensity; cells show average bookings per day';
-                showDetails(focusedCell);
+                refreshDetails();
             }
 
             cells.forEach(cell => {
+                cell.setAttribute('aria-pressed', 'false');
                 cell.addEventListener('pointerenter', () => {
-                    focusedCell = cell;
-                    showDetails(cell);
+                    previewCell = cell;
+                    refreshDetails();
+                });
+                cell.addEventListener('pointerleave', () => {
+                    if (previewCell === cell) previewCell = null;
+                    refreshDetails();
                 });
                 cell.addEventListener('focus', () => {
-                    focusedCell = cell;
-                    showDetails(cell);
+                    previewCell = cell;
+                    refreshDetails();
                 });
+                cell.addEventListener('blur', () => {
+                    if (previewCell === cell) previewCell = null;
+                    refreshDetails();
+                });
+                cell.addEventListener('click', () => selectCell(cell));
             });
             modes.forEach(button => {
                 button.addEventListener('click', () => switchMetric(button.dataset.busyMode));
