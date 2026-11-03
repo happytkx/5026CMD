@@ -264,6 +264,14 @@
         {
             string ChartCoord(double value) =>
                 value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+            // Choose whole-number, evenly spaced Y-axis ticks (for example, 0, 5, 10, 15, 20, 25).
+            var desiredTickStep = Math.Max(1d, maxCount / 5d);
+            var tickMagnitude = Math.Pow(10, Math.Floor(Math.Log10(desiredTickStep)));
+            var normalisedTick = desiredTickStep / tickMagnitude;
+            var roundedTick = normalisedTick <= 1d ? 1d :
+                normalisedTick <= 2d ? 2d : normalisedTick <= 5d ? 5d : 10d;
+            var tickStep = Math.Max(1, (int)Math.Ceiling(roundedTick * tickMagnitude));
+            var axisMax = tickStep * 5;
             var points = arrivalHours.Select((hour, index) => new
             {
                 hour.Hour,
@@ -272,7 +280,7 @@
                 ShortLabel = new DateTime(2000, 1, 1, hour.Hour, 0, 0).ToString("h tt"),
                 X = ChartCoord(arrivalHours.Count == 1 ? 498d :
                     60d + index * 875d / (arrivalHours.Count - 1)),
-                Y = ChartCoord(245d - hour.ReservationCount * 215d / maxCount)
+                Y = ChartCoord(245d - hour.ReservationCount * 215d / axisMax)
             }).ToList();
             var linePoints = string.Join(" ", points.Select(p => p.X + "," + p.Y));
             <p class="muted">Hover over a point, or focus it with the keyboard, to see the exact reservation count.</p>
@@ -285,12 +293,12 @@
                             Line chart of scheduled reservation arrivals from opening to closing.
                             Exact hourly counts are available in the breakdown below.
                         </desc>
-                        @for (var tick = 0; tick <= 4; tick++)
+                        @for (var tick = 0; tick <= 5; tick++)
                         {
-                            var y = ChartCoord(245d - tick * 215d / 4d);
-                            var value = (int)Math.Round(maxCount * tick / 4d);
+                            var y = ChartCoord(245d - tick * 215d / 5d);
+                            var value = tick * tickStep;
                             <line class="reservation-chart-gridline" x1="60" y1="@y" x2="935" y2="@y"></line>
-                            @Html.Raw($"<text class=\"reservation-chart-axis\" x=\"48\" y=\"{ChartCoord(245d - tick * 215d / 4d + 4d)}\" text-anchor=\"end\">{value}</text>")
+                            @Html.Raw($"<text class=\"reservation-chart-axis\" x=\"48\" y=\"{ChartCoord(245d - tick * 215d / 5d + 4d)}\" text-anchor=\"end\">{value}</text>")
                         }
                         <polyline class="reservation-chart-line" points="@linePoints"></polyline>
                         @foreach (var point in points)

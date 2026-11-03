@@ -2481,12 +2481,92 @@ form.card.mybill-selector {
 .report-section > .notice { margin-top: 22px; }
 .report-section .report-chart { margin-top: 26px; }
 .staff-stats.report-deposit-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* Customer Insights: meaningful visual hierarchy without changing the underlying metrics. */
+.customer-insights-stats .card {
+    display: flex;
+    flex-direction: column;
+    min-height: 158px;
+    border-top: 3px solid var(--olive);
+}
+.customer-insights-stats .card:nth-child(2) { border-top-color: #96a080; }
+.customer-insights-stats .card:nth-child(3) { border-top-color: var(--gold); }
+.customer-insights-stats .card:nth-child(4) { border-top-color: #b4a99a; }
+.customer-insights-stats .card h2 {
+    margin: 9px 0 12px;
+    font-size: clamp(30px, 2.8vw, 38px);
+    font-variant-numeric: tabular-nums;
+}
+.customer-insights-stats .card p {
+    margin: auto 0 0;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.6;
+}
+.customer-mix-panel {
+    margin-top: 20px;
+    padding: 26px 30px;
+    border: 1px solid var(--line);
+    background: var(--white);
+}
+.customer-mix-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: space-between;
+    gap: 10px 24px;
+    margin-bottom: 22px;
+}
+.customer-mix-header .eyebrow { margin: 0 0 4px; }
+.customer-mix-header h3 { margin: 0; font-size: 24px; }
+.customer-mix-header > p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 12px;
+}
+.customer-mix-track {
+    display: flex;
+    width: 100%;
+    height: 20px;
+    overflow: hidden;
+    border-radius: 4px;
+    background: var(--beige);
+}
+.customer-mix-track span { display: block; height: 100%; }
+.customer-mix-first { background: var(--olive); }
+.customer-mix-returning { background: var(--gold); }
+.customer-mix-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 32px;
+    margin-top: 15px;
+}
+.customer-mix-legend > div {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 12px;
+    color: var(--muted);
+}
+.customer-mix-legend strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.customer-mix-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+}
+.customer-mix-dot.first { background: var(--olive); }
+.customer-mix-dot.returning { background: var(--gold); }
+.customer-insights-note { margin-top: 18px; font-size: 12px; }
+
 @media (max-width: 700px) {
     .report-section-nav { top: 0; gap: 8px; padding: 10px; }
     .report-section-nav-label { flex-basis: 100%; }
     .report-section-nav a { flex: 1 1 155px; }
     .report-section { scroll-margin-top: 155px; }
     .staff-stats.report-deposit-stats { grid-template-columns: 1fr; }
+    .customer-mix-panel { padding: 20px; }
+    .customer-mix-header h3 { font-size: 21px; }
 }
 @media (prefers-reduced-motion: reduce) {
     .report-section-nav a { transition: none; }

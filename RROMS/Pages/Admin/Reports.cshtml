@@ -467,14 +467,60 @@
     </header>
     @if (Model.Insights is { } insights)
     {
-        <section class="staff-stats">
-            <article class="card"><small>ACTIVE DINING CUSTOMERS</small><h2>@insights.ActiveCustomers</h2></article>
-            <article class="card"><small>FIRST-TIME CUSTOMERS</small><h2>@insights.NewCustomers</h2></article>
-            <article class="card"><small>RETURNING CUSTOMERS</small><h2>@insights.ReturningCustomers</h2></article>
-            <article class="card"><small>AVERAGE PARTY SIZE</small><h2>@insights.AveragePartySize.ToString("N1")</h2></article>
+        var customerMixTotal = insights.NewCustomers + insights.ReturningCustomers;
+        var firstTimePercent = customerMixTotal > 0 ? insights.NewCustomers * 100d / customerMixTotal : 0d;
+        var returningPercent = customerMixTotal > 0 ? 100d - firstTimePercent : 0d;
+
+        <section class="staff-stats customer-insights-stats" aria-label="Customer summary">
+            <article class="card">
+                <small>ACTIVE DINING CUSTOMERS</small>
+                <h2>@insights.ActiveCustomers</h2>
+                <p>Customers with valid reservations this period</p>
+            </article>
+            <article class="card">
+                <small>FIRST-TIME CUSTOMERS</small>
+                <h2>@insights.NewCustomers</h2>
+                <p>Their first valid reservation was in this period</p>
+            </article>
+            <article class="card">
+                <small>RETURNING CUSTOMERS</small>
+                <h2>@insights.ReturningCustomers</h2>
+                <p>Previously reserved before this period</p>
+            </article>
+            <article class="card">
+                <small>AVERAGE PARTY SIZE</small>
+                <h2>@insights.AveragePartySize.ToString("N1")</h2>
+                <p>Guests per reservation on average</p>
+            </article>
         </section>
-    
-        <p class="muted">
+
+        <section class="customer-mix-panel" aria-labelledby="customer-mix-heading">
+            <div class="customer-mix-header">
+                <div>
+                    <p class="eyebrow">CUSTOMER BREAKDOWN</p>
+                    <h3 id="customer-mix-heading">First-time vs. Returning</h3>
+                </div>
+                <p>Share of customers in each group</p>
+            </div>
+            @if (customerMixTotal > 0)
+            {
+                <div class="customer-mix-track" role="img"
+                     aria-label="@($"First-time customers: {firstTimePercent:0.#}%. Returning customers: {returningPercent:0.#}%.")">
+                    <span class="customer-mix-first" style="width: @(firstTimePercent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"></span>
+                    <span class="customer-mix-returning" style="width: @(returningPercent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"></span>
+                </div>
+                <div class="customer-mix-legend">
+                    <div><span class="customer-mix-dot first"></span><span>First-time</span><strong>@insights.NewCustomers</strong><span>@firstTimePercent.ToString("0.#")%</span></div>
+                    <div><span class="customer-mix-dot returning"></span><span>Returning</span><strong>@insights.ReturningCustomers</strong><span>@returningPercent.ToString("0.#")%</span></div>
+                </div>
+            }
+            else
+            {
+                <p class="muted">No active dining customers were found for this period.</p>
+            }
+        </section>
+
+        <p class="muted customer-insights-note">
             First-time customers made their earliest valid reservation within the selected period.
             Returning customers had a valid reservation before the period began.
             Both groups include only customers with confirmed, seated or completed reservations during the period.
