@@ -31,6 +31,83 @@
     </p>
 }
 
+<section class="card table-availability-check" id="availability-check">
+    <div class="table-management-header">
+        <div>
+            <p class="eyebrow">BOOKING AVAILABILITY</p>
+            <h2>Check tables &amp; rooms</h2>
+            <p class="muted">Enter an arrival date and time to check which spaces can accept a new reservation.</p>
+        </div>
+    </div>
+    <form method="get" class="table-availability-form">
+        <div>
+            <label for="check-date">Dining date</label>
+            <input id="check-date" type="date" name="CheckDate"
+                   min="@ReservationPolicy.Now.ToString("yyyy-MM-dd")"
+                   value="@(Model.CheckDate?.ToString("yyyy-MM-dd") ?? ReservationPolicy.Now.AddDays(1).ToString("yyyy-MM-dd"))" required />
+        </div>
+        <div>
+            <label for="check-time">Arrival time</label>
+            <input id="check-time" type="time" name="CheckTime" step="1800"
+                   value="@(Model.CheckTime ?? "19:00")" required />
+        </div>
+        <button type="submit">CHECK AVAILABILITY</button>
+    </form>
+
+    @if (Model.AvailabilityError is { } availabilityError)
+    {
+        <p class="notice table-management-error" role="alert">@availabilityError</p>
+    }
+    else if (Model.HasAvailabilityResult)
+    {
+        <div class="table-availability-results" role="region" aria-label="Availability results">
+            <div class="table-availability-result-heading">
+                <div>
+                    <strong>@Model.BookableCount of @Model.AvailabilityResults.Count available</strong>
+                    <p class="muted">
+                        @(Model.CheckDate?.ToString("dd MMM yyyy")) at @Model.CheckTime (Malaysia time).
+                        Indoor and Outdoor tables are checked for two hours; VIP rooms are checked until closing.
+                    </p>
+                </div>
+            </div>
+            @foreach (var area in Model.Areas)
+            {
+                var spaces = Model.AvailabilityResults.Where(t => t.Area == area.AreaType)
+                    .OrderByDescending(t => t.IsBookable).ThenBy(t => t.TableId).ToList();
+                <div class="table-availability-area">
+                    <div class="table-availability-area-heading">
+                        <h3>@area.AreaType</h3>
+                        <span>@spaces.Count(t => t.IsBookable) of @spaces.Count available</span>
+                    </div>
+                    @if (spaces.Count == 0)
+                    {
+                        <p class="muted">No @(area.AreaType == "VIP Room" ? "rooms" : "tables") configured.</p>
+                    }
+                    else
+                    {
+                        <div class="table-availability-grid">
+                            @foreach (var space in spaces)
+                            {
+                                <article class="table-availability-tile @(space.IsBookable ? "is-free" : "is-blocked")">
+                                    <div class="table-management-tile-top">
+                                        <strong>@space.TableId</strong>
+                                        <span class="table-management-status @(space.IsBookable ? "is-available" : "is-unavailable")">@space.State</span>
+                                    </div>
+                                    <small>@space.Capacity guests · @(area.AreaType == "VIP Room" ? "Private room" : "Table")</small>
+                                </article>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            <p class="muted table-availability-footnote">
+                Pending payment holds count as reserved. Booking lead times are at least two hours for regular tables
+                and 24 hours for VIP rooms. Party-size eligibility also applies. Results are a snapshot and do not hold a table.
+            </p>
+        </div>
+    }
+</section>
+
 <section class="card table-management-create">
     <div class="table-management-header">
         <div>

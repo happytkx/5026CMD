@@ -1,6 +1,7 @@
 // Administrator table inventory: edit dining-area assignment, capacity and availability
 // while protecting current/future reservations and the fixed two-room VIP policy.
 using System.Data;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,6 +25,18 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
     public int VipRoomCount => Tables.Count(t => t.DiningArea.AreaType == "VIP Room");
     public int AvailableCount => Tables.Count(t => t.Status == "Available");
 
+    [BindProperty(SupportsGet = true)] public DateTime? CheckDate { get; set; }
+    [BindProperty(SupportsGet = true)] public string? CheckTime { get; set; }
+    public bool HasAvailabilityResult { get; private set; }
+    public string? AvailabilityError { get; private set; }
+    public List<AvailabilityEntry> AvailabilityResults { get; private set; } = [];
+    public int BookableCount => AvailabilityResults.Count(t => t.IsBookable);
+
+    public sealed record AvailabilityEntry(string TableId, string Area, int Capacity, string State)
+    {
+        public bool IsBookable => State == "Available";
+    }
+
     public async Task OnGetAsync()
     {
         Areas = await db.DiningAreas.AsNoTracking()
@@ -46,6 +59,82 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
                 (r.ReservationStatus != "Pending" || r.HoldExpiresAt > now))
             .GroupBy(r => r.TableID)
             .ToDictionary(g => g.Key, g => g.Count());
+
+        if (CheckDate.HasValue || !string.IsNullOrWhiteSpace(CheckTime))
+            await CheckSlotAvailabilityAsync();
+    }
+
+    // Read-only snapshot using the same blocking statuses, overlap rule and dining
+    // durations as reservation allocation. Checking does not reserve a table.
+    private async Task CheckSlotAvailabilityAsync()
+    {
+        if (!CheckDate.HasValue || !TimeSpan.TryParseExact(
+                CheckTime, @"hh\:mm", CultureInfo.InvariantCulture, out var time) ||
+            time < TimeSpan.Zero || time >= TimeSpan.FromDays(1) ||
+            time.Ticks % TimeSpan.FromMinutes(30).Ticks != 0)
+        {
+            AvailabilityError = "Choose a date and an arrival time in 30-minute increments.";
+            return;
+        }
+
+        var date = CheckDate.Value.Date;
+        var start = date.Add(time);
+        var now = ReservationPolicy.Now;
+        if (start <= now)
+        {
+            AvailabilityError = "Choose a future date and time (Malaysia time).";
+            return;
+        }
+
+        var settings = await db.RestaurantSettings.AsNoTracking()
+            .OrderBy(s => s.SettingID).FirstOrDefaultAsync();
+        if (settings is null)
+        {
+            AvailabilityError = "Restaurant opening hours have not been configured.";
+            return;
+        }
+        if (time < settings.OpeningTime || time >= settings.ClosingTime)
+        {
+            AvailabilityError = $"Choose an arrival time between {settings.OpeningTime.ToString(@"hh\:mm")} and {settings.ClosingTime.ToString(@"hh\:mm")}.";
+            return;
+        }
+
+        var reservations = await db.Reservations.AsNoTracking()
+            .Where(r => r.ReservationDate == date &&
+                (r.ReservationStatus == "Confirmed" || r.ReservationStatus == "Seated" ||
+                 (r.ReservationStatus == "Pending" && r.HoldExpiresAt > now)))
+            .Select(r => new { r.TableID, r.StartTime, r.EndTime, r.ReservationStatus })
+            .ToListAsync();
+
+        foreach (var table in Tables.Where(t => SupportedAreas.Contains(t.DiningArea.AreaType)))
+        {
+            var area = table.DiningArea.AreaType;
+            var end = ReservationPolicy.End(start, area, settings.ClosingTime);
+            var inHours = end > start && end.Date == date && end.TimeOfDay <= settings.ClosingTime;
+            var overlap = inHours ? reservations.FirstOrDefault(r => r.TableID == table.TableID &&
+                ReservationPolicy.Overlaps(start, end, date.Add(r.StartTime), date.Add(r.EndTime))) : null;
+
+            string state;
+            if (table.Status != "Available")
+                state = "Disabled";
+            else if (!inHours)
+                state = "Too late for dining";
+            else if (overlap is not null)
+                state = overlap.ReservationStatus switch
+                {
+                    "Pending" => "Payment hold",
+                    "Seated" => "Occupied",
+                    _ => "Reserved"
+                };
+            else if (!ReservationPolicy.MeetsAdvance(area, start, now))
+                state = "Advance notice required";
+            else
+                state = "Available";
+
+            AvailabilityResults.Add(new AvailabilityEntry(table.TableID, area, table.Capacity, state));
+        }
+
+        HasAvailabilityResult = true;
     }
 
     private static bool AllowedCapacity(string area, int capacity) => area switch
