@@ -29,7 +29,8 @@ public class DetailsModel(ApplicationDbContext db, ReservationService service, T
     public List<DateTime> ModifySlots { get; set; } = [];
     [BindProperty(SupportsGet = true)] public string? View { get; set; } = "Details";
     [BindProperty(SupportsGet = true)] public DateTime NewDate { get; set; } = ReservationPolicy.Now.Date.AddDays(8);
-    [BindProperty] public string NewTime { get; set; } = "";
+    // Nullable so non-Modify actions (check-in, cancel, ...) are not rejected as "NewTime is required".
+    [BindProperty] public string? NewTime { get; set; } = "";
     private async Task<bool> Load(int id)
     {
         await service.Expire();

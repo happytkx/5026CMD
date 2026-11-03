@@ -50,6 +50,7 @@ builder.Services.AddScoped<ReportingService>();
 builder.Services.AddScoped<BusinessAnalyticsService>();
 builder.Services.AddScoped<OccupancyReportingService>();
 builder.Services.AddScoped<BillingService>();
+builder.Services.AddScoped<ReviewService>();
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
 builder.Services.AddScoped<IEmailSender, EmailService>();
 builder.Services.AddScoped<ReservationEmailService>();

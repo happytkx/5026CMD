@@ -1,0 +1,13 @@
+@page
+@* Public guest reviews: ratings and comments from completed orders, first names only. *@
+@model RROMS.Pages.ReviewsModel
+@{
+    ViewData["Title"] = "Guest Reviews";
+}
+<section class="account-heading">
+    <p class="eyebrow">FROM OUR GUESTS</p>
+    <h1>Guest reviews</h1>
+    <p>Honest words from guests who have dined with us. Only completed orders can be reviewed.</p>
+</section>
+@{ var board = new ReviewBoardView(Model, "/Reviews", false, false, true); }
+<partial name="_ReviewBoard" model="board" />

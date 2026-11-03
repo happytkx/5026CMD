@@ -1,0 +1,96 @@
+@* Review summary, rating filter, review cards and pager shared by the admin, staff and public review pages. *@
+@model ReviewBoardView
+@{
+    var board = Model.Page;
+    var summary = board.Summary;
+    var list = board.Reviews;
+    var noun = "reviews";
+}
+<section class="review-summary card" aria-label="Rating summary">
+    <div class="review-average">
+        <strong>@(summary.Total == 0 ? "–" : summary.Average.ToString("0.0"))</strong>
+        <partial name="_ReviewStars" model="(int)Math.Round(summary.Average, MidpointRounding.AwayFromZero)" />
+        <small>@summary.Total @(summary.Total == 1 ? "review" : "reviews")</small>
+    </div>
+    <ul class="review-bars" aria-label="Ratings breakdown">
+        @for (var star = 5; star >= 1; star--)
+        {
+            <li>
+                <a asp-page="@Model.PagePath" asp-route-Rating="@star" class="@(board.Rating == star ? "active" : "")"
+                   aria-label="Show @star-star reviews (@summary.CountFor(star))">
+                    <span>@star ★</span>
+                    <span class="review-bar"><span style="width:@(summary.PercentFor(star))%"></span></span>
+                    <span>@summary.CountFor(star)</span>
+                </a>
+            </li>
+        }
+    </ul>
+</section>
+
+<form method="get" asp-page="@Model.PagePath" class="filters review-filters">
+    <label for="review-rating">Filter by rating</label>
+    <select id="review-rating" name="Rating" onchange="this.form.requestSubmit()">
+        <option value="">All ratings</option>
+        @for (var star = 5; star >= 1; star--)
+        {
+            <option value="@star" selected="@(board.Rating == star)">@star @(star == 1 ? "star" : "stars")</option>
+        }
+    </select>
+    <button type="submit">Apply</button>
+    <a class="button secondary" asp-page="@Model.PagePath">Clear</a>
+    <span class="review-count">@list.Total @(list.Total == 1 ? "review" : "reviews") shown</span>
+</form>
+
+@if (list.Items.Count == 0)
+{
+    <section class="card empty-state">
+        @if (board.Rating.HasValue)
+        {
+            <text>No @board.Rating-star @noun yet.</text>
+        }
+        else
+        {
+            <text>No reviews have been submitted yet. They appear here once guests rate a completed order.</text>
+        }
+    </section>
+}
+else
+{
+    <section class="review-list" aria-label="Customer reviews">
+        @foreach (var review in list.Items)
+        {
+            <article class="card review-card">
+                <header>
+                    <partial name="_ReviewStars" model="review.Rating" />
+                    <time datetime="@review.CreatedAt.ToString("yyyy-MM-dd")">@review.CreatedAt.ToString("dd MMM yyyy")</time>
+                </header>
+                <p class="review-comment">@review.Comment</p>
+                <footer>
+                    <strong>@(Model.FullNames ? review.CustomerName : review.FirstName)</strong>
+                    @if (Model.Public)
+                    {
+                        <span class="badge review-verified">Verified dining</span>
+                    }
+                    @if (Model.ShowOrder)
+                    {
+                        <small>Order <span class="reference">@review.OrderReference</span></small>
+                    }
+                </footer>
+            </article>
+        }
+    </section>
+    @if (list.TotalPages > 1)
+    {
+        <nav class="review-pager" aria-label="Review pages">
+            @if (list.PageNumber > 1)
+            {
+                <a class="button secondary" asp-page="@Model.PagePath" asp-route-Rating="@board.Rating" asp-route-p="@(list.PageNumber - 1)">&larr; Newer</a>
+            }
+            <span>Page @list.PageNumber of @list.TotalPages</span>
+            @if (list.PageNumber < list.TotalPages)
+            {
+                <a class="button secondary" asp-page="@Model.PagePath" asp-route-Rating="@board.Rating" asp-route-p="@(list.PageNumber + 1)">Older &rarr;</a>
+            }
+        </nav>
+    }
+}

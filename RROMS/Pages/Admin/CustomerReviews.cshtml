@@ -1,0 +1,11 @@
+@page
+@* Administrator: every customer rating and comment, with names, dates, orders, rating filter and averages. *@
+@model RROMS.Pages.Admin.CustomerReviewsModel
+@{
+    ViewData["Title"] = "Customer Reviews";
+}
+<p class="eyebrow">REPORTING &amp; ANALYTICS</p>
+<h1>Customer Reviews</h1>
+<p>Ratings and written feedback from guests after their dining orders were completed.</p>
+@{ var board = new ReviewBoardView(Model, "/Admin/CustomerReviews", true, true, false); }
+<partial name="_ReviewBoard" model="board" />
