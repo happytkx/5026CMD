@@ -2248,15 +2248,15 @@ form.card.mybill-selector {
 }
 .weekly-busy-cell:not(:disabled):hover,
 .weekly-busy-cell:focus-visible {
-    border-color: #b59360;
-    box-shadow: 0 0 0 2px rgba(181, 147, 96, .35);
+    border-color: var(--olive-deep);
+    box-shadow: 0 0 0 2px rgba(98, 103, 72, .35);
     outline: none;
 }
 .weekly-busy-cell.is-selected,
 .weekly-busy-cell.is-selected:not(:disabled):hover {
     position: relative;
-    border-color: #8e6b35;
-    box-shadow: 0 0 0 3px rgba(181, 147, 96, .6);
+    border-color: var(--olive-deep);
+    box-shadow: 0 0 0 3px rgba(98, 103, 72, .55);
 }
 .weekly-busy-cell:disabled { cursor: default; opacity: .65; }
 .weekly-busy-cell.heat--1,
