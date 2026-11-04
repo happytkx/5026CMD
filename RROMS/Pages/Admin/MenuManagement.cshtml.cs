@@ -34,6 +34,24 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
     public decimal TotalSales => Items.Sum(i => MetricsFor(i).Sales);
     public int NoOrderAvailableCount => Items.Count(i => i.IsAvailable && MetricsFor(i).Units == 0);
     public string TrendInterval { get; private set; } = "day";
+
+    // Shared axis steps keep every dish chart comparable for the reporting period.
+    // Five equal intervals give readable, whole-number unit ticks.
+    public int TrendUnitsAxisStep { get; private set; } = 1;
+    public decimal TrendSalesAxisStep { get; private set; } = 1m;
+
+    private static decimal NiceAxisStep(decimal peak, bool wholeUnits = false)
+    {
+        if (peak <= 0m) return 1m;
+
+        var rawStep = (double)peak / 5d;
+        var magnitude = Math.Pow(10d, Math.Floor(Math.Log10(rawStep)));
+        var scaled = rawStep / magnitude;
+        var factor = scaled <= 1d ? 1d : scaled <= 2d ? 2d : scaled <= 5d ? 5d : 10d;
+        var step = (decimal)(factor * magnitude);
+        return wholeUnits ? Math.Max(1m, decimal.Ceiling(step)) : step;
+    }
+
     public DishMetrics MetricsFor(MenuItem item) => PerformanceById.TryGetValue(item.MenuItemID, out var metric)
         ? metric : new DishMetrics(0, 0m, []);
 
@@ -185,6 +203,12 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
             PerformanceById[item.MenuItemID] = new DishMetrics(
                 itemLines.Sum(l => l.Quantity), itemLines.Sum(l => l.LineTotal), trend);
         }
+
+        // Use the highest daily/weekly/monthly point across ALL menu dishes.
+        // Filtering or opening a different dish must not change the Y-axis scale.
+        var allPoints = PerformanceById.Values.SelectMany(metrics => metrics.Trend).ToList();
+        TrendUnitsAxisStep = (int)NiceAxisStep(allPoints.Max(point => point.Units), wholeUnits: true);
+        TrendSalesAxisStep = NiceAxisStep(allPoints.Max(point => point.Sales));
     }
 
     public async Task<IActionResult> OnGetExportAsync()

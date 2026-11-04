@@ -133,42 +133,9 @@ namespace RROMS.Data
                 context.SaveChanges();
             }
 
-            // Seed the catalogue only once. Never overwrite administrator changes
-            // to names, descriptions, prices, categories, images or availability.
-            if (!context.MenuItems.Any())
-            {
-            // Seed the official Céleste menu.
-            // Previous sample dishes are hidden, not deleted,
-            // to preserve historical orders and billing records.
-
-            var oldSampleNames = new HashSet<string>(
-                StringComparer.OrdinalIgnoreCase)
-            {
-                "Herb-roasted chicken",
-                "Truffle mushroom risotto",
-                "Seared scallops",
-                "Burrata salad",
-                "Vanilla crème brûlée",
-                "Chocolate fondant",
-                "Iced peach tea",
-                "Sparkling water"
-            };
-
-
-            // Hide old sample dishes and all side dishes.
-            foreach (var item in context.MenuItems.ToList())
-            {
-                if (oldSampleNames.Contains(item.Name) ||
-                    string.Equals(
-                        item.Category,
-                        "Sides",
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    item.IsAvailable = false;
-                }
-            }
-
-
+            // Seed only missing official Céleste dishes, including on databases that
+            // already contain the previous sample menu. Preserve existing item IDs,
+            // administrator edits, order lines and billing history.
             // Helper for creating menu items.
             static MenuItem Dish(
                             string name,
@@ -200,254 +167,238 @@ namespace RROMS.Data
             {
                 // SOUPS
                 Dish(
-                    "Bisque de Homard",
+                    "Lobster Bisque",
                     "Velvety lobster bisque with crème fraîche and chive oil.",
                     58m, "Soups", "Seafood", "Shellfish, Milk",
                     "No pork, No beef, No chicken", true),
 
                 Dish(
-                    "Velouté de Champignons",
+                    "Creamy Mushroom Soup",
                     "Silky wild mushroom soup finished with truffle oil.",
                     48m, "Soups", "Vegetarian", "Milk",
                     "Vegetarian, No pork, No beef, No chicken"),
 
                 Dish(
-                    "Soupe à l'Oignon",
+                    "French Onion Soup",
                     "Slow-cooked onion soup with vegetable stock and Gruyère toast.",
                     46m, "Soups", "Vegetarian", "Milk, Wheat",
                     "Vegetarian, No pork, No beef, No chicken"),
 
                 // APPETIZERS
                 Dish(
-                    "Escargots de Bourgogne",
+                    "Burgundy-Style Garlic Butter Snails",
                     "Burgundy-style escargots in garlic and parsley butter.",
                     52m, "Appetizers", "Molluscs", "Milk, Molluscs"),
 
                 Dish(
-                    "Saint-Jacques",
+                    "Pan-Seared Scallops",
                     "Seared scallops with cauliflower purée and citrus butter.",
                     72m, "Appetizers", "Seafood", "Shellfish, Milk",
                     "No pork, No beef, No chicken", true),
 
                 Dish(
-                    "Salade de Chèvre Chaud",
+                    "Warm Goat Cheese Salad",
                     "Warm goat cheese salad with baby leaves, walnuts and honey.",
                     46m, "Appetizers", "Vegetarian", "Milk, Tree nuts",
                     "Vegetarian, No pork, No beef, No chicken"),
 
                 // MAIN COURSES
                 Dish(
-                    "Magret de Canard",
+                    "Pan-Seared Duck Breast",
                     "Pan-seared duck breast with seasonal vegetables and a rich jus.",
                     138m, "Main Course", "Duck", "Milk",
                     "No pork", true),
 
                 Dish(
-                    "Filet de Bœuf",
+                    "Beef Fillet",
                     "Tender beef fillet with potato purée and peppercorn sauce.",
                     178m, "Main Course", "Beef", "Milk",
                     "No pork", true),
 
                 Dish(
-                    "Carré d'Agneau",
+                    "Herb-Crusted Rack of Lamb",
                     "Herb-crusted lamb rack with roasted vegetables and rosemary jus.",
                     188m, "Main Course", "Lamb", "Wheat, Milk",
                     "No pork"),
 
                 Dish(
-                    "Saumon Poêlé",
+                    "Pan-Seared Salmon",
                     "Pan-seared salmon with seasonal greens and lemon butter sauce.",
                     118m, "Main Course", "Seafood", "Fish, Milk",
                     "No pork, No beef, No chicken"),
 
                 Dish(
-                    "Suprême de Poulet",
+                    "Roasted Chicken Breast",
                     "Roasted chicken supreme with garden herbs and potato gratin.",
                     98m, "Main Course", "Chicken", "Milk",
                     "No pork"),
 
                 Dish(
-                    "Gnocchis Parisiens",
+                    "Parisian-Style Gnocchi",
                     "Parisian-style gnocchi with wild mushrooms and creamy Parmesan sauce.",
                     88m, "Main Course", "Vegetarian", "Milk, Egg, Wheat",
                     "Vegetarian, No pork, No beef, No chicken"),
 
                 // DESSERTS
                 Dish(
-                    "Crème Brûlée",
+                    "Crème brûlée",
                     "Classic vanilla custard beneath a crisp caramelised sugar crust, served with fresh berries.",
                     38m, "Desserts", "Vegetarian", "Milk, Egg",
                     "Vegetarian, No pork, No beef, No chicken", true),
 
                 Dish(
-                    "Tarte au Citron",
+                    "French Lemon Tart",
                     "French lemon tart with buttery pastry and delicate citrus filling.",
                     42m, "Desserts", "Vegetarian", "Milk, Egg, Wheat",
                     "Vegetarian, No pork, No beef, No chicken"),
 
                 Dish(
-                    "Profiteroles au Chocolat",
+                    "Chocolate Cream Puffs",
                     "Delicate choux pastries filled with cream and chocolate sauce.",
                     42m, "Desserts", "Vegetarian", "Milk, Egg, Wheat",
                     "Vegetarian, No pork, No beef, No chicken"),
 
                 // BEVERAGES
                 Dish(
-                    "Citron & Thym",
+                    "Lemon & Thyme Cooler",
                     "A refreshing lemon and thyme signature cooler.",
                     32m, "Beverages", "Vegetarian", "None declared",
                     "Vegan, Vegetarian, No pork, No beef, No chicken"),
 
                 Dish(
-                    "Pêche Blanche",
+                    "White Peach Cooler",
                     "A delicate white peach and citrus signature cooler.",
                     34m, "Beverages", "Vegetarian", "None declared",
                     "Vegan, Vegetarian, No pork, No beef, No chicken"),
 
                 Dish(
-                    "Fleur de Sureau",
+                    "Elderflower Citrus Cooler",
                     "Elderflower and sparkling citrus with a floral finish.",
                     34m, "Beverages", "Vegetarian", "None declared",
                     "Vegan, Vegetarian, No pork, No beef, No chicken"),
 
                 Dish(
-                    "Eau Minérale",
+                    "Still Mineral Water",
                     "Still mineral water, served chilled.",
                     12m, "Beverages", "Vegetarian", "None declared",
                     "Vegan, Vegetarian, No pork, No beef, No chicken"),
 
                 Dish(
-                    "Eau Pétillante",
+                    "Sparkling Mineral Water",
                     "Refreshing sparkling mineral water.",
                     16m, "Beverages", "Vegetarian", "None declared",
                     "Vegan, Vegetarian, No pork, No beef, No chicken")
             };
 
-            // Check existing names to prevent duplicate dishes.
-            var existingMenuNames = context.MenuItems
-            .Select(item => item.Name)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            // Add only dishes that do not already exist.
-            foreach (var dish in officialMenu)
-                {
-                    if (!existingMenuNames.Contains(dish.Name))
-                    {
-                        context.MenuItems.Add(dish);
-                        existingMenuNames.Add(dish.Name);
-                    }
-                }
-
-
-            // Save the changes.
-            context.SaveChanges();
-
-
-            // Synchronise existing official menu information.
-            var savedMenuItems = context.MenuItems.ToList();
-
-            foreach (var dish in officialMenu)
-            {
-                var existing = savedMenuItems.FirstOrDefault(
-                    item => string.Equals(
-                        item.Name,
-                        dish.Name,
-                        StringComparison.OrdinalIgnoreCase));
-
-                if (existing != null)
-                {
-                    existing.Description = dish.Description;
-                    existing.Allergens = dish.Allergens;
-                    existing.ProteinType = dish.ProteinType;
-                }
-            }
-
-            context.SaveChanges();
-
-            // Assign images to the official Céleste menu.
+            // Images are set when a dish is first created, not overwritten later.
             var imagePaths = new Dictionary<string, string>
             {
                 // SOUPS
-                ["Bisque de Homard"] = "/images/menu/lobster-soup.png",
-                ["Velouté de Champignons"] = "/images/menu/mushroom-soup.png",
-                ["Soupe à l'Oignon"] = "/images/menu/onion-soup.png",
+                ["Lobster Bisque"] = "/images/menu/lobster-soup.png",
+                ["Creamy Mushroom Soup"] = "/images/menu/mushroom-soup.png",
+                ["French Onion Soup"] = "/images/menu/onion-soup.png",
 
                 // APPETIZERS
-                ["Escargots de Bourgogne"] = "/images/menu/escargots-appertizer.png",
-                ["Saint-Jacques"] = "/images/menu/scallops-appertizer.png",
-                ["Salade de Chèvre Chaud"] = "/images/menu/salad-appertizer.png",
+                ["Burgundy-Style Garlic Butter Snails"] = "/images/menu/escargots-appertizer.png",
+                ["Pan-Seared Scallops"] = "/images/menu/scallops-appertizer.png",
+                ["Warm Goat Cheese Salad"] = "/images/menu/salad-appertizer.png",
 
                 // MAIN COURSES
-                ["Magret de Canard"] = "/images/menu/duck-main.png",
-                ["Filet de Bœuf"] = "/images/menu/beef-main.png",
-                ["Carré d'Agneau"] = "/images/menu/lamb-main.png",
-                ["Saumon Poêlé"] = "/images/menu/salmon-main.png",
-                ["Suprême de Poulet"] = "/images/menu/chicken-main.png",
-                ["Gnocchis Parisiens"] = "/images/menu/gnocchi-main.png",
+                ["Pan-Seared Duck Breast"] = "/images/menu/duck-main.png",
+                ["Beef Fillet"] = "/images/menu/beef-main.png",
+                ["Herb-Crusted Rack of Lamb"] = "/images/menu/lamb-main.png",
+                ["Pan-Seared Salmon"] = "/images/menu/salmon-main.png",
+                ["Roasted Chicken Breast"] = "/images/menu/chicken-main.png",
+                ["Parisian-Style Gnocchi"] = "/images/menu/gnocchi-main.png",
 
                 // DESSERTS
-                ["Crème Brûlée"] = "/images/menu/creme-brulee-dessert.png",
-                ["Tarte au Citron"] = "/images/menu/lemon-tart-dessert.png",
-                ["Profiteroles au Chocolat"] = "/images/menu/cream-puffs-dessert.png",
+                ["Crème brûlée"] = "/images/menu/creme-brulee-dessert.png",
+                ["French Lemon Tart"] = "/images/menu/lemon-tart-dessert.png",
+                ["Chocolate Cream Puffs"] = "/images/menu/cream-puffs-dessert.png",
 
                 // BEVERAGES
-                ["Citron & Thym"] = "/images/menu/lemonade-beverage.png",
-                ["Pêche Blanche"] = "/images/menu/peach-beverage.png",
-                ["Fleur de Sureau"] = "/images/menu/elderflower-beverage.png",
-                ["Eau Minérale"] = "/images/menu/water-beverage.png",
-                ["Eau Pétillante"] = "/images/menu/sparkling-beverage.png"
+                ["Lemon & Thyme Cooler"] = "/images/menu/lemonade-beverage.png",
+                ["White Peach Cooler"] = "/images/menu/peach-beverage.png",
+                ["Elderflower Citrus Cooler"] = "/images/menu/elderflower-beverage.png",
+                ["Still Mineral Water"] = "/images/menu/water-beverage.png",
+                ["Sparkling Mineral Water"] = "/images/menu/sparkling-beverage.png"
             };
 
-            // Update image paths for existing and newly added dishes.
-            foreach (var item in context.MenuItems.ToList())
+
+            // Menu items have a required MenuCategoryID foreign key. Create any
+            // missing official categories before inserting new menu items.
+            var categoryByName = context.MenuCategories.ToList()
+                .GroupBy(category => category.Name, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.First(),
+                    StringComparer.OrdinalIgnoreCase);
+
+            foreach (var categoryName in officialMenu.Select(dish => dish.Category)
+                .Distinct(StringComparer.OrdinalIgnoreCase))
             {
-                if (imagePaths.TryGetValue(item.Name, out var imagePath))
+                if (!categoryByName.ContainsKey(categoryName))
                 {
-                    item.ImageUrl = imagePath;
+                    var newCategory = new MenuCategory { Name = categoryName };
+                    context.MenuCategories.Add(newCategory);
+                    categoryByName.Add(categoryName, newCategory);
                 }
             }
 
             context.SaveChanges();
 
-            }
+            // Translate previously seeded French dish names in place. Menu item
+            // IDs and all other fields remain unchanged, preserving existing orders.
+            // Historical order-line name/price snapshots remain in the database.
+            var existingMenuItems = context.MenuItems.ToList();
+            foreach (var item in existingMenuItems)
+                item.Name = MenuDisplayNames.InEnglish(item.Name);
 
-            // Fresh databases receive menu categories after the catalogue is seeded.
-            // Migrated databases are backfilled by the AddMenuCategories migration.
-            if (!context.MenuCategories.Any())
+            // Do not reinsert existing dishes or reset their prices, descriptions,
+            // availability, category selection, images, or administrator changes.
+            var existingMenuNames = existingMenuItems
+                .Select(item => item.Name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var dish in officialMenu)
             {
-                var categories = context.MenuItems.Select(i => i.Category).Distinct().ToList();
-                context.MenuCategories.AddRange(categories.Select(name => new MenuCategory { Name = name }));
-                context.SaveChanges();
+                if (existingMenuNames.Add(dish.Name))
+                {
+                    dish.MenuCategoryID = categoryByName[dish.Category].MenuCategoryID;
+                    dish.ImageUrl = imagePaths[dish.Name];
+                    context.MenuItems.Add(dish);
+                }
             }
 
-            // Remove obsolete, unreferenced legacy demo categories from local
-            // development data. Historical order lines always take priority:
-            // referenced dishes are retained and merely made unavailable.
-            // Production and non-demo databases are never cleaned automatically.
+            // In development only, hide known legacy sample dishes without
+            // deleting them. Existing order lines and all menu records remain intact.
             if (demoAccounts)
             {
-                var obsoleteNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                var oldSampleNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
-                    "Sides", "Starters"
+                    "Herb-roasted chicken",
+                    "Truffle mushroom risotto",
+                    "Seared scallops",
+                    "Burrata salad",
+                    "Vanilla crème brûlée",
+                    "Chocolate fondant",
+                    "Iced peach tea",
+                    "Sparkling water"
                 };
-                foreach (var item in context.MenuItems.ToList()
-                    .Where(i => obsoleteNames.Contains(i.Category)))
-                {
-                    if (context.OrderLines.Any(l => l.MenuItemID == item.MenuItemID))
-                        item.IsAvailable = false;
-                    else
-                        context.MenuItems.Remove(item);
-                }
-                context.SaveChanges();
 
-                foreach (var category in context.MenuCategories.ToList()
-                    .Where(c => obsoleteNames.Contains(c.Name)))
+                foreach (var item in context.MenuItems.ToList())
                 {
-                    if (!context.MenuItems.Any(i => i.Category == category.Name))
-                        context.MenuCategories.Remove(category);
+                    if (item.CreatedByAdministratorID == null &&
+                        item.UpdatedByAdministratorID == null &&
+                        (oldSampleNames.Contains(item.Name) ||
+                         string.Equals(item.Category, "Sides", StringComparison.OrdinalIgnoreCase) ||
+                         string.Equals(item.Category, "Starters", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        item.IsAvailable = false;
+                    }
                 }
-                context.SaveChanges();
             }
+
+            context.SaveChanges();
 
             // Seed welcome announcement
             if (!context.Announcements.Any())

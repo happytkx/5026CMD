@@ -15,7 +15,8 @@
     <p>Review successful deposit and dining-bill payments for the selected reporting period.</p>
     <a class="payment-back-link" asp-page="/Admin/PaymentCollections"
        asp-route-StartDate="@Model.StartDate.ToString("yyyy-MM-dd")"
-       asp-route-EndDate="@Model.EndDate.ToString("yyyy-MM-dd")">
+       asp-route-EndDate="@Model.EndDate.ToString("yyyy-MM-dd")"
+       asp-route-Search="@Model.Search">
         &larr; Back to Payment Collections
     </a>
 }
@@ -50,13 +51,14 @@ else
 }
 <div class="report-period-presets">
     <span>Quick periods:</span>
-    <a asp-page="/Admin/PaymentCollections" asp-route-StartDate="@quickToday.ToString("yyyy-MM-dd")" asp-route-EndDate="@quickToday.ToString("yyyy-MM-dd")" asp-route-PaymentType="@Model.PaymentType" asp-route-TransactionsOnly="@Model.TransactionsOnly">Today</a>
-    <a asp-page="/Admin/PaymentCollections" asp-route-StartDate="@quickWeek.ToString("yyyy-MM-dd")" asp-route-EndDate="@quickToday.ToString("yyyy-MM-dd")" asp-route-PaymentType="@Model.PaymentType" asp-route-TransactionsOnly="@Model.TransactionsOnly">This Week</a>
-    <a asp-page="/Admin/PaymentCollections" asp-route-StartDate="@quickMonth.ToString("yyyy-MM-dd")" asp-route-EndDate="@quickToday.ToString("yyyy-MM-dd")" asp-route-PaymentType="@Model.PaymentType" asp-route-TransactionsOnly="@Model.TransactionsOnly">This Month</a>
+    <a asp-page="/Admin/PaymentCollections" asp-route-StartDate="@quickToday.ToString("yyyy-MM-dd")" asp-route-EndDate="@quickToday.ToString("yyyy-MM-dd")" asp-route-PaymentType="@Model.PaymentType" asp-route-TransactionsOnly="@Model.TransactionsOnly" asp-route-Search="@Model.Search">Today</a>
+    <a asp-page="/Admin/PaymentCollections" asp-route-StartDate="@quickWeek.ToString("yyyy-MM-dd")" asp-route-EndDate="@quickToday.ToString("yyyy-MM-dd")" asp-route-PaymentType="@Model.PaymentType" asp-route-TransactionsOnly="@Model.TransactionsOnly" asp-route-Search="@Model.Search">This Week</a>
+    <a asp-page="/Admin/PaymentCollections" asp-route-StartDate="@quickMonth.ToString("yyyy-MM-dd")" asp-route-EndDate="@quickToday.ToString("yyyy-MM-dd")" asp-route-PaymentType="@Model.PaymentType" asp-route-TransactionsOnly="@Model.TransactionsOnly" asp-route-Search="@Model.Search">This Month</a>
 </div>
 <form method="get" class="report-period-form">
     <input type="hidden" name="PaymentType" value="@Model.PaymentType" />
     <input type="hidden" name="TransactionsOnly" value="@(Model.TransactionsOnly ? "true" : "false")" />
+    <input type="hidden" name="Search" value="@Model.Search" />
 
     <section class="card report-period-card">
 
@@ -301,7 +303,22 @@ else
                     <option value="DiningBill">Dining bills</option>
                 </select>
             </div>
-            <button type="submit" class="report-action-button">Apply Filter</button>
+            <div class="payment-type-filter-field payment-transaction-search-field">
+                <label asp-for="Search">Search transactions</label>
+                <input asp-for="Search" type="search" maxlength="100" autocomplete="off"
+                       placeholder="Customer, booking ref, receipt or payment ref"
+                       aria-label="Search successful payments by customer, booking reference, receipt number or payment reference" />
+            </div>
+            <button type="submit" class="report-action-button">Apply Filters</button>
+            @if (!string.IsNullOrWhiteSpace(Model.Search))
+            {
+                <a class="button secondary payment-search-clear" asp-page="/Admin/PaymentCollections"
+                   asp-route-StartDate="@Model.StartDate.ToString("yyyy-MM-dd")"
+                   asp-route-EndDate="@Model.EndDate.ToString("yyyy-MM-dd")"
+                   asp-route-PaymentType="@Model.PaymentType"
+                   asp-route-TransactionsOnly="@Model.TransactionsOnly"
+                   asp-fragment="successful-transactions">Clear Search</a>
+            }
         </form>
         <p class="payment-filter-count">
             Showing <strong>@filteredTransactions.Count</strong> of <strong>@report.TransactionCount</strong> successful transactions.
@@ -309,7 +326,7 @@ else
 
         @if (filteredTransactions.Count == 0)
         {
-            <p>No matching successful payments were found for this period and payment type.</p>
+            <p>No successful payments match this reporting period, payment type and search. Try another customer, booking reference or payment ID.</p>
         }
         else
         {

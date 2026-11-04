@@ -206,7 +206,8 @@
                     </label>
                     <button type="submit" class="secondary">Update duration</button>
                 </form>
-                <form method="post" asp-page-handler="RetireAnnouncement">
+                <form method="post" asp-page-handler="RetireAnnouncement"
+                      onsubmit="return confirm('Remove this announcement? It will no longer appear to customers.');">
                     <input type="hidden" name="id" value="@a.AnnouncementID" />
                     <button type="submit" class="quiet danger">Remove</button>
                 </form>

@@ -44,13 +44,6 @@ public class BillDetailsModel : PageModel
     // This does not verify the source of food orders.
     public BillSettlementCheck? SettlementCheck { get; set; }
 
-    public decimal PaidDeposits { get; set; }
-
-    public decimal PaidDiningPayments { get; set; }
-
-    public decimal TotalCollected =>
-        PaidDeposits + PaidDiningPayments;
-
     public decimal MinimumSpendShortfall =>
         Bill == null
             ? 0m
@@ -139,18 +132,6 @@ public class BillDetailsModel : PageModel
             .OrderByDescending(p => p.PaymentDate)
             .ThenByDescending(p => p.PaymentID)
             .ToListAsync();
-
-        PaidDeposits = Payments
-            .Where(p =>
-                p.PaymentType == "Deposit" &&
-                p.PaymentStatus == "Paid")
-            .Sum(p => p.Amount);
-
-        PaidDiningPayments = Payments
-            .Where(p =>
-                p.PaymentType == "DiningBill" &&
-                p.PaymentStatus == "Paid")
-            .Sum(p => p.Amount);
 
         // Retrieve the existing financial readiness check.
         // This only reads data and never records a payment.
