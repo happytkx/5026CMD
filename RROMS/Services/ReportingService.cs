@@ -275,7 +275,8 @@ public class ReportingService
                 p.PaymentDate,
                 p.PaymentType,
                 p.PaymentMethod,
-                p.Amount
+                p.Amount,
+                p.PaymentReference
             })
             .ToListAsync();
 
@@ -290,7 +291,8 @@ public class ReportingService
                 p.PaymentDate,
                 p.PaymentType,
                 p.PaymentMethod,
-                p.Amount))
+                p.Amount,
+                p.PaymentReference ?? string.Empty))
             .ToList();
 
 
@@ -332,7 +334,8 @@ public record PaymentCollectionRow(
     DateTime PaymentDate,
     string PaymentType,
     string PaymentMethod,
-    decimal Amount);
+    decimal Amount,
+    string PaymentReference = "");
 
 public record DailyPaymentSummary(
     DateTime Date,

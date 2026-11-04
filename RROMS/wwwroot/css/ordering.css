@@ -1948,9 +1948,32 @@ form.card.mybill-selector {
     font: inherit;
     cursor: pointer;
 }
-.payment-type-filter-field select:focus-visible {
+.payment-type-filter-field select:focus-visible,
+.payment-transaction-search-field input[type="search"]:focus-visible {
     outline: 2px solid var(--gold);
     outline-offset: 2px;
+}
+.payment-transaction-search-field {
+    flex: 1 1 360px;
+    min-width: min(100%, 250px);
+}
+.payment-transaction-search-field input[type="search"] {
+    width: 100%;
+    min-height: 50px;
+    padding: 11px 14px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--white);
+    color: inherit;
+    font: inherit;
+}
+.payment-search-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 50px;
+    padding: 11px 18px;
+    margin: 0;
 }
 .payment-type-filter > button {
     min-width: 150px;
@@ -2364,20 +2387,20 @@ form.card.mybill-selector {
 .payment-collection-trend > .muted { margin: 0 0 14px; font-size: 13px; }
 .payment-trend-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; margin-bottom: 16px; color: var(--muted); font-size: 13px; }
 .payment-trend-legend span { display: inline-flex; align-items: center; gap: 8px; }
-.payment-legend-key { display: inline-block; width: 22px; height: 3px; border-radius: 3px; }
-.payment-legend-deposit { background: #b69a64; }
-.payment-legend-dining { background: #ae6b50; }
-.payment-legend-total { background: #626a46; }
+.payment-legend-key { display: inline-block; width: 24px; height: 0; border-top: 4px solid; }
+.payment-legend-deposit { border-color: #2563eb; border-top-style: dashed; }
+.payment-legend-dining { border-color: #ea580c; }
+.payment-legend-total { border-color: #008a5b; }
 .payment-trend-scroll { overflow-x: auto; overflow-y: hidden; }
 .payment-trend-scroll svg { display: block; width: 100%; min-width: 640px; height: auto; }
 .payment-trend-grid { stroke: #e4ddd0; stroke-width: 1; }
 .payment-trend-axis { font-size: 12px; fill: #746e65; }
 .payment-trend-line { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-.payment-trend-deposit-line { stroke: #b69a64; }
-.payment-trend-dining-line { stroke: #ae6b50; }
-.payment-trend-total-line { stroke: #626a46; stroke-width: 3.5; }
-.payment-trend-dot { fill: #626a46; stroke: #fff; stroke-width: 2; cursor: pointer; }
-.payment-trend-dot:hover, .payment-trend-dot:focus-visible { r: 7; stroke: #b69a64; stroke-width: 3; outline: none; }
+.payment-trend-deposit-line { stroke: #2563eb; stroke-dasharray: 8 5; }
+.payment-trend-dining-line { stroke: #ea580c; }
+.payment-trend-total-line { stroke: #008a5b; stroke-width: 4; }
+.payment-trend-dot { fill: #008a5b; stroke: #fff; stroke-width: 2; cursor: pointer; }
+.payment-trend-dot:hover, .payment-trend-dot:focus-visible { r: 7; stroke: #2563eb; stroke-width: 3; outline: none; }
 .payment-trend-tooltip {
     position: absolute; z-index: 4; pointer-events: none;
     display: flex; flex-direction: column; gap: 5px;
@@ -2388,7 +2411,9 @@ form.card.mybill-selector {
 }
 .payment-trend-tooltip[hidden] { display: none; }
 .payment-trend-tooltip span { color: var(--muted); }
-.payment-trend-tooltip [data-payment-total] { color: var(--ink); font-weight: 700; }
+.payment-trend-tooltip [data-payment-deposit] { color: #205ac0; font-weight: 600; }
+.payment-trend-tooltip [data-payment-dining] { color: #c14a06; font-weight: 600; }
+.payment-trend-tooltip [data-payment-total] { color: #007b51; font-weight: 700; }
 
 /* Staff reservation management: make the coursework actions visible and consistent. */
 .staff-reservation-table-actions { min-width: 190px; vertical-align: top; }
