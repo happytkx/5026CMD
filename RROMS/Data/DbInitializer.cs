@@ -133,42 +133,9 @@ namespace RROMS.Data
                 context.SaveChanges();
             }
 
-            // Seed the catalogue only once. Never overwrite administrator changes
-            // to names, descriptions, prices, categories, images or availability.
-            if (!context.MenuItems.Any())
-            {
-            // Seed the official Céleste menu.
-            // Previous sample dishes are hidden, not deleted,
-            // to preserve historical orders and billing records.
-
-            var oldSampleNames = new HashSet<string>(
-                StringComparer.OrdinalIgnoreCase)
-            {
-                "Herb-roasted chicken",
-                "Truffle mushroom risotto",
-                "Seared scallops",
-                "Burrata salad",
-                "Vanilla crème brûlée",
-                "Chocolate fondant",
-                "Iced peach tea",
-                "Sparkling water"
-            };
-
-
-            // Hide old sample dishes and all side dishes.
-            foreach (var item in context.MenuItems.ToList())
-            {
-                if (oldSampleNames.Contains(item.Name) ||
-                    string.Equals(
-                        item.Category,
-                        "Sides",
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    item.IsAvailable = false;
-                }
-            }
-
-
+            // Seed only missing official Céleste dishes, including on databases that
+            // already contain the previous sample menu. Preserve existing item IDs,
+            // administrator edits, order lines and billing history.
             // Helper for creating menu items.
             static MenuItem Dish(
                             string name,
@@ -323,48 +290,8 @@ namespace RROMS.Data
                     "Vegan, Vegetarian, No pork, No beef, No chicken")
             };
 
-            // Check existing names to prevent duplicate dishes.
-            var existingMenuNames = context.MenuItems
-            .Select(item => item.Name)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            // Add only dishes that do not already exist.
-            foreach (var dish in officialMenu)
-                {
-                    if (!existingMenuNames.Contains(dish.Name))
-                    {
-                        context.MenuItems.Add(dish);
-                        existingMenuNames.Add(dish.Name);
-                    }
-                }
-
-
-            // Save the changes.
-            context.SaveChanges();
-
-
-            // Synchronise existing official menu information.
-            var savedMenuItems = context.MenuItems.ToList();
-
-            foreach (var dish in officialMenu)
-            {
-                var existing = savedMenuItems.FirstOrDefault(
-                    item => string.Equals(
-                        item.Name,
-                        dish.Name,
-                        StringComparison.OrdinalIgnoreCase));
-
-                if (existing != null)
-                {
-                    existing.Description = dish.Description;
-                    existing.Allergens = dish.Allergens;
-                    existing.ProteinType = dish.ProteinType;
-                }
-            }
-
-            context.SaveChanges();
-
-            // Assign images to the official Céleste menu.
+            // Images are set when a dish is first created, not overwritten later.
             var imagePaths = new Dictionary<string, string>
             {
                 // SOUPS
@@ -398,56 +325,73 @@ namespace RROMS.Data
                 ["Eau Pétillante"] = "/images/menu/sparkling-beverage.png"
             };
 
-            // Update image paths for existing and newly added dishes.
-            foreach (var item in context.MenuItems.ToList())
+
+            // Menu items have a required MenuCategoryID foreign key. Create any
+            // missing official categories before inserting new menu items.
+            var categoryByName = context.MenuCategories.ToList()
+                .GroupBy(category => category.Name, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.First(),
+                    StringComparer.OrdinalIgnoreCase);
+
+            foreach (var categoryName in officialMenu.Select(dish => dish.Category)
+                .Distinct(StringComparer.OrdinalIgnoreCase))
             {
-                if (imagePaths.TryGetValue(item.Name, out var imagePath))
+                if (!categoryByName.ContainsKey(categoryName))
                 {
-                    item.ImageUrl = imagePath;
+                    var newCategory = new MenuCategory { Name = categoryName };
+                    context.MenuCategories.Add(newCategory);
+                    categoryByName.Add(categoryName, newCategory);
                 }
             }
 
             context.SaveChanges();
 
-            }
+            // Do not reinsert existing dishes or reset their prices, descriptions,
+            // availability, category selection, images, or administrator changes.
+            var existingMenuNames = context.MenuItems
+                .Select(item => item.Name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            // Fresh databases receive menu categories after the catalogue is seeded.
-            // Migrated databases are backfilled by the AddMenuCategories migration.
-            if (!context.MenuCategories.Any())
+            foreach (var dish in officialMenu)
             {
-                var categories = context.MenuItems.Select(i => i.Category).Distinct().ToList();
-                context.MenuCategories.AddRange(categories.Select(name => new MenuCategory { Name = name }));
-                context.SaveChanges();
+                if (existingMenuNames.Add(dish.Name))
+                {
+                    dish.MenuCategoryID = categoryByName[dish.Category].MenuCategoryID;
+                    dish.ImageUrl = imagePaths[dish.Name];
+                    context.MenuItems.Add(dish);
+                }
             }
 
-            // Remove obsolete, unreferenced legacy demo categories from local
-            // development data. Historical order lines always take priority:
-            // referenced dishes are retained and merely made unavailable.
-            // Production and non-demo databases are never cleaned automatically.
+            // In development only, hide known legacy sample dishes without
+            // deleting them. Existing order lines and all menu records remain intact.
             if (demoAccounts)
             {
-                var obsoleteNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                var oldSampleNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
-                    "Sides", "Starters"
+                    "Herb-roasted chicken",
+                    "Truffle mushroom risotto",
+                    "Seared scallops",
+                    "Burrata salad",
+                    "Vanilla crème brûlée",
+                    "Chocolate fondant",
+                    "Iced peach tea",
+                    "Sparkling water"
                 };
-                foreach (var item in context.MenuItems.ToList()
-                    .Where(i => obsoleteNames.Contains(i.Category)))
-                {
-                    if (context.OrderLines.Any(l => l.MenuItemID == item.MenuItemID))
-                        item.IsAvailable = false;
-                    else
-                        context.MenuItems.Remove(item);
-                }
-                context.SaveChanges();
 
-                foreach (var category in context.MenuCategories.ToList()
-                    .Where(c => obsoleteNames.Contains(c.Name)))
+                foreach (var item in context.MenuItems.ToList())
                 {
-                    if (!context.MenuItems.Any(i => i.Category == category.Name))
-                        context.MenuCategories.Remove(category);
+                    if (item.CreatedByAdministratorID == null &&
+                        item.UpdatedByAdministratorID == null &&
+                        (oldSampleNames.Contains(item.Name) ||
+                         string.Equals(item.Category, "Sides", StringComparison.OrdinalIgnoreCase) ||
+                         string.Equals(item.Category, "Starters", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        item.IsAvailable = false;
+                    }
                 }
-                context.SaveChanges();
             }
+
+            context.SaveChanges();
 
             // Seed welcome announcement
             if (!context.Announcements.Any())
