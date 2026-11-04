@@ -167,124 +167,124 @@ namespace RROMS.Data
             {
                 // SOUPS
                 Dish(
-                    "Bisque de Homard",
+                    "Lobster Bisque",
                     "Velvety lobster bisque with crème fraîche and chive oil.",
                     58m, "Soups", "Seafood", "Shellfish, Milk",
                     "No pork, No beef, No chicken", true),
 
                 Dish(
-                    "Velouté de Champignons",
+                    "Creamy Mushroom Soup",
                     "Silky wild mushroom soup finished with truffle oil.",
                     48m, "Soups", "Vegetarian", "Milk",
                     "Vegetarian, No pork, No beef, No chicken"),
 
                 Dish(
-                    "Soupe à l'Oignon",
+                    "French Onion Soup",
                     "Slow-cooked onion soup with vegetable stock and Gruyère toast.",
                     46m, "Soups", "Vegetarian", "Milk, Wheat",
                     "Vegetarian, No pork, No beef, No chicken"),
 
                 // APPETIZERS
                 Dish(
-                    "Escargots de Bourgogne",
+                    "Burgundy-Style Garlic Butter Snails",
                     "Burgundy-style escargots in garlic and parsley butter.",
                     52m, "Appetizers", "Molluscs", "Milk, Molluscs"),
 
                 Dish(
-                    "Saint-Jacques",
+                    "Pan-Seared Scallops",
                     "Seared scallops with cauliflower purée and citrus butter.",
                     72m, "Appetizers", "Seafood", "Shellfish, Milk",
                     "No pork, No beef, No chicken", true),
 
                 Dish(
-                    "Salade de Chèvre Chaud",
+                    "Warm Goat Cheese Salad",
                     "Warm goat cheese salad with baby leaves, walnuts and honey.",
                     46m, "Appetizers", "Vegetarian", "Milk, Tree nuts",
                     "Vegetarian, No pork, No beef, No chicken"),
 
                 // MAIN COURSES
                 Dish(
-                    "Magret de Canard",
+                    "Pan-Seared Duck Breast",
                     "Pan-seared duck breast with seasonal vegetables and a rich jus.",
                     138m, "Main Course", "Duck", "Milk",
                     "No pork", true),
 
                 Dish(
-                    "Filet de Bœuf",
+                    "Beef Fillet",
                     "Tender beef fillet with potato purée and peppercorn sauce.",
                     178m, "Main Course", "Beef", "Milk",
                     "No pork", true),
 
                 Dish(
-                    "Carré d'Agneau",
+                    "Herb-Crusted Rack of Lamb",
                     "Herb-crusted lamb rack with roasted vegetables and rosemary jus.",
                     188m, "Main Course", "Lamb", "Wheat, Milk",
                     "No pork"),
 
                 Dish(
-                    "Saumon Poêlé",
+                    "Pan-Seared Salmon",
                     "Pan-seared salmon with seasonal greens and lemon butter sauce.",
                     118m, "Main Course", "Seafood", "Fish, Milk",
                     "No pork, No beef, No chicken"),
 
                 Dish(
-                    "Suprême de Poulet",
+                    "Roasted Chicken Breast",
                     "Roasted chicken supreme with garden herbs and potato gratin.",
                     98m, "Main Course", "Chicken", "Milk",
                     "No pork"),
 
                 Dish(
-                    "Gnocchis Parisiens",
+                    "Parisian-Style Gnocchi",
                     "Parisian-style gnocchi with wild mushrooms and creamy Parmesan sauce.",
                     88m, "Main Course", "Vegetarian", "Milk, Egg, Wheat",
                     "Vegetarian, No pork, No beef, No chicken"),
 
                 // DESSERTS
                 Dish(
-                    "Crème Brûlée",
+                    "Caramelised Vanilla Custard",
                     "Classic vanilla custard beneath a crisp caramelised sugar crust, served with fresh berries.",
                     38m, "Desserts", "Vegetarian", "Milk, Egg",
                     "Vegetarian, No pork, No beef, No chicken", true),
 
                 Dish(
-                    "Tarte au Citron",
+                    "French Lemon Tart",
                     "French lemon tart with buttery pastry and delicate citrus filling.",
                     42m, "Desserts", "Vegetarian", "Milk, Egg, Wheat",
                     "Vegetarian, No pork, No beef, No chicken"),
 
                 Dish(
-                    "Profiteroles au Chocolat",
+                    "Chocolate Cream Puffs",
                     "Delicate choux pastries filled with cream and chocolate sauce.",
                     42m, "Desserts", "Vegetarian", "Milk, Egg, Wheat",
                     "Vegetarian, No pork, No beef, No chicken"),
 
                 // BEVERAGES
                 Dish(
-                    "Citron & Thym",
+                    "Lemon & Thyme Cooler",
                     "A refreshing lemon and thyme signature cooler.",
                     32m, "Beverages", "Vegetarian", "None declared",
                     "Vegan, Vegetarian, No pork, No beef, No chicken"),
 
                 Dish(
-                    "Pêche Blanche",
+                    "White Peach Cooler",
                     "A delicate white peach and citrus signature cooler.",
                     34m, "Beverages", "Vegetarian", "None declared",
                     "Vegan, Vegetarian, No pork, No beef, No chicken"),
 
                 Dish(
-                    "Fleur de Sureau",
+                    "Elderflower Citrus Cooler",
                     "Elderflower and sparkling citrus with a floral finish.",
                     34m, "Beverages", "Vegetarian", "None declared",
                     "Vegan, Vegetarian, No pork, No beef, No chicken"),
 
                 Dish(
-                    "Eau Minérale",
+                    "Still Mineral Water",
                     "Still mineral water, served chilled.",
                     12m, "Beverages", "Vegetarian", "None declared",
                     "Vegan, Vegetarian, No pork, No beef, No chicken"),
 
                 Dish(
-                    "Eau Pétillante",
+                    "Sparkling Mineral Water",
                     "Refreshing sparkling mineral water.",
                     16m, "Beverages", "Vegetarian", "None declared",
                     "Vegan, Vegetarian, No pork, No beef, No chicken")
@@ -295,34 +295,34 @@ namespace RROMS.Data
             var imagePaths = new Dictionary<string, string>
             {
                 // SOUPS
-                ["Bisque de Homard"] = "/images/menu/lobster-soup.png",
-                ["Velouté de Champignons"] = "/images/menu/mushroom-soup.png",
-                ["Soupe à l'Oignon"] = "/images/menu/onion-soup.png",
+                ["Lobster Bisque"] = "/images/menu/lobster-soup.png",
+                ["Creamy Mushroom Soup"] = "/images/menu/mushroom-soup.png",
+                ["French Onion Soup"] = "/images/menu/onion-soup.png",
 
                 // APPETIZERS
-                ["Escargots de Bourgogne"] = "/images/menu/escargots-appertizer.png",
-                ["Saint-Jacques"] = "/images/menu/scallops-appertizer.png",
-                ["Salade de Chèvre Chaud"] = "/images/menu/salad-appertizer.png",
+                ["Burgundy-Style Garlic Butter Snails"] = "/images/menu/escargots-appertizer.png",
+                ["Pan-Seared Scallops"] = "/images/menu/scallops-appertizer.png",
+                ["Warm Goat Cheese Salad"] = "/images/menu/salad-appertizer.png",
 
                 // MAIN COURSES
-                ["Magret de Canard"] = "/images/menu/duck-main.png",
-                ["Filet de Bœuf"] = "/images/menu/beef-main.png",
-                ["Carré d'Agneau"] = "/images/menu/lamb-main.png",
-                ["Saumon Poêlé"] = "/images/menu/salmon-main.png",
-                ["Suprême de Poulet"] = "/images/menu/chicken-main.png",
-                ["Gnocchis Parisiens"] = "/images/menu/gnocchi-main.png",
+                ["Pan-Seared Duck Breast"] = "/images/menu/duck-main.png",
+                ["Beef Fillet"] = "/images/menu/beef-main.png",
+                ["Herb-Crusted Rack of Lamb"] = "/images/menu/lamb-main.png",
+                ["Pan-Seared Salmon"] = "/images/menu/salmon-main.png",
+                ["Roasted Chicken Breast"] = "/images/menu/chicken-main.png",
+                ["Parisian-Style Gnocchi"] = "/images/menu/gnocchi-main.png",
 
                 // DESSERTS
-                ["Crème Brûlée"] = "/images/menu/creme-brulee-dessert.png",
-                ["Tarte au Citron"] = "/images/menu/lemon-tart-dessert.png",
-                ["Profiteroles au Chocolat"] = "/images/menu/cream-puffs-dessert.png",
+                ["Caramelised Vanilla Custard"] = "/images/menu/creme-brulee-dessert.png",
+                ["French Lemon Tart"] = "/images/menu/lemon-tart-dessert.png",
+                ["Chocolate Cream Puffs"] = "/images/menu/cream-puffs-dessert.png",
 
                 // BEVERAGES
-                ["Citron & Thym"] = "/images/menu/lemonade-beverage.png",
-                ["Pêche Blanche"] = "/images/menu/peach-beverage.png",
-                ["Fleur de Sureau"] = "/images/menu/elderflower-beverage.png",
-                ["Eau Minérale"] = "/images/menu/water-beverage.png",
-                ["Eau Pétillante"] = "/images/menu/sparkling-beverage.png"
+                ["Lemon & Thyme Cooler"] = "/images/menu/lemonade-beverage.png",
+                ["White Peach Cooler"] = "/images/menu/peach-beverage.png",
+                ["Elderflower Citrus Cooler"] = "/images/menu/elderflower-beverage.png",
+                ["Still Mineral Water"] = "/images/menu/water-beverage.png",
+                ["Sparkling Mineral Water"] = "/images/menu/sparkling-beverage.png"
             };
 
 
@@ -346,9 +346,44 @@ namespace RROMS.Data
 
             context.SaveChanges();
 
+            // Translate previously seeded French dish names in place when upgrading
+            // an existing database. Keep MenuItemID and every other field intact, so
+            // reservations, order-line relationships and billing remain unchanged.
+            // Matching by exact previous name also leaves renamed/custom items alone.
+            var englishNameByPreviousName = new Dictionary<string, string>(
+                StringComparer.OrdinalIgnoreCase)
+            {
+                ["Bisque de Homard"] = "Lobster Bisque",
+                ["Velouté de Champignons"] = "Creamy Mushroom Soup",
+                ["Soupe à l'Oignon"] = "French Onion Soup",
+                ["Escargots de Bourgogne"] = "Burgundy-Style Garlic Butter Snails",
+                ["Saint-Jacques"] = "Pan-Seared Scallops",
+                ["Salade de Chèvre Chaud"] = "Warm Goat Cheese Salad",
+                ["Magret de Canard"] = "Pan-Seared Duck Breast",
+                ["Filet de Bœuf"] = "Beef Fillet",
+                ["Carré d'Agneau"] = "Herb-Crusted Rack of Lamb",
+                ["Saumon Poêlé"] = "Pan-Seared Salmon",
+                ["Suprême de Poulet"] = "Roasted Chicken Breast",
+                ["Gnocchis Parisiens"] = "Parisian-Style Gnocchi",
+                ["Crème Brûlée"] = "Caramelised Vanilla Custard",
+                ["Tarte au Citron"] = "French Lemon Tart",
+                ["Profiteroles au Chocolat"] = "Chocolate Cream Puffs",
+                ["Citron & Thym"] = "Lemon & Thyme Cooler",
+                ["Pêche Blanche"] = "White Peach Cooler",
+                ["Fleur de Sureau"] = "Elderflower Citrus Cooler",
+                ["Eau Minérale"] = "Still Mineral Water",
+                ["Eau Pétillante"] = "Sparkling Mineral Water",
+            };
+            var existingMenuItems = context.MenuItems.ToList();
+            foreach (var item in existingMenuItems)
+            {
+                if (englishNameByPreviousName.TryGetValue(item.Name, out var englishName))
+                    item.Name = englishName;
+            }
+
             // Do not reinsert existing dishes or reset their prices, descriptions,
             // availability, category selection, images, or administrator changes.
-            var existingMenuNames = context.MenuItems
+            var existingMenuNames = existingMenuItems
                 .Select(item => item.Name)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
