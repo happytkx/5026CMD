@@ -304,7 +304,7 @@
                                     <button type="button" class="menu-trend-mode" data-trend-mode="sales" aria-pressed="false">Sales (RM)</button>
                                 </div>
                             </div>
-                            <p class="menu-trend-explanation">Switch between the number of dishes ordered and their sales value in RM. For a fixed-price dish, both lines can have the same shape, but their scales are different.</p>
+                            <p class="menu-trend-explanation">Switch between units ordered and sales value in RM. Every dish uses the same Units scale and the same Sales scale for the selected reporting period, so their trends can be compared directly.</p>
                             @if (!Model.HasValidPeriod)
                             {
                                 <p class="notice">Select a valid reporting period to view this chart.</p>
@@ -315,8 +315,8 @@
                             }
                             else
                             {
-                                var peakUnits = Math.Max(1, metrics.Trend.Max(p => p.Units));
-                                var peakSales = Math.Max(1m, metrics.Trend.Max(p => p.Sales));
+                                var peakUnits = Model.TrendUnitsAxisStep * 5;
+                                var peakSales = Model.TrendSalesAxisStep * 5m;
                                 var dots = metrics.Trend.Select((point, index) => new
                                 {
                                     Point = point,
@@ -339,12 +339,13 @@
                                      data-sales-total="@metrics.Sales.ToString("N2")">
                                     <div class="menu-trend-scroll">
                                         <svg viewBox="0 0 900 275" role="img" aria-label="Ordering trend for @item.Name. Hover or focus on a data point for quantity and sales.">
-                                            @for (var tick = 0; tick <= 4; tick++)
+                                            @for (var tick = 0; tick <= 5; tick++)
                                             {
-                                                var y = 226d - tick * 170d / 4d;
+                                                var y = 226d - tick * 170d / 5d;
                                                 var yText = y.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
-                                                var unitsTick = (int)Math.Round(peakUnits * tick / 4d);
-                                                var salesTick = (peakSales * tick / 4m).ToString("N0");
+                                                var unitsTick = Model.TrendUnitsAxisStep * tick;
+                                                var salesValue = Model.TrendSalesAxisStep * tick;
+                                                var salesTick = salesValue.ToString(salesValue % 1m == 0m ? "N0" : "N2");
                                                 <line class="reservation-chart-gridline" x1="85" y1="@yText" x2="862" y2="@yText"></line>
                                                 @Html.Raw($"<text class=\"reservation-chart-axis menu-trend-axis-tick\" x=\"75\" y=\"{(y + 4d).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}\" text-anchor=\"end\" data-trend-axis data-units-label=\"{unitsTick}\" data-sales-label=\"RM {salesTick}\">{unitsTick}</text>")
                                             }
