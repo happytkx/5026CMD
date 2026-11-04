@@ -33,12 +33,39 @@ public class PaymentCollectionsModel : PageModel
     [BindProperty(SupportsGet = true)]
     public bool TransactionsOnly { get; set; }
 
+    [BindProperty(SupportsGet = true)]
+    public string? Search { get; set; }
+
     public PaymentCollectionsResult? Report { get; set; }
 
     public List<PaymentCollectionRow> FilteredTransactions =>
-        Report?.Transactions
-            .Where(payment => PaymentType == "All" || payment.PaymentType == PaymentType)
-            .ToList() ?? new List<PaymentCollectionRow>();
+        Report is null ? [] : FilterTransactions(Report.Transactions);
+
+    // The search operates on the already retrieved reporting-period payments;
+    // chart totals and daily collections remain the unfiltered period totals.
+    private List<PaymentCollectionRow> FilterTransactions(
+        IEnumerable<PaymentCollectionRow> payments)
+    {
+        var term = Search?.Trim();
+        return payments
+            .Where(payment =>
+                (PaymentType == "All" || payment.PaymentType == PaymentType) &&
+                (string.IsNullOrWhiteSpace(term) ||
+                 payment.CustomerName.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                 payment.BookingReference.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                 payment.PaymentReference.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                 payment.PaymentMethod.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                 payment.PaymentID.ToString(CultureInfo.InvariantCulture).Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                 $"PAY-{payment.PaymentID:D6}".Contains(term, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+    }
+
+    private void NormalizeSearch()
+    {
+        Search = Search?.Trim();
+        if (Search?.Length > 100)
+            Search = Search[..100];
+    }
 
     public sealed record PaymentTrendPoint(
         DateTime Date,
@@ -110,6 +137,7 @@ public class PaymentCollectionsModel : PageModel
     public async Task OnGetAsync()
     {
         NormalizePaymentType();
+        NormalizeSearch();
 
         if (!IsValidPeriod())
         {
@@ -130,6 +158,7 @@ public class PaymentCollectionsModel : PageModel
     public async Task<IActionResult> OnGetExportAsync()
     {
         NormalizePaymentType();
+        NormalizeSearch();
 
         if (!IsValidPeriod())
         {
@@ -194,6 +223,7 @@ public class PaymentCollectionsModel : PageModel
         Row("Start Date", Date(StartDate));
         Row("End Date", Date(EndDate));
         Row("Transaction Filter", PaymentType == "All" ? "All payment types" : PaymentType);
+        Row("Transaction Search", string.IsNullOrWhiteSpace(Search) ? "All transactions" : Search);
         Row();
 
         // Payment summary.
@@ -236,8 +266,8 @@ public class PaymentCollectionsModel : PageModel
 
         Row();
 
-        // The transaction details follow the selected payment type filter;
-        // summary and daily totals above still cover all successful payments.
+        // Transaction rows follow both the payment-type and search filters;
+        // summary and daily totals still cover all successful payments.
         Row("Successful Payment Transactions", PaymentType == "All" ? "All types" : PaymentType);
 
         Row(
@@ -248,10 +278,10 @@ public class PaymentCollectionsModel : PageModel
             "Customer Name",
             "Payment Type",
             "Payment Method",
+            "Payment Reference",
             "Amount (RM)");
 
-        foreach (var payment in report.Transactions
-            .Where(payment => PaymentType == "All" || payment.PaymentType == PaymentType))
+        foreach (var payment in FilterTransactions(report.Transactions))
         {
             Row(
                 Number(payment.PaymentID),
@@ -261,6 +291,7 @@ public class PaymentCollectionsModel : PageModel
                 payment.CustomerName,
                 payment.PaymentType,
                 payment.PaymentMethod,
+                payment.PaymentReference,
                 Money(payment.Amount));
         }
 
@@ -277,7 +308,7 @@ public class PaymentCollectionsModel : PageModel
             "Deposit payments and final dining payments are reported separately.");
 
         Row("Notes",
-            "The transaction filter applies to individual payment rows; summary and daily totals show all payment types.");
+            "The payment type and search filters apply to transaction rows; summary and daily totals show all payment types.");
 
         Row("Notes",
             "Recorded collections do not represent independently verified bank settlements.");

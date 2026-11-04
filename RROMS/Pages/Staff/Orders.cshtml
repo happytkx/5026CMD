@@ -51,11 +51,43 @@ else
     </section>
 </div>
 
+<section class="card staff-dining-search-panel" aria-label="Search dining orders">
+    <form method="get" class="staff-dining-search">
+        <label asp-for="Search">Find a dining session</label>
+        <div class="staff-dining-search-controls">
+            <input asp-for="Search" type="search" maxlength="100" autocomplete="off"
+                   placeholder="Search table ID, customer name or reservation code"
+                   aria-label="Search by table, customer name or reservation code" />
+            <button type="submit">Search</button>
+            @if (!string.IsNullOrWhiteSpace(Model.Search))
+            {
+                <a class="button secondary" asp-page="/Staff/Orders">Clear</a>
+            }
+        </div>
+    </form>
+    @if (!string.IsNullOrWhiteSpace(Model.Search))
+    {
+        <p class="staff-dining-search-count" role="status">
+            Showing @sessions.Count dining session@(sessions.Count == 1 ? "" : "s") matching <strong>@Model.Search</strong>.
+        </p>
+    }
+</section>
+
 }
 
 @if (!Model.OrderLoadTimedOut && !sessions.Any())
 {
-    <section class="card empty-state">No dining orders yet.</section>
+    <section class="card empty-state">
+        @if (!string.IsNullOrWhiteSpace(Model.Search))
+        {
+            <p>No dining sessions match <strong>@Model.Search</strong>. Try a table ID, customer name or reservation code.</p>
+            <a class="button secondary" asp-page="/Staff/Orders">Show all dining orders</a>
+        }
+        else
+        {
+            <p>No dining orders yet.</p>
+        }
+    </section>
 }
 else if (!Model.OrderLoadTimedOut)
 {
@@ -114,6 +146,7 @@ else if (!Model.OrderLoadTimedOut)
                                         <summary>Update status</summary>
                                         <form method="post" asp-page-handler="UpdateDishes" class="dish-status-form">
                                             <input type="hidden" name="orderId" value="@o.OrderID" />
+                                            <input type="hidden" name="Search" value="@Model.Search" />
                                             <div class="dish-status-instruction">
                                                 <strong>Choose the dishes to update</strong>
                                                 <p>Only dishes ready for the next step can be selected. Other dishes keep their current status.</p>
@@ -135,7 +168,7 @@ else if (!Model.OrderLoadTimedOut)
                                                     <label class="dish-status-option">
                                                         <input type="checkbox" name="lineIds" value="@line.OrderLineID"
                                                                data-next-status="@nextStatus" disabled="@(nextStatus != initialStatus)" />
-                                                        <span class="dish-status-dish">@line.Quantity × @line.ItemName</span>
+                                                        <span class="dish-status-dish">@line.Quantity × @(RROMS.Services.MenuDisplayNames.InEnglish(line.ItemName))</span>
                                                         <span class="dish-active">@line.KitchenStatus</span>
                                                     </label>
                                                 }
@@ -176,7 +209,7 @@ else if (!Model.OrderLoadTimedOut)
                                         {
                                             var cancelled = line.IsCancelled || o.Status == "Cancelled";
                                             <tr class="@(cancelled ? "cancelled-line" : "")">
-                                                <td>@line.ItemName</td>
+                                                <td>@(RROMS.Services.MenuDisplayNames.InEnglish(line.ItemName))</td>
                                                 <td>@line.Quantity</td>
                                                 <td>RM @line.UnitPrice.ToString("N2")</td>
                                                 <td>@(cancelled ? "Excluded" : $"RM {line.LineTotal:N2}")</td>
@@ -189,7 +222,8 @@ else if (!Model.OrderLoadTimedOut)
                                                             <form method="post" asp-page-handler="CancelDish" class="dish-cancel-form"
                                                                   onsubmit="return confirm('Cancel this dish and remove its cost from the bill?');">
                                                                 <input type="hidden" name="orderLineId" value="@line.OrderLineID" />
-                                                                <button type="submit" class="dish-cancel-button" aria-label="Cancel @line.Quantity × @line.ItemName">Cancel Dish</button>
+                                                                <input type="hidden" name="Search" value="@Model.Search" />
+                                                                <button type="submit" class="dish-cancel-button" aria-label="Cancel @line.Quantity × @(RROMS.Services.MenuDisplayNames.InEnglish(line.ItemName))">Cancel Dish</button>
                                                             </form>
                                                         }
                                                         else

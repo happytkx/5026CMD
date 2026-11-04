@@ -37,6 +37,8 @@ public class ReportsModel : PageModel
     public List<DailyDepositCollection> DailyDeposits
     { get; set; } = new();
 
+    public int PaidDepositReservationCount { get; private set; }
+
     // Keep charts legible across longer reporting periods while preserving the daily CSV.
     public record ReservationChartPoint(DateTime StartDate, DateTime EndDate, int Count);
     public List<ReservationChartPoint> TrendPoints { get; private set; } = [];
@@ -90,6 +92,8 @@ public class ReportsModel : PageModel
 
         DailyDeposits = await _reportingService
             .GetDailyDepositCollectionAsync(StartDate, EndDate);
+        PaidDepositReservationCount = await _reportingService
+            .GetPaidDepositReservationCountAsync(StartDate, EndDate);
         Insights = await _businessAnalytics.GetReportAsync(StartDate, EndDate);
     }
 
@@ -115,6 +119,8 @@ public class ReportsModel : PageModel
 
         var dailyDeposits = await _reportingService
             .GetDailyDepositCollectionAsync(from, to);
+        var paidDepositReservationCount = await _reportingService
+            .GetPaidDepositReservationCountAsync(from, to);
         var insights = await _businessAnalytics.GetReportAsync(from, to);
 
         var csv = new StringBuilder();
@@ -186,6 +192,14 @@ public class ReportsModel : PageModel
         Row("Deposit Collections - Payment Date",
             "Total Collected", "",
             Money(dailyDeposits.Sum(d => d.TotalAmount)));
+        Row("Deposit Collections - Payment Date",
+            "Reservations with Paid Deposits",
+            Number(paidDepositReservationCount), "");
+        Row("Deposit Collections - Payment Date",
+            "Average Deposit per Reservation", "",
+            Money(paidDepositReservationCount > 0
+                ? dailyDeposits.Sum(d => d.TotalAmount) / paidDepositReservationCount
+                : 0m));
 
         // Daily reservation trend.
         foreach (var day in dailyReservations)
