@@ -212,6 +212,32 @@ public class ReportingService
         return dailyCollections;
     }
 
+    // Count distinct reservations with successful deposits during the payment-date
+    // reporting period. Multiple successful payments for one reservation count once.
+    public async Task<int> GetPaidDepositReservationCountAsync(
+        DateTime startDate, DateTime endDate)
+    {
+        DateTime from = startDate.Date;
+        DateTime to = endDate.Date;
+
+        if (from > to || to == DateTime.MaxValue.Date)
+        {
+            throw new ArgumentException("Invalid reporting date range.");
+        }
+
+        DateTime endExclusive = to.AddDays(1);
+
+        return await _db.Payments
+            .AsNoTracking()
+            .Where(p => p.PaymentType == "Deposit"
+                && p.PaymentStatus == "Paid"
+                && p.PaymentDate >= from
+                && p.PaymentDate < endExclusive)
+            .Select(p => p.ReservationID)
+            .Distinct()
+            .CountAsync();
+    }
+
     // Retrieve successful payment collections by payment date.
     public async Task<PaymentCollectionsResult>
         GetPaymentCollectionsAsync(

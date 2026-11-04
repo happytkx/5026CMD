@@ -398,6 +398,10 @@
 			int totalPayments = Model.DailyDeposits
 				.Sum(d => d.PaymentCount);
 
+			decimal averageDepositPerReservation = Model.PaidDepositReservationCount > 0
+				? totalCollected / Model.PaidDepositReservationCount
+				: 0m;
+
 			decimal maxDailyAmount = Model.DailyDeposits.Count == 0
 				? 0m
 				: Model.DailyDeposits.Max(d => d.TotalAmount);
@@ -412,6 +416,11 @@
 			<article class="card">
 				<small>SUCCESSFUL TRANSACTIONS</small>
 				<h2>@totalPayments</h2>
+			</article>
+
+			<article class="card">
+				<small>AVERAGE DEPOSIT PER RESERVATION</small>
+				<h2>RM @averageDepositPerReservation.ToString("N2")</h2>
 			</article>
 		</div>
 
