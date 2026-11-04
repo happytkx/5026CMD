@@ -22,7 +22,8 @@ public class NotificationsModel(ApplicationDbContext db) : PageModel
     {
         var id = ReservationIdentity.CustomerId(User);
         Items = await db.CustomerNotifications.AsNoTracking().Where(n => n.CustomerID == id).OrderByDescending(n => n.CreatedAt).Take(100).ToListAsync();
-        UnreadCount = Items.Count(n => !n.IsRead);
+        UnreadCount = await db.CustomerNotifications.AsNoTracking()
+            .CountAsync(n => n.CustomerID == id && !n.IsRead);
     }
 
     public async Task<IActionResult> OnPostMarkReadAsync(int id)

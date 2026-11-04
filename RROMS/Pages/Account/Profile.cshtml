@@ -1,5 +1,5 @@
 @page
-@* Profile form for the signed-in account. *@
+@* Account details are read-only until the user selects Edit profile. *@
 @model RROMS.Pages.Account.ProfileModel
 @{
     ViewData["Title"] = "My profile";
@@ -9,25 +9,87 @@
     <h1>My profile</h1>
     <p>Keep your contact details current so we can reach you about your reservations.</p>
 </section>
+
 @if (TempData["Success"] is string ok)
 {
-    <p class="success">@ok</p>
+    <p class="success" role="status">@ok</p>
 }
-<section class="card auth-card">
-    <form method="post">
-        <div asp-validation-summary="All" class="error"></div>
-        <label asp-for="Input.FullName">Full name</label>
-        <input asp-for="Input.FullName" maxlength="100" required />
-        <label>Email address</label>
-        <input value="@Model.Email" readonly />
-        <p class="fine-print">Your email address is used to sign in and cannot be changed here.</p>
-        @if (Model.IsCustomer)
+
+<section class="card profile-card">
+    <div class="profile-card-heading">
+        <div>
+            <p class="eyebrow">PERSONAL INFORMATION</p>
+            <h2>@(Model.Edit ? "Edit your details" : "Account details")</h2>
+            <p class="muted">@(Model.Edit ? "Make your changes, then save them below." : "Your information is protected until you choose to edit it.")</p>
+        </div>
+        @if (!Model.Edit)
         {
-        <label asp-for="Input.PhoneNo">Phone number</label>
-        <input asp-for="Input.PhoneNo" type="tel" maxlength="20" />
-        <label asp-for="Input.Address">Address <span class="optional">(optional)</span></label>
-        <textarea asp-for="Input.Address" rows="2" maxlength="250"></textarea>
+            <a class="button secondary profile-edit-button" asp-page="/Account/Profile" asp-route-Edit="true">Edit profile</a>
         }
-        <button type="submit">Save profile</button>
-    </form>
+    </div>
+
+    @if (Model.Edit)
+    {
+        <form method="post" class="profile-edit-form">
+            <input type="hidden" name="Edit" value="true" />
+            <div asp-validation-summary="All" class="error" role="alert"></div>
+            <label asp-for="Input.FullName">Full name</label>
+            <input asp-for="Input.FullName" maxlength="100" autocomplete="name" required />
+            <label>Email address</label>
+            <input value="@Model.Email" type="email" readonly aria-readonly="true" />
+            <p class="fine-print">Your email address is used to sign in and cannot be changed here.</p>
+            @if (Model.IsCustomer)
+            {
+                <label asp-for="Input.PhoneNo">Phone number</label>
+                <input asp-for="Input.PhoneNo" type="tel" maxlength="20" autocomplete="tel" />
+                <label asp-for="Input.Address">Address <span class="optional">(optional)</span></label>
+                <textarea asp-for="Input.Address" rows="3" maxlength="250" autocomplete="street-address"></textarea>
+            }
+            <div class="profile-form-actions">
+                <button type="submit">Save changes</button>
+                <a class="button secondary" asp-page="/Account/Profile">Cancel</a>
+            </div>
+        </form>
+    }
+    else
+    {
+        <dl class="profile-details">
+            <div>
+                <dt>Full name</dt>
+                <dd>@Model.Input.FullName</dd>
+            </div>
+            <div>
+                <dt>Email address</dt>
+                <dd>@Model.Email</dd>
+            </div>
+            @if (Model.IsCustomer)
+            {
+                <div>
+                    <dt>Phone number</dt>
+                    <dd>@(string.IsNullOrWhiteSpace(Model.Input.PhoneNo) ? "Not provided" : Model.Input.PhoneNo)</dd>
+                </div>
+                <div>
+                    <dt>Address</dt>
+                    <dd class="profile-address">@(string.IsNullOrWhiteSpace(Model.Input.Address) ? "Not provided" : Model.Input.Address)</dd>
+                </div>
+            }
+        </dl>
+    }
+</section>
+
+<section class="card profile-security">
+    <div>
+        <p class="eyebrow">ACCOUNT SECURITY</p>
+        <h2>Password &amp; Security</h2>
+        <p>Forgot your password? Request a secure reset link to your registered email address.</p>
+    </div>
+    @if (Model.IsCustomer || Model.IsAdministrator)
+    {
+        <a class="button secondary" asp-page="/Account/ForgotPassword"
+           asp-route-AccountType="@(Model.IsAdministrator ? "Administrator" : "Customer")">Forgot password?</a>
+    }
+    else
+    {
+        <p class="muted">Please contact your administrator if you need to reset your staff password.</p>
+    }
 </section>

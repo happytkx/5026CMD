@@ -15,7 +15,10 @@ public class ProfileModel(ApplicationDbContext db) : PageModel
 {
     [BindProperty]
     public ProfileInput Input { get; set; } = new();
+    [BindProperty(SupportsGet = true)]
+    public bool Edit { get; set; }
     public bool IsCustomer => User.IsInRole(Customer.CustomerRole);
+    public bool IsAdministrator => User.IsInRole(Customer.AdminRole);
     private int InternalId(string claim) => int.TryParse(User.FindFirst(claim)?.Value, out var id) ? id : -1;
     public string Email { get; set; } = "";
 
@@ -48,6 +51,7 @@ public class ProfileModel(ApplicationDbContext db) : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
+        if (!Edit) return RedirectToPage();
         if (!IsCustomer) return await InternalProfile(true);
         var customer = await Find();
         if (customer == null)
@@ -55,6 +59,7 @@ public class ProfileModel(ApplicationDbContext db) : PageModel
         if (!ModelState.IsValid)
         {
             Email = customer.Email;
+            Edit = true;
             return Page();
         }
         customer.CustomerName = Input.FullName.Trim();
@@ -74,7 +79,7 @@ public class ProfileModel(ApplicationDbContext db) : PageModel
         if (admin == null && staff == null) return Challenge();
         Email = admin?.Email ?? staff!.Email;
         if (!save) { Input.FullName = admin?.Name ?? staff!.StaffName; return Page(); }
-        if (!ModelState.IsValid) return Page();
+        if (!ModelState.IsValid) { Edit = true; return Page(); }
         if (admin != null) admin.Name = Input.FullName.Trim(); else staff!.StaffName = Input.FullName.Trim();
         await db.SaveChangesAsync();
         if (admin != null) await InternalAccountAuth.SignInAsync(HttpContext, admin);

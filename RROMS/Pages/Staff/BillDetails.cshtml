@@ -319,35 +319,6 @@
         </a>
     </section>
 
-    <!-- Successful payment totals -->
-    <section class="card">
-        <h2>Payment Summary</h2>
-
-        <div class="staff-stats">
-            <article class="card">
-                <small>PAID DEPOSITS</small>
-                <h2>RM @Model.PaidDeposits.ToString("N2")</h2>
-            </article>
-
-            <article class="card">
-                <small>FINAL PAYMENTS</small>
-                <h2>RM @Model.PaidDiningPayments.ToString("N2")</h2>
-            </article>
-
-            <article class="card">
-                <small>TOTAL COLLECTED</small>
-                <h2>RM @Model.TotalCollected.ToString("N2")</h2>
-            </article>
-        </div>
-
-        <p class="notice">
-            Only successful payments are included
-            in these totals. Failed attempts are
-            excluded. Forfeited deposits remain
-            recorded as collected deposits.
-        </p>
-    </section>
-
     <!-- Payment transaction history -->
     <section class="card" id="payment-history">
         <h2>Payment History &amp; Receipts</h2>

@@ -241,7 +241,7 @@ namespace RROMS.Data
 
                 // DESSERTS
                 Dish(
-                    "Caramelised Vanilla Custard",
+                    "Crème brûlée",
                     "Classic vanilla custard beneath a crisp caramelised sugar crust, served with fresh berries.",
                     38m, "Desserts", "Vegetarian", "Milk, Egg",
                     "Vegetarian, No pork, No beef, No chicken", true),
@@ -313,7 +313,7 @@ namespace RROMS.Data
                 ["Parisian-Style Gnocchi"] = "/images/menu/gnocchi-main.png",
 
                 // DESSERTS
-                ["Caramelised Vanilla Custard"] = "/images/menu/creme-brulee-dessert.png",
+                ["Crème brûlée"] = "/images/menu/creme-brulee-dessert.png",
                 ["French Lemon Tart"] = "/images/menu/lemon-tart-dessert.png",
                 ["Chocolate Cream Puffs"] = "/images/menu/cream-puffs-dessert.png",
 
