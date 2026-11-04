@@ -18,6 +18,7 @@ public class OrdersModel(ApplicationDbContext db, ILogger<OrdersModel> logger) :
     public bool OrderLoadTimedOut { get; private set; }
     public HashSet<int> PaidReservationIds { get; set; } = [];
     [BindProperty(SupportsGet = true)] public int? Expanded { get; set; }
+    [BindProperty(SupportsGet = true)] public string? Search { get; set; }
 
     // Each dish follows its own kitchen progression. The parent status is
     // the earliest outstanding step, so billing never treats a partially
@@ -51,7 +52,23 @@ public class OrdersModel(ApplicationDbContext db, ILogger<OrdersModel> logger) :
             // Select recent sessions first, then fetch their full ordering
             // history. Keep one entry per reservation without loading every
             // order, line, customer and booking in one large SQL JOIN.
-            var recentReservationIds = (await db.Orders.AsNoTracking()
+            Search = Search?.Trim();
+            if (Search?.Length > 100)
+                Search = Search[..100];
+
+            // Apply the search before the recent-order limit so staff can
+            // find older dining sessions by table, guest or booking reference.
+            var recentOrders = db.Orders.AsNoTracking();
+            if (!string.IsNullOrWhiteSpace(Search))
+            {
+                var term = Search!;
+                recentOrders = recentOrders.Where(o =>
+                    o.Reservation.TableID.Contains(term) ||
+                    o.Reservation.BookingReference.Contains(term) ||
+                    o.Customer.CustomerName.Contains(term));
+            }
+
+            var recentReservationIds = (await recentOrders
                 .OrderByDescending(o => o.CreatedAt)
                 .ThenByDescending(o => o.OrderID)
                 .Take(100)
@@ -126,7 +143,7 @@ public class OrdersModel(ApplicationDbContext db, ILogger<OrdersModel> logger) :
         if (selectedIds.Length == 0)
         {
             TempData["Error"] = "Select at least one dish to update.";
-            return RedirectToPage();
+            return RedirectToPage(new { search = Search });
         }
 
         await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
@@ -142,7 +159,7 @@ public class OrdersModel(ApplicationDbContext db, ILogger<OrdersModel> logger) :
             await db.Bills.AnyAsync(b => b.ReservationID == order.ReservationID && b.BillStatus == "Paid"))
         {
             TempData["Error"] = "Kitchen statuses cannot be changed after checkout or when the reservation is not seated.";
-            return RedirectToPage(new { expanded = order.ReservationID });
+            return RedirectToPage(new { expanded = order.ReservationID, search = Search });
         }
 
         var selectedLines = order.Lines.Where(l => selectedIds.Contains(l.OrderLineID)).ToList();
@@ -150,7 +167,7 @@ public class OrdersModel(ApplicationDbContext db, ILogger<OrdersModel> logger) :
             selectedLines.Any(l => l.IsCancelled || NextDishStatus(l.KitchenStatus) != status))
         {
             TempData["Error"] = "A selected dish is no longer eligible for that status. Refresh and try again.";
-            return RedirectToPage(new { expanded = order.ReservationID });
+            return RedirectToPage(new { expanded = order.ReservationID, search = Search });
         }
 
         foreach (var line in selectedLines)
@@ -176,11 +193,11 @@ public class OrdersModel(ApplicationDbContext db, ILogger<OrdersModel> logger) :
         catch (DbUpdateException)
         {
             TempData["Error"] = "The dish statuses could not be saved. Refresh and try again.";
-            return RedirectToPage(new { expanded = order.ReservationID });
+            return RedirectToPage(new { expanded = order.ReservationID, search = Search });
         }
 
         TempData["Success"] = $"{selectedLines.Count} dish(es) updated to {status}. The customer was notified.";
-        return RedirectToPage(new { expanded = order.ReservationID });
+        return RedirectToPage(new { expanded = order.ReservationID, search = Search });
     }
 
     // A cancellation retains the original line and its original price for audit,
@@ -205,19 +222,19 @@ public class OrdersModel(ApplicationDbContext db, ILogger<OrdersModel> logger) :
         if (line.IsCancelled)
         {
             TempData["Error"] = "This dish has already been cancelled.";
-            return RedirectToPage();
+            return RedirectToPage(new { search = Search });
         }
 
         if (!CanCancelDish(line.KitchenStatus) || order.Reservation.ReservationStatus != "Seated")
         {
             TempData["Error"] = "Only unserved dishes in an active seated reservation can be cancelled.";
-            return RedirectToPage();
+            return RedirectToPage(new { search = Search });
         }
 
         if (await db.Bills.AnyAsync(b => b.ReservationID == order.ReservationID && b.BillStatus == "Paid"))
         {
             TempData["Error"] = "The bill is already paid, so this dish cannot be cancelled.";
-            return RedirectToPage();
+            return RedirectToPage(new { search = Search });
         }
 
         var remaining = await db.OrderLines.AsNoTracking()
@@ -254,11 +271,11 @@ public class OrdersModel(ApplicationDbContext db, ILogger<OrdersModel> logger) :
         catch (DbUpdateException)
         {
             TempData["Error"] = "The cancellation could not be saved. Refresh the orders and try again.";
-            return RedirectToPage();
+            return RedirectToPage(new { search = Search });
         }
 
         TempData["Success"] =
             $"{line.ItemName} cancelled. The customer was notified. Refresh any saved draft bill before collecting payment.";
-        return RedirectToPage(new { expanded = order.ReservationID });
+        return RedirectToPage(new { expanded = order.ReservationID, search = Search });
     }
 }
