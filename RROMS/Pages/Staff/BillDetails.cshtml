@@ -80,7 +80,7 @@
                                 </thead>
                                 <tbody>
                                     @foreach (var dish in Model.DiningOrders.SelectMany(o => o.Lines.Where(l => !l.IsCancelled))
-                                        .GroupBy(l => new { l.ItemName, l.UnitPrice }).OrderBy(g => g.Key.ItemName))
+                                        .GroupBy(l => new { ItemName = RROMS.Services.MenuDisplayNames.InEnglish(l.ItemName), l.UnitPrice }).OrderBy(g => g.Key.ItemName))
                                     {
                                         <tr>
                                             <td>@dish.Key.ItemName</td>

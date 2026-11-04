@@ -346,40 +346,12 @@ namespace RROMS.Data
 
             context.SaveChanges();
 
-            // Translate previously seeded French dish names in place when upgrading
-            // an existing database. Keep MenuItemID and every other field intact, so
-            // reservations, order-line relationships and billing remain unchanged.
-            // Matching by exact previous name also leaves renamed/custom items alone.
-            var englishNameByPreviousName = new Dictionary<string, string>(
-                StringComparer.OrdinalIgnoreCase)
-            {
-                ["Bisque de Homard"] = "Lobster Bisque",
-                ["Velouté de Champignons"] = "Creamy Mushroom Soup",
-                ["Soupe à l'Oignon"] = "French Onion Soup",
-                ["Escargots de Bourgogne"] = "Burgundy-Style Garlic Butter Snails",
-                ["Saint-Jacques"] = "Pan-Seared Scallops",
-                ["Salade de Chèvre Chaud"] = "Warm Goat Cheese Salad",
-                ["Magret de Canard"] = "Pan-Seared Duck Breast",
-                ["Filet de Bœuf"] = "Beef Fillet",
-                ["Carré d'Agneau"] = "Herb-Crusted Rack of Lamb",
-                ["Saumon Poêlé"] = "Pan-Seared Salmon",
-                ["Suprême de Poulet"] = "Roasted Chicken Breast",
-                ["Gnocchis Parisiens"] = "Parisian-Style Gnocchi",
-                ["Crème Brûlée"] = "Caramelised Vanilla Custard",
-                ["Tarte au Citron"] = "French Lemon Tart",
-                ["Profiteroles au Chocolat"] = "Chocolate Cream Puffs",
-                ["Citron & Thym"] = "Lemon & Thyme Cooler",
-                ["Pêche Blanche"] = "White Peach Cooler",
-                ["Fleur de Sureau"] = "Elderflower Citrus Cooler",
-                ["Eau Minérale"] = "Still Mineral Water",
-                ["Eau Pétillante"] = "Sparkling Mineral Water",
-            };
+            // Translate previously seeded French dish names in place. Menu item
+            // IDs and all other fields remain unchanged, preserving existing orders.
+            // Historical order-line name/price snapshots remain in the database.
             var existingMenuItems = context.MenuItems.ToList();
             foreach (var item in existingMenuItems)
-            {
-                if (englishNameByPreviousName.TryGetValue(item.Name, out var englishName))
-                    item.Name = englishName;
-            }
+                item.Name = MenuDisplayNames.InEnglish(item.Name);
 
             // Do not reinsert existing dishes or reset their prices, descriptions,
             // availability, category selection, images, or administrator changes.
