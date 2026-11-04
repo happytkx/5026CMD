@@ -29,7 +29,8 @@ public class DetailsModel(ApplicationDbContext db, ReservationService service, T
     public List<DateTime> ModifySlots { get; set; } = [];
     [BindProperty(SupportsGet = true)] public string? View { get; set; } = "Details";
     [BindProperty(SupportsGet = true)] public DateTime NewDate { get; set; } = ReservationPolicy.Now.Date.AddDays(8);
-    [BindProperty] public string NewTime { get; set; } = "";
+    // Nullable so non-Modify actions (check-in, cancel, ...) are not rejected as "NewTime is required".
+    [BindProperty] public string? NewTime { get; set; } = "";
     private async Task<bool> Load(int id)
     {
         await service.Expire();
@@ -91,11 +92,20 @@ public class DetailsModel(ApplicationDbContext db, ReservationService service, T
             }
             await service.Change(id, ReservationIdentity.CustomerId(User), IsStaff, action, newStart, tableId, paymentSuccess, dummyReference,
                 allowLargerTable, reassignmentReason, paymentMethod);
-            TempData["Message"] = action == "Pay" && !paymentSuccess ? "Payment failed. Your booking remains pending; you can retry before the hold expires." : "Reservation updated.";
+            TempData["Message"] = action switch
+            {
+                "Pay" when !paymentSuccess => "Payment failed. The reservation remains pending; retry before the hold expires.",
+                "Pay" => "Deposit paid. The reservation is now confirmed.",
+                "Modify" => "Reservation rescheduled successfully.",
+                "Cancel" => "Reservation cancelled. Any paid deposit has been forfeited.",
+                "CheckIn" => "Guest checked in. Dining orders are now enabled.",
+                _ => "Reservation updated."
+            };
             return RedirectToPage(new
             {
                 id,
-                view = action == "Pay" && paymentSuccess ? "Confirmation" : action == "Pay" ? "Payment" : "Details"
+                view = action == "Pay" && paymentSuccess && !IsStaff ? "Confirmation"
+                    : action == "Pay" && !paymentSuccess ? "Payment" : "Details"
             });
         }
         catch (InvalidOperationException ex) { ModelState.AddModelError("", ex.Message); }

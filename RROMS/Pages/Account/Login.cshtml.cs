@@ -35,18 +35,21 @@ public class LoginModel(CustomerAccountService accounts, StaffAccountService sta
         var administrator = await administrators.Authenticate(Email, Password);
         if (administrator != null)
         {
+            Basket.Clear(HttpContext.Session);
             await InternalAccountAuth.SignInAsync(HttpContext, administrator, RememberMe);
             return LocalRedirect(Destination(Customer.AdminRole));
         }
         var customer = await accounts.Authenticate(Email, Password);
         if (customer != null)
         {
+            Basket.Clear(HttpContext.Session);
             await CustomerAuth.SignInAsync(HttpContext, customer, RememberMe);
             return LocalRedirect(Destination(customer.Role));
         }
 
         var staff = await staffAccounts.Authenticate(Email, Password);
         if (staff == null) return Fail();
+        Basket.Clear(HttpContext.Session);
         await InternalAccountAuth.SignInAsync(HttpContext, staff, RememberMe);
         return LocalRedirect(Destination(Customer.StaffRole));
     }

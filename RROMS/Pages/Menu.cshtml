@@ -36,7 +36,14 @@
         <button type="submit">Apply</button>
         <a class="button secondary" asp-page="Menu">Clear</a>
     </form>
-    <a class="button secondary" asp-page="/Orders/Checkout">View basket</a>
+    @if (User.IsInRole(RROMS.Models.Customer.CustomerRole))
+    {
+        <a class="button secondary" asp-page="/Orders/Checkout">View basket</a>
+    }
+    else
+    {
+        <a class="button secondary" asp-page="/Account/Login" asp-route-ReturnUrl="/Orders/Checkout">Customer sign in</a>
+    }
 </div>
 @if (TempData["Success"] is string ok)
 {
@@ -68,16 +75,20 @@
                 <small>Allergens: @(string.IsNullOrWhiteSpace(item.Allergens) ? "Not specified" : item.Allergens)</small>
                 <div class="dish-bottom">
                     <span class="price">RM @item.Price.ToString("0.00")</span>
-                    @if (User.Identity?.IsAuthenticated == true)
+                    @if (Model.CanOrder)
                     {
                         <form method="post" asp-page-handler="Add">
                             <input type="hidden" name="itemId" value="@item.MenuItemID" />
                             <button type="submit" class="quiet">Add to order</button>
                         </form>
                     }
+                    else if (User.IsInRole(RROMS.Models.Customer.CustomerRole))
+                    {
+                        <span class="muted">Available after check-in</span>
+                    }
                     else
                     {
-                        <a class="button secondary quiet" asp-page="/Account/Login" asp-route-ReturnUrl="/Menu">Sign in to order</a>
+                        <a class="button secondary quiet" asp-page="/Account/Login" asp-route-ReturnUrl="/Menu">Sign in as customer</a>
                     }
                 </div>
             </div>

@@ -19,8 +19,8 @@ public static class DevelopmentDataSeeder
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         (string Id, string Area, int Capacity)[] additions = [
             ("T04", "Indoor", 2), ("T05", "Indoor", 4), ("T06", "Indoor", 6), ("T07", "Indoor", 8),
-            ("T08", "Outdoor", 2), ("T09", "Outdoor", 4), ("T10", "Outdoor", 8),
-            ("VIP03", "VIP Room", 8), ("VIP04", "VIP Room", 12)];
+            ("T08", "Outdoor", 2), ("T09", "Outdoor", 4), ("T10", "Outdoor", 8)];
+        // Keep the two physically separate VIP rooms seeded by DbInitializer (8 and 12 seats).
         foreach (var table in additions)
         {
             // Preserve any existing table's area, capacity and availability.

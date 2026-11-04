@@ -3093,7 +3093,7 @@ td small
 .reservation-chart-axis { font: 12px var(--body); fill: var(--muted); }
 .reservation-chart-date { font-size: 11px; }
 .reservation-chart-line { fill: none; stroke: var(--olive-deep); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-.reservation-chart-point { fill: var(--gold); stroke: var(--white); stroke-width: 2; outline-offset: 5px; }
+.reservation-chart-point { fill: var(--gold); stroke: var(--olive-deep); stroke-width: 1.5px; outline-offset: 5px; }
 .reservation-chart-point:hover, .reservation-chart-point:focus { fill: var(--terracotta); stroke: var(--olive-deep); stroke-width: 3; }
 .reservation-trend-data { margin-top: 20px; }
 .reservation-trend-data summary, .menu-performance-data summary { cursor: pointer; color: var(--olive-deep); font-weight: 600; margin-bottom: 12px; }
@@ -3195,3 +3195,233 @@ td small
 .reservation-chart-tooltip strong { font-weight: 600; }
 .reservation-chart-tooltip span { color: var(--muted); }
 .reservation-chart-tooltip[hidden] { display: none; }
+
+/* Administrator table management: dining-area inventory and compact per-table editing. */
+.table-management-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin: 26px 0;
+}
+.table-management-summary .card { padding: 23px 24px; }
+.table-management-summary small {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--muted);
+}
+.table-management-summary strong {
+    display: block;
+    margin-top: 15px;
+    font: 36px/1.1 var(--serif);
+    color: var(--ink);
+}
+.table-management-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    margin-bottom: 22px;
+}
+.table-management-header h2 { margin: 4px 0 10px; }
+.table-management-header p { margin-bottom: 0; }
+.table-management-create,
+.table-management-area { margin: 25px 0; }
+.table-management-add-form {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+    align-items: end;
+    gap: 16px;
+}
+.table-management-add-form > div,
+.table-management-edit form > div {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+.table-management-add-form label,
+.table-management-edit label {
+    font-size: 13px;
+    font-weight: 600;
+}
+.table-management-add-form input,
+.table-management-add-form select,
+.table-management-edit select {
+    width: 100%;
+    min-width: 0;
+    height: 48px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: #fff;
+    padding: 10px 12px;
+    color: var(--ink);
+}
+.table-management-add-form button { min-height: 48px; white-space: nowrap; }
+.table-management-policy { margin: 15px 0 0; font-size: 13px; }
+.table-management-warning { margin: 16px 0 23px; }
+.table-management-error { color: #9e3c3c; border-color: #e0b5af; }
+.table-management-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 17px;
+}
+.table-management-tile {
+    border: 1px solid var(--line);
+    background: #fdfbf7;
+    padding: 20px;
+    border-radius: 5px;
+    min-width: 0;
+}
+.table-management-tile-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.table-management-tile-top strong { font-size: 20px; }
+.table-management-tile > p { margin: 13px 0 7px; }
+.table-management-tile > small { display: block; color: var(--muted); font-size: 12px; }
+.table-management-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    font-size: 11px;
+    border-radius: 20px;
+}
+.table-management-status.is-available { background: #e8eddf; color: #566341; }
+.table-management-status.is-unavailable { background: #f4e4df; color: #984c3b; }
+.table-management-toggle {
+    display: grid;
+    gap: 8px;
+    margin-top: 18px;
+}
+.table-management-toggle-button {
+    width: 100%;
+    min-height: 43px;
+    padding: 10px 14px;
+    border: 1px solid;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.table-management-toggle-button.disable {
+    border-color: #b58b7b;
+    background: #fff;
+    color: #894b3a;
+}
+.table-management-toggle-button.enable {
+    border-color: var(--olive-deep);
+    background: var(--olive-deep);
+    color: #fff;
+}
+.table-management-toggle-button:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+.table-management-toggle small {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.5;
+}
+.table-management-edit { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; }
+.table-management-edit summary {
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--olive);
+    font-weight: 600;
+}
+.table-management-edit form { margin-top: 15px; display: grid; gap: 12px; }
+.table-management-edit form button { width: 100%; min-height: 46px; }
+.table-management-edit form p { font-size: 12px; line-height: 1.55; margin: 0; }
+.table-management-policy-note { margin: 22px 0 32px; }
+
+/* Read-only administrator availability lookup for a full dining slot. */
+.table-availability-check { margin: 25px 0; }
+.table-availability-form {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) minmax(150px, 1fr) auto;
+    gap: 16px;
+    align-items: end;
+}
+.table-availability-form > div { display: flex; flex-direction: column; gap: 7px; }
+.table-availability-form label { font-size: 13px; font-weight: 600; }
+.table-availability-form input {
+    width: 100%;
+    min-width: 0;
+    height: 48px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--white);
+    color: var(--ink);
+    font: inherit;
+}
+.table-availability-form input:focus-visible {
+    outline: 2px solid var(--olive-deep);
+    outline-offset: 2px;
+}
+.table-availability-form button { min-height: 48px; white-space: nowrap; }
+.table-availability-check > .notice { margin-top: 18px; }
+.table-availability-results {
+    margin-top: 26px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+}
+.table-availability-result-heading strong {
+    display: block;
+    font: 28px/1.3 var(--serif);
+    color: var(--olive-deep);
+}
+.table-availability-result-heading p { margin: 6px 0 0; font-size: 13px; }
+.table-availability-area { margin-top: 25px; }
+.table-availability-area-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin-bottom: 12px;
+}
+.table-availability-area-heading h3 { margin: 0; font-size: 22px; }
+.table-availability-area-heading span { color: var(--muted); font-size: 12px; }
+.table-availability-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+.table-availability-tile {
+    min-width: 0;
+    padding: 15px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--paper);
+}
+.table-availability-tile.is-free {
+    border-color: #cdd9c3;
+    background: #f6f9f1;
+}
+.table-availability-tile .table-management-tile-top { align-items: flex-start; flex-wrap: wrap; }
+.table-availability-tile .table-management-tile-top strong { font-size: 18px; }
+.table-availability-tile .table-management-status { font-size: 10px; }
+.table-availability-tile .table-management-status.is-unavailable {
+    color: #685d51;
+    background: #eae5dd;
+}
+.table-availability-tile > small { display: block; margin-top: 10px; color: var(--muted); }
+.table-availability-footnote { margin: 22px 0 0; font-size: 12px; line-height: 1.7; }
+
+@media (max-width: 1250px) {
+    .table-management-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .table-management-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .table-management-add-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .table-availability-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 680px) {
+    .table-management-summary,
+    .table-management-grid,
+    .table-management-add-form { grid-template-columns: 1fr; }
+    .table-management-header { flex-direction: column; align-items: stretch; }
+    .table-availability-form,
+    .table-availability-grid { grid-template-columns: 1fr; }
+}

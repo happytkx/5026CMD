@@ -55,8 +55,8 @@
                         <span>I understand and agree to the deposit, cancellation and rescheduling policies.</span>
                     </label>
                     <div class="form-actions">
-                        <a class="button secondary" asp-page="Index">
-                            ← My reservations
+                        <a class="button secondary" asp-page="@(Model.IsStaff ? "/Staff/Index" : "Index")">
+                            ← @(Model.IsStaff ? "Daily reservations" : "My reservations")
                         </a>
                         <button>Pay RM @r.DepositAmount.ToString("N2") &amp; confirm →</button>
                     </div>
@@ -143,11 +143,6 @@ else
         <p class="notice">Payment deadline passed. Choose a later slot to make a new reservation.</p>
         @if (!Model.IsStaff) { <a class="button" asp-page="Create">Choose another slot</a> }
     }
-    @if (Model.IsStaff && r.ReservationStatus == "Pending") {
-        <p>Payment deadline: @r.HoldExpiresAt?.ToString("dd MMM yyyy h:mm:ss tt") (Malaysia time).</p>
-        <a class="button" asp-page="Details" asp-route-id="@r.ReservationID" asp-route-view="Payment">Open deposit payment</a>
-        <form method="post" asp-page-handler="Action"><button name="action" value="Cancel">Cancel unpaid reservation</button></form>
-    }
     <p class="eyebrow">@(Model.IsStaff ? "GUEST RESERVATION" : Model.View=="Modify" ? "MANAGE RESERVATION" : Model.View=="Late" ? "ARRIVAL INFORMATION" : "YOUR VISIT")</p>
     <div class="section-heading">
         <div>
@@ -159,6 +154,48 @@ else
             ← All reservations
         </a>
     </div>
+    @if (Model.IsStaff && (r.ReservationStatus == "Pending" || r.ReservationStatus == "Confirmed"))
+    {
+        <section class="card staff-booking-management">
+            <p class="eyebrow">STAFF RESERVATION MANAGEMENT</p>
+            <h2>Manage reservation</h2>
+            <p class="muted">Use the actions below to confirm a paid booking, reschedule within policy, cancel, or prepare for guest arrival.</p>
+            <div class="staff-booking-actions">
+                @if (r.ReservationStatus == "Pending")
+                {
+                    <a class="button" asp-page="Details" asp-route-id="@r.ReservationID" asp-route-View="Payment">
+                        Collect deposit &amp; confirm
+                    </a>
+                }
+                else
+                {
+                    @if (ReservationPolicy.CanModify(r.OriginalStart, r.ModificationCount, ReservationPolicy.Now))
+                    {
+                        <a class="button secondary" asp-page="Details" asp-route-id="@r.ReservationID" asp-route-View="Modify">
+                            Modify reservation
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="staff-action-unavailable">Rescheduling unavailable: one change is allowed more than 168 hours before the original booking.</span>
+                    }
+                    <a class="button secondary" href="#staff-guest-arrival">Review check-in</a>
+                }
+                <form method="post" asp-page-handler="Action"
+                      onsubmit="return confirm('Cancel this reservation? Any paid deposit will be fully forfeited.');">
+                    <button type="submit" name="action" value="Cancel" class="quiet danger">Cancel reservation</button>
+                </form>
+            </div>
+            @if (r.ReservationStatus == "Pending")
+            {
+                <p class="muted">Payment deadline: @r.HoldExpiresAt?.ToString("dd MMM yyyy h:mm tt") (Malaysia time). The reservation becomes Confirmed only after successful deposit payment.</p>
+            }
+            else
+            {
+                <p class="muted">Deposit status: @r.DepositStatus. Cancellation forfeits the full paid deposit, and no refund is issued.</p>
+            }
+        </section>
+    }
     <div class="workflow-columns">
         <div>
             @if (Model.View=="Modify")
@@ -293,7 +330,7 @@ else
                         </p>
                     }
                 </section>
-                @if (r.ReservationStatus=="Confirmed")
+                @if (!Model.IsStaff && r.ReservationStatus=="Confirmed")
                 {
                     <section class="card">
                         <h3>Manage Your Reservation</h3>
@@ -352,7 +389,7 @@ else
                             <button name="action" value="Reassign">Save assignment</button>
                         </form>
                     </section>
-                    <section class="card">
+                    <section class="card" id="staff-guest-arrival">
                         <h3>Guest Arrival</h3>
                         <p>Check-in is available from the reserved time until the arrival deadline.</p>
                         <form method="post" asp-page-handler="Action">

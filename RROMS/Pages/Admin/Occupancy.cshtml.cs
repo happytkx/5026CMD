@@ -148,6 +148,30 @@ public class OccupancyModel : PageModel
 
         Row();
 
+        // Average scheduled occupancy and arrivals by weekday/hour.
+        Row("Typical Busy Times");
+        Row("Weekday", "Hour", "Matching Days",
+            "Average Table Utilisation (%)", "Average Occupied Tables",
+            "Average Reservation Arrivals");
+
+        var weekdays = new[]
+        {
+            "Monday", "Tuesday", "Wednesday", "Thursday",
+            "Friday", "Saturday", "Sunday"
+        };
+        foreach (var hour in report.WeeklyBusyHours)
+        {
+            Row(
+                weekdays[hour.DayIndex],
+                hour.Hour.ToString("00", CultureInfo.InvariantCulture) + ":00",
+                Number(hour.DaysSampled),
+                hour.AverageUtilisationPercent.HasValue ? Amount(hour.AverageUtilisationPercent.Value) : "",
+                hour.AverageOccupiedTables.HasValue ? Amount(hour.AverageOccupiedTables.Value) : "",
+                hour.AverageArrivals.HasValue ? Amount(hour.AverageArrivals.Value) : "");
+        }
+
+        Row();
+
         // Reservation arrival distribution
         Row("Peak Reservation Arrival Hours");
         Row("Hour", "Reservations");

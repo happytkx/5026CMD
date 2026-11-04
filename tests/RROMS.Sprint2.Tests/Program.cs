@@ -460,7 +460,11 @@ try
             ["ReservationId"] = registeredBooking.ReservationID.ToString(), ["__RequestVerificationToken"] = Antiforgery(checkoutHtml) }));
         Check(await db.Orders.CountAsync() == beforeOrders, "Ordering before staff check-in is rejected");
         await db.Reservations.Where(r => r.ReservationID == registeredBooking.ReservationID)
-            .ExecuteUpdateAsync(x => x.SetProperty(r => r.ReservationStatus, "Seated"));
+            .ExecuteUpdateAsync(x => x.SetProperty(r => r.ReservationStatus, "Seated")
+                .SetProperty(r => r.ReservationDate, ReservationPolicy.Now.Date));
+        menuHtml = await (await http.GetAsync("/Menu")).Content.ReadAsStringAsync();
+        await http.PostAsync("/Menu?handler=Add", new FormUrlEncodedContent(new Dictionary<string, string> {
+            ["itemId"] = menuItem.MenuItemID.ToString(), ["__RequestVerificationToken"] = Antiforgery(menuHtml) }));
         checkoutHtml = await (await http.GetAsync("/Orders/Checkout")).Content.ReadAsStringAsync();
         var placeOrder = await http.PostAsync("/Orders/Checkout?handler=Place", new FormUrlEncodedContent(new Dictionary<string, string> {
             ["ReservationId"] = registeredBooking.ReservationID.ToString(), ["__RequestVerificationToken"] = Antiforgery(checkoutHtml) }));
@@ -505,7 +509,7 @@ try
         Check(adminLogin.StatusCode == System.Net.HttpStatusCode.Redirect && adminLogin.Headers.Location!.ToString() == "/Admin", "Migrated administrator signs in through shared login");
         Check((await adminHttp.GetAsync("/Admin")).IsSuccessStatusCode && (await adminHttp.GetAsync("/Staff")).IsSuccessStatusCode, "Independent administrator retains admin and staff access");
         Check((await adminHttp.GetAsync("/Reservations/Create")).StatusCode == System.Net.HttpStatusCode.Redirect, "Administrator does not gain customer booking identity");
-        foreach (var mergedPage in new[] { "/Admin/MenuPerformance?handler=Export", "/Admin/Reports", "/Admin/PaymentCollections", "/Admin/Occupancy", "/Staff/Notifications" })
+        foreach (var mergedPage in new[] { "/Reviews", "/Admin/CustomerReviews", "/Staff/CustomerReviews", "/Admin/TableManagement", "/Admin/MenuPerformance?handler=Export", "/Admin/Reports", "/Admin/PaymentCollections", "/Admin/Occupancy", "/Staff/Notifications" })
             Check((await adminHttp.GetAsync(mergedPage)).IsSuccessStatusCode, "Merged page renders for administrator: " + mergedPage);
         var adminProfile = await (await adminHttp.GetAsync("/Account/Profile")).Content.ReadAsStringAsync();
         Check(adminProfile.Contains("legacy-admin@example.test") && !adminProfile.Contains("name=\"Input.PhoneNo\""), "Administrator profile reads own account without customer fields");

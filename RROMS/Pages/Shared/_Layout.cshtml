@@ -74,6 +74,12 @@
                         <a class="@(currentPage == "/Admin/MenuManagement" || currentPage == "/Admin/MenuPerformance" ? "active" : "")" asp-page="/Admin/MenuManagement">
                             Menu &amp; Performance
                         </a>
+                        <a class="@(currentPage == "/Admin/CustomerReviews" ? "active" : "")" asp-page="/Admin/CustomerReviews">
+                            Customer Reviews
+                        </a>
+                        <a class="@(currentPage == "/Admin/TableManagement" ? "active" : "")" asp-page="/Admin/TableManagement">
+                            Table Management
+                        </a>
                         <a class="@(currentPage == "/Admin/Occupancy" ? "active" : "")" asp-page="/Admin/Occupancy">
                             Table Utilisation
                         </a>
@@ -89,13 +95,6 @@
                     <a class="@(currentPage == "/Staff/Index" ? "active" : "")" asp-page="/Staff/Index">
                         Daily Reservations
                     </a>
-                    <a class="@(currentPage == "/Staff/Notifications" ? "active" : "")" asp-page="/Staff/Notifications">
-                        Notifications
-                        @if (unreadStaffNotifications > 0)
-                        {
-                            <span class="staff-alert-count">@(unreadStaffNotifications > 99 ? "99+" : unreadStaffNotifications.ToString())</span>
-                        }
-                    </a>
                     <a class="@(currentPage == "/Staff/Seating" ? "active" : "")" asp-page="/Staff/Seating">
                         Seating &amp; Allocation
                     </a>
@@ -104,6 +103,16 @@
                     </a>
                     <a class="@(currentPage == "/Staff/Billing" || currentPage == "/Staff/BillDetails" || currentPage == "/Staff/BillingHistory" || currentPage == "/Staff/PaymentReceipt" ? "active" : "")" asp-page="/Staff/Billing">
                         Billing &amp; Checkout
+                    </a>
+                    <a class="@(currentPage == "/Staff/CustomerReviews" ? "active" : "")" asp-page="/Staff/CustomerReviews">
+                        Customer Reviews
+                    </a>
+                    <a class="@(currentPage == "/Staff/Notifications" ? "active" : "")" asp-page="/Staff/Notifications">
+                        Notifications
+                        @if (unreadStaffNotifications > 0)
+                        {
+                            <span class="staff-alert-count">@(unreadStaffNotifications > 99 ? "99+" : unreadStaffNotifications.ToString())</span>
+                        }
                     </a>
                 </nav>
                 <p class="sidebar-label sidebar-group-divider">QUICK LINKS</p>
@@ -176,6 +185,9 @@
                 {
                     <a asp-page="/Menu" class="@(currentPage == "/Menu" ? "active" : "")">
                         Menu
+                    </a>
+                    <a asp-page="/Reviews" class="@(currentPage == "/Reviews" ? "active" : "")">
+                        Reviews
                     </a>
                     @if (User.IsInRole("Customer"))
                     {
@@ -260,6 +272,9 @@
                 </a>
                 <a asp-page="/Menu">
                     Menu
+                </a>
+                <a asp-page="/Reviews">
+                    Reviews
                 </a>
                 <a asp-page="@(User.Identity?.IsAuthenticated == true ? "/Account/Profile" : "/Account/Login")">
                     Account

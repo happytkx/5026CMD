@@ -1,0 +1,10 @@
+@* Five-star rating display; the rating is also exposed as text for screen readers. *@
+@model int
+<span class="review-stars" role="img" aria-label="@Model out of 5 stars">
+    @for (var star = 1; star <= 5; star++)
+    {
+        <svg viewBox="0 0 24 24" class="@(star <= Model ? "on" : "off")" aria-hidden="true">
+            <path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.1 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z" />
+        </svg>
+    }
+</span>

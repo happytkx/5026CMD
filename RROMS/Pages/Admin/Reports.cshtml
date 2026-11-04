@@ -14,7 +14,15 @@
 	for a selected reporting period.
 </p>
 
-
+@if (Model.Summary is not null)
+{
+    <nav class="report-section-nav" aria-label="Jump to report sections">
+        <span class="report-section-nav-label">Jump to</span>
+        <a href="#reservation-overview">Reservation Overview</a>
+        <a href="#deposit-overview">Deposit Overview</a>
+        <a href="#customer-insights">Customer Insights</a>
+    </nav>
+}
 
 @{
     var quickToday = ReservationPolicy.Now.Date;
@@ -91,98 +99,118 @@
 		to
 		@report.EndDate.ToString("dd MMM yyyy")
 	</p>
-	
-<section class="staff-stats">
-
-    <article class="card">
-        <a class="text-reset text-decoration-none"
-           asp-page="/Admin/ReportReservations"
-           asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
-           asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")">
-            <small>TOTAL RESERVATIONS</small>
-            <h2>@report.TotalReservations</h2>
-            <p>View all reservations</p>
-        </a>
-    </article>
-
-    <article class="card">
-        <a class="text-reset text-decoration-none"
-           asp-page="/Admin/ReportReservations"
-           asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
-           asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
-           asp-route-Status="Confirmed">
-            <small>CONFIRMED</small>
-            <h2>@report.ConfirmedReservations</h2>
-            <p>View confirmed reservations</p>
-        </a>
-    </article>
-
-    <article class="card">
-        <a class="text-reset text-decoration-none"
-           asp-page="/Admin/ReportReservations"
-           asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
-           asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
-           asp-route-Status="Seated">
-            <small>SEATED / CHECKED IN</small>
-            <h2>@report.SeatedReservations</h2>
-            <p>View checked-in reservations</p>
-        </a>
-    </article>
-
-    <article class="card">
-        <a class="text-reset text-decoration-none"
-           asp-page="/Admin/ReportReservations"
-           asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
-           asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
-           asp-route-Status="Completed">
-            <small>COMPLETED</small>
-            <h2>@report.CompletedReservations</h2>
-            <p>View completed reservations</p>
-        </a>
-    </article>
-
-</section>
-
-<section class="staff-stats">
-
-    <article class="card">
-        <a class="text-reset text-decoration-none"
-           asp-page="/Admin/ReportReservations"
-           asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
-           asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
-           asp-route-Status="Cancelled">
-            <small>CANCELLED</small>
-            <h2>@report.CancelledReservations</h2>
-            <p>View cancelled reservations</p>
-        </a>
-    </article>
-
-    <article class="card">
-        <a class="text-reset text-decoration-none"
-           asp-page="/Admin/ReportReservations"
-           asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
-           asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
-           asp-route-Status="No-show">
-            <small>NO-SHOWS</small>
-            <h2>@report.NoShowReservations</h2>
-            <p>View no-show reservations</p>
-        </a>
-    </article>
-
-    <article class="card">
-        <small>PAID DEPOSITS</small>
-        <h2>RM @report.PaidDeposits.ToString("N2")</h2>
-    </article>
-
-    <article class="card">
-        <small>FORFEITED DEPOSITS</small>
-        <h2>RM @report.ForfeitedDeposits.ToString("N2")</h2>
-    </article>
-
-</section>
 
 
-	<!-- Reservation status chart -->
+
+
+<section id="reservation-overview" class="report-section" aria-labelledby="reservation-overview-heading">
+    <header class="report-section-heading">
+        <p class="eyebrow">01 / RESERVATIONS</p>
+        <h2 id="reservation-overview-heading">Reservation Overview</h2>
+        <p>Reservation volumes, current statuses and booking trends for the selected period.</p>
+    </header>
+    <div class="staff-stats report-summary-grid">
+        <article class="card">
+            <a class="text-reset text-decoration-none"
+               asp-page="/Admin/ReportReservations"
+               asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+               asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")">
+                <small>TOTAL RESERVATIONS</small>
+                <h2>@report.TotalReservations</h2>
+                <p>View all reservations</p>
+            </a>
+        </article>
+
+        <article class="card">
+            <a class="text-reset text-decoration-none"
+               asp-page="/Admin/ReportReservations"
+               asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+               asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
+               asp-route-Status="Confirmed">
+                <small>CONFIRMED</small>
+                <h2>@report.ConfirmedReservations</h2>
+                <p>View confirmed reservations</p>
+            </a>
+        </article>
+
+        <article class="card">
+            <a class="text-reset text-decoration-none"
+               asp-page="/Admin/ReportReservations"
+               asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+               asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
+               asp-route-Status="Pending">
+                <small>PENDING</small>
+                <h2>@report.PendingReservations</h2>
+                <p>View pending reservations</p>
+            </a>
+        </article>
+
+        <article class="card">
+            <a class="text-reset text-decoration-none"
+               asp-page="/Admin/ReportReservations"
+               asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+               asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
+               asp-route-Status="Seated">
+                <small>SEATED / CHECKED IN</small>
+                <h2>@report.SeatedReservations</h2>
+                <p>View checked-in reservations</p>
+            </a>
+        </article>
+
+        <article class="card">
+            <a class="text-reset text-decoration-none"
+               asp-page="/Admin/ReportReservations"
+               asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+               asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
+               asp-route-Status="Completed">
+                <small>COMPLETED</small>
+                <h2>@report.CompletedReservations</h2>
+                <p>View completed reservations</p>
+            </a>
+        </article>
+
+        <article class="card">
+            <a class="text-reset text-decoration-none"
+               asp-page="/Admin/ReportReservations"
+               asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+               asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
+               asp-route-Status="Cancelled">
+                <small>CANCELLED</small>
+                <h2>@report.CancelledReservations</h2>
+                <p>View cancelled reservations</p>
+            </a>
+        </article>
+
+        <article class="card">
+            <a class="text-reset text-decoration-none"
+               asp-page="/Admin/ReportReservations"
+               asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+               asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
+               asp-route-Status="No-show">
+                <small>NO-SHOWS</small>
+                <h2>@report.NoShowReservations</h2>
+                <p>View no-show reservations</p>
+            </a>
+        </article>
+
+        <article class="card">
+            <a class="text-reset text-decoration-none"
+               asp-page="/Admin/ReportReservations"
+               asp-route-StartDate="@report.StartDate.ToString("yyyy-MM-dd")"
+               asp-route-EndDate="@report.EndDate.ToString("yyyy-MM-dd")"
+               asp-route-Status="Expired">
+                <small>EXPIRED</small>
+                <h2>@report.ExpiredReservations</h2>
+                <p>View expired reservations</p>
+            </a>
+        </article>
+    </div>
+    <p class="notice">
+        Reservation counts use scheduled dining dates, including bookings subsequently cancelled or expired.
+        Select a status card or chart label to view the matching reservations.
+    </p>
+
+    <!-- Reservation status chart -->
 	<section class="card report-chart">
 		<h2>Reservation Status Breakdown</h2>
 
@@ -204,7 +232,7 @@
 					/ report.TotalReservations);
 
 				<div class="report-status-row">
-					
+
 					<div class="report-status-label">
 
 						<a class="text-reset text-decoration-none"
@@ -230,7 +258,7 @@
 						aria-valuemin="0"
 						aria-valuemax="@report.TotalReservations"
 						aria-valuenow="@status.Count">
-						
+
 						<div class="report-bar-fill"
 							style="width: @(percentage)%">
 						</div>
@@ -255,12 +283,15 @@
         else
         {
             var maxCount = Model.TrendPoints.Max(p => p.Count);
+            // Use exact whole-number grid intervals so dots match the values printed on the Y axis.
+            var tickStep = Math.Max(1, (int)Math.Ceiling(maxCount / 4d));
+            var axisMax = tickStep * 4;
             string Coord(double value) => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
             var plotted = Model.TrendPoints.Select((point, index) => new
             {
                 Point = point,
                 X = Coord(Model.TrendPoints.Count == 1 ? 498d : 60d + index * 875d / (Model.TrendPoints.Count - 1)),
-                Y = Coord(245d - point.Count * 225d / Math.Max(1, maxCount))
+                Y = Coord(245d - point.Count * 225d / axisMax)
             }).ToList();
             var linePoints = string.Join(" ", plotted.Select(point => point.X + "," + point.Y));
             var step = Math.Max(1, (int)Math.Ceiling(plotted.Count / 7.0));
@@ -275,7 +306,7 @@
                     @for (var tick = 0; tick <= 4; tick++)
                     {
                         var y = Coord(245d - tick * 225d / 4d);
-                        var count = (int)Math.Round(maxCount * tick / 4d);
+                        var count = tick * tickStep;
                         <line class="reservation-chart-gridline" x1="60" y1="@y" x2="935" y2="@y"></line>
                         @Html.Raw($"<text class=\"reservation-chart-axis\" x=\"48\" y=\"{Coord(245d - tick * 225d / 4d + 4d)}\" text-anchor=\"end\">{count}</text>")
                     }
@@ -326,8 +357,32 @@
             </details>
         }
     </section>
+</section>
 
-	<!-- Daily deposit collection chart -->
+<section id="deposit-overview" class="report-section" aria-labelledby="deposit-overview-heading">
+    <header class="report-section-heading">
+        <p class="eyebrow">02 / DEPOSITS</p>
+        <h2 id="deposit-overview-heading">Deposit Overview</h2>
+        <p>Reservation deposits and the payment collections recorded during the period.</p>
+    </header>
+    <div class="staff-stats report-deposit-stats">
+        <article class="card">
+            <small>PAID DEPOSITS</small>
+            <h2>RM @report.PaidDeposits.ToString("N2")</h2>
+        </article>
+
+        <article class="card">
+            <small>FORFEITED DEPOSITS</small>
+            <h2>RM @report.ForfeitedDeposits.ToString("N2")</h2>
+        </article>
+    </div>
+    <p class="notice">
+        Paid and forfeited deposit totals relate to reservations scheduled in the selected period.
+        Forfeited deposits are already included in paid deposits, so the two values should not be added together.
+        Daily collections below are grouped by payment date, which may differ from the reservation date.
+    </p>
+
+    <!-- Daily deposit collection chart -->
 	<section class="card report-chart">
 		<h2>Daily Deposit Collections</h2>
 
@@ -402,34 +457,76 @@
 			</div>
 		}
 	</section>
+</section>
 
+<section id="customer-insights" class="report-section" aria-labelledby="customer-insights-heading">
+    <header class="report-section-heading">
+        <p class="eyebrow">03 / CUSTOMERS</p>
+        <h2 id="customer-insights-heading">Customer Insights</h2>
+        <p>Customer activity and party-size patterns within the selected reporting period.</p>
+    </header>
+    @if (Model.Insights is { } insights)
+    {
+        var customerMixTotal = insights.NewCustomers + insights.ReturningCustomers;
+        var firstTimePercent = customerMixTotal > 0 ? insights.NewCustomers * 100d / customerMixTotal : 0d;
+        var returningPercent = customerMixTotal > 0 ? 100d - firstTimePercent : 0d;
 
-	<p class="notice">
-		Reservation counts are based on scheduled dining dates,
-		including reservations that were subsequently cancelled or expired.
+        <section class="staff-stats customer-insights-stats" aria-label="Customer summary">
+            <article class="card">
+                <small>ACTIVE DINING CUSTOMERS</small>
+                <h2>@insights.ActiveCustomers</h2>
+                <p>Customers with valid reservations this period</p>
+            </article>
+            <article class="card">
+                <small>FIRST-TIME CUSTOMERS</small>
+                <h2>@insights.NewCustomers</h2>
+                <p>Their first valid reservation was in this period</p>
+            </article>
+            <article class="card">
+                <small>RETURNING CUSTOMERS</small>
+                <h2>@insights.ReturningCustomers</h2>
+                <p>Previously reserved before this period</p>
+            </article>
+            <article class="card">
+                <small>AVERAGE PARTY SIZE</small>
+                <h2>@insights.AveragePartySize.ToString("N1")</h2>
+                <p>Guests per reservation on average</p>
+            </article>
+        </section>
 
-		Deposit amounts are associated with reservations
-		scheduled during the selected period.
-		Forfeited deposits are already included in paid deposits. 
+        <section class="customer-mix-panel" aria-labelledby="customer-mix-heading">
+            <div class="customer-mix-header">
+                <div>
+                    <p class="eyebrow">CUSTOMER BREAKDOWN</p>
+                    <h3 id="customer-mix-heading">First-time vs. Returning</h3>
+                </div>
+                <p>Share of customers in each group</p>
+            </div>
+            @if (customerMixTotal > 0)
+            {
+                <div class="customer-mix-track" role="img"
+                     aria-label="@($"First-time customers: {firstTimePercent:0.#}%. Returning customers: {returningPercent:0.#}%.")">
+                    <span class="customer-mix-first" style="width: @(firstTimePercent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"></span>
+                    <span class="customer-mix-returning" style="width: @(returningPercent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"></span>
+                </div>
+                <div class="customer-mix-legend">
+                    <div><span class="customer-mix-dot first"></span><span>First-time</span><strong>@insights.NewCustomers</strong><span>@firstTimePercent.ToString("0.#")%</span></div>
+                    <div><span class="customer-mix-dot returning"></span><span>Returning</span><strong>@insights.ReturningCustomers</strong><span>@returningPercent.ToString("0.#")%</span></div>
+                </div>
+            }
+            else
+            {
+                <p class="muted">No active dining customers were found for this period.</p>
+            }
+        </section>
 
-		Daily deposit collections are grouped by payment date,
-		which may differ from the scheduled reservation date.
-	</p>
-@if (Model.Insights is { } insights)
-{
-    <section class="staff-stats">
-        <article class="card"><small>ACTIVE DINING CUSTOMERS</small><h2>@insights.ActiveCustomers</h2></article>
-        <article class="card"><small>FIRST-TIME CUSTOMERS</small><h2>@insights.NewCustomers</h2></article>
-        <article class="card"><small>RETURNING CUSTOMERS</small><h2>@insights.ReturningCustomers</h2></article>
-        <article class="card"><small>AVERAGE PARTY SIZE</small><h2>@insights.AveragePartySize.ToString("N1")</h2></article>
-    </section>
-
-    <p class="muted">
-        First-time customers made their earliest valid reservation within the selected period.
-        Returning customers had a valid reservation before the period began.
-        Both groups include only customers with confirmed, seated or completed reservations during the period.
-    </p>
-}
+        <p class="muted customer-insights-note">
+            First-time customers made their earliest valid reservation within the selected period.
+            Returning customers had a valid reservation before the period began.
+            Both groups include only customers with confirmed, seated or completed reservations during the period.
+        </p>
+    }
+</section>
 
 }
 
