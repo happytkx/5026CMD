@@ -52,7 +52,8 @@ else
                                 disabled="@(l.Quantity >= RROMS.Services.Basket.MaxQuantity)" aria-label="Increase quantity of @l.Name">+</button>
                     </form>
                     <strong class="basket-line-total">RM @((l.Price * l.Quantity).ToString("0.00"))</strong>
-                    <form method="post" asp-page-handler="Remove" class="basket-remove-form">
+                    <form method="post" asp-page-handler="Remove" class="basket-remove-form"
+                          onsubmit="return confirm('Remove this dish from your basket?');">
                         <input type="hidden" name="itemId" value="@l.Id" />
                         <button type="submit" class="basket-remove" title="Remove @l.Name"
                                 aria-label="Remove @l.Name from basket">×</button>

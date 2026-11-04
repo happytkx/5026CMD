@@ -2664,3 +2664,42 @@ form.card.mybill-selector {
     .review-summary { grid-template-columns: 1fr; gap: 20px; }
     .review-count { margin-left: 0; width: 100%; }
 }
+
+
+/* Destructive reservation actions: unmistakably red, boxed and keyboard-visible. */
+.reservation-cancel-form {
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+button.reservation-cancel-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    margin: 0;
+    padding: 12px 22px;
+    border: 1px solid #A04B4B;
+    border-radius: 4px;
+    background: #FFF8F7;
+    color: #A04B4B;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.1px;
+    line-height: 1.5;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color .18s, border-color .18s, color .18s;
+}
+
+button.reservation-cancel-button:hover {
+    background: #A04B4B;
+    border-color: #A04B4B;
+    color: #fff;
+}
+
+button.reservation-cancel-button:focus-visible {
+    outline: 2px solid #A04B4B;
+    outline-offset: 3px;
+}

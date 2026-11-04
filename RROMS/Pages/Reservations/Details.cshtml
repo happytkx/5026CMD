@@ -63,8 +63,9 @@
                 </form>
             </section>
             <p class="notice">This coursework payment is simulated. Use demo details only. Card details are never saved.</p>
-            <form method="post" asp-page-handler="Action" onsubmit="return confirm('Cancel this pending reservation?');">
-                <button class="quiet" name="action" value="Cancel">Cancel pending reservation</button>
+            <form method="post" asp-page-handler="Action" class="reservation-cancel-form"
+                  onsubmit="return confirm('Cancel this pending reservation?');">
+                <button type="submit" class="reservation-cancel-button" name="action" value="Cancel">Cancel pending reservation</button>
             </form>
         </div>
         <partial name="_ReservationSummary" model="r"/>
@@ -181,9 +182,9 @@ else
                     }
                     <a class="button secondary" href="#staff-guest-arrival">Review check-in</a>
                 }
-                <form method="post" asp-page-handler="Action"
+                <form method="post" asp-page-handler="Action" class="reservation-cancel-form"
                       onsubmit="return confirm('Cancel this reservation? Any paid deposit will be fully forfeited.');">
-                    <button type="submit" name="action" value="Cancel" class="quiet danger">Cancel reservation</button>
+                    <button type="submit" name="action" value="Cancel" class="reservation-cancel-button">Cancel reservation</button>
                 </form>
             </div>
             @if (r.ReservationStatus == "Pending")
@@ -352,8 +353,9 @@ else
                                     Report late arrival
                                 </a>
                             }
-                            <form method="post" asp-page-handler="Action" onsubmit="return confirm('Cancel this reservation? Any paid deposit will be fully forfeited.');">
-                                <button name="action" value="Cancel" class="quiet">Cancel reservation</button>
+                            <form method="post" asp-page-handler="Action" class="reservation-cancel-form"
+                                  onsubmit="return confirm('Cancel this reservation? Any paid deposit will be fully forfeited.');">
+                                <button type="submit" name="action" value="Cancel" class="reservation-cancel-button">Cancel reservation</button>
                             </form>
                         </div>
                     </section>
