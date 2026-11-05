@@ -17,6 +17,7 @@ namespace RROMS.Pages.Admin;
 public class TableManagementModel(ApplicationDbContext db) : PageModel
 {
     private static readonly string[] SupportedAreas = ["Indoor", "Outdoor", "VIP Room"];
+    private static readonly string[] AddableAreaTypes = ["Indoor", "Outdoor"];
     private static readonly Regex TableIdFormat = new("^[A-Za-z0-9-]{1,10}$", RegexOptions.Compiled);
 
     public List<DiningArea> Areas { get; private set; } = [];
@@ -33,7 +34,7 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
     public List<AvailabilityEntry> AvailabilityResults { get; private set; } = [];
     public int BookableCount => AvailabilityResults.Count(t => t.IsBookable);
 
-    public sealed record AvailabilityEntry(string TableId, string Area, int Capacity, string State)
+    public sealed record AvailabilityEntry(string TableId, int AreaId, string Area, int Capacity, string State)
     {
         public bool IsBookable => State == "Available";
     }
@@ -139,7 +140,7 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
             else
                 state = "Available";
 
-            AvailabilityResults.Add(new AvailabilityEntry(table.TableID, area, table.Capacity, state));
+            AvailabilityResults.Add(new AvailabilityEntry(table.TableID, table.DiningAreaID, area, table.Capacity, state));
         }
 
         HasAvailabilityResult = true;
@@ -151,6 +152,75 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
         "VIP Room" => capacity is 8 or 12,
         _ => false
     };
+
+    private int? AdministratorId =>
+        int.TryParse(User.FindFirst("AdministratorID")?.Value, out var id) ? id : null;
+
+    private static bool ValidAreaName(string? name) =>
+        !string.IsNullOrWhiteSpace(name) && name.Trim().Length <= 80;
+
+    public async Task<IActionResult> OnPostAddDiningAreaAsync(string? displayName, string? areaType)
+    {
+        if (!ValidAreaName(displayName) || !AddableAreaTypes.Contains(areaType))
+            return Error("Enter a zone name (up to 80 characters) and choose Indoor or Outdoor.");
+
+        var name = displayName!.Trim();
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        if (await db.DiningAreas.AnyAsync(a =>
+                (a.DisplayName ?? a.AreaType).ToUpper() == name.ToUpper()))
+            return Error("A dining zone with that name already exists.");
+
+        db.DiningAreas.Add(new DiningArea
+        {
+            AreaType = areaType!,
+            DisplayName = name,
+            CreatedByAdministratorID = AdministratorId,
+            UpdatedByAdministratorID = AdministratorId
+        });
+        await db.SaveChangesAsync();
+        await transaction.CommitAsync();
+        return Success($"Dining zone {name} created under {areaType}.");
+    }
+
+    public async Task<IActionResult> OnPostRenameDiningAreaAsync(int diningAreaId, string? displayName)
+    {
+        if (!ValidAreaName(displayName))
+            return Error("Enter a dining zone name of up to 80 characters.");
+
+        var name = displayName!.Trim();
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var area = await db.DiningAreas.FindAsync(diningAreaId);
+        if (area is null) return NotFound();
+        if (area.AreaType == "VIP Room")
+            return Error("The VIP Room category is fixed by Céleste's two-room policy.");
+        if (await db.DiningAreas.AnyAsync(a => a.DiningAreaID != diningAreaId &&
+                (a.DisplayName ?? a.AreaType).ToUpper() == name.ToUpper()))
+            return Error("Another dining zone already uses that name.");
+
+        area.DisplayName = name;
+        area.UpdatedByAdministratorID = AdministratorId;
+        await db.SaveChangesAsync();
+        await transaction.CommitAsync();
+        return Success($"Dining zone renamed to {name}.");
+    }
+
+    public async Task<IActionResult> OnPostRemoveDiningAreaAsync(int diningAreaId)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var area = await db.DiningAreas.FindAsync(diningAreaId);
+        if (area is null) return NotFound();
+        if (area.AreaType == "VIP Room")
+            return Error("VIP Room cannot be removed.");
+        if (await db.RestaurantTables.AnyAsync(t => t.DiningAreaID == diningAreaId))
+            return Error("This zone has assigned tables. Reassign unused tables before removing the zone.");
+        if (await db.DiningAreas.CountAsync(a => a.AreaType == area.AreaType) <= 1)
+            return Error($"Keep at least one {area.AreaType} dining zone so booking remains available.");
+
+        db.DiningAreas.Remove(area);
+        await db.SaveChangesAsync();
+        await transaction.CommitAsync();
+        return Success($"Dining zone {area.DisplayLabel} removed.");
+    }
 
     private IActionResult Error(string message)
     {

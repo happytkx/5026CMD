@@ -4,6 +4,16 @@
     ViewData["Title"] = "Promotional Offers";
 }
 <style>
+    .promotion-bulk-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: .55rem; margin: 1rem 0; max-height: 18rem; overflow-y: auto; }
+    .promotion-bulk-list label { display: flex; gap: .5rem; align-items: center; padding: .55rem .7rem; border: 1px solid #ded6c9; border-radius: .3rem; cursor: pointer; }
+    .promotion-bulk-list label:has(input:checked) { background: #eeece3; border-color: #9a966f; }
+    .promotion-bulk-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; margin: 1rem 0; }
+    .promotion-bulk-fields label { display: block; font-weight: 600; margin-bottom: .35rem; }
+    .promotion-bulk-fields input { width: 100%; }
+    .promotion-bulk-message { display: grid; gap: .65rem; margin: 1rem 0; }
+    .promotion-bulk-message input[type=text], .promotion-bulk-message textarea { width: 100%; }
+    .promotion-bulk-check { display: flex; gap: .55rem; align-items: center; font-weight: 500; }
+    @@media (max-width: 750px) { .promotion-bulk-fields { grid-template-columns: 1fr; } }
     .promotion-overview { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1.25rem 0; }
     .promotion-overview .card { min-width: 12rem; flex: 1; }
     .promotion-overview strong { display: block; font-size: 1.8rem; }
@@ -26,7 +36,7 @@
 
 <p class="eyebrow">ADMINISTRATOR / MARKETING</p>
 <h1>Promotional Offers</h1>
-<p>Schedule time-limited discounts for individual Céleste menu dishes. Customers see the promotional price on the menu and at checkout; completed orders keep their recorded prices.</p>
+<p>Schedule offers for one dish or several at once. Customers see promotional prices on the menu and at checkout; completed orders keep their original recorded prices. An optional campaign announcement can appear on the homepage and welcome pop-up.</p>
 
 @if (TempData["PromotionSuccess"] is string success)
 {
@@ -42,6 +52,64 @@
     <div class="card"><span>Scheduled promotions</span><strong>@Model.ScheduledCount</strong></div>
     <div class="card"><span>Total menu dishes</span><strong>@Model.Dishes.Count</strong></div>
 </div>
+
+<section class="card" aria-labelledby="bulk-promotion-heading">
+    <p class="eyebrow">CAMPAIGN BUILDER</p>
+    <h2 id="bulk-promotion-heading">Promote several dishes at once</h2>
+    <p class="muted">Choose the dishes, set one discount and date range, and optionally publish a customer-facing promotion. This will replace existing offers on the selected dishes.</p>
+    <form method="post" asp-page-handler="ApplyBulk">
+        <fieldset>
+            <legend>Select menu dishes</legend>
+            <div class="promotion-bulk-list">
+                @foreach (var dish in Model.Dishes)
+                {
+                    <label>
+                        <input type="checkbox" name="menuItemIds" value="@dish.MenuItemID" />
+                        <span>@dish.Name</span>
+                    </label>
+                }
+            </div>
+        </fieldset>
+        <div class="promotion-bulk-fields">
+            <div>
+                <label for="bulk-discount">Discount (%)</label>
+                <input id="bulk-discount" name="discountPercent" type="number" min="0.01" max="50" step="0.01" value="10" required />
+            </div>
+            <div>
+                <label for="bulk-start">Start date</label>
+                <input id="bulk-start" name="promotionStartDate" type="date" value="@Model.Today.ToString("yyyy-MM-dd")" required />
+            </div>
+            <div>
+                <label for="bulk-end">End date (inclusive)</label>
+                <input id="bulk-end" name="promotionEndDate" type="date" value="@Model.Today.AddDays(6).ToString("yyyy-MM-dd")" required />
+            </div>
+        </div>
+        <div class="promotion-bulk-message">
+            <label class="promotion-bulk-check">
+                <input type="checkbox" name="publishAnnouncement" value="true" />
+                Also publish a promotional announcement
+            </label>
+            <div>
+                <label for="bulk-title">Announcement title (optional)</label>
+                <input id="bulk-title" type="text" name="announcementTitle" maxlength="120" placeholder="A limited-time offer from Céleste" />
+            </div>
+            <div>
+                <label for="bulk-message">Announcement message (optional)</label>
+                <textarea id="bulk-message" name="announcementMessage" rows="3" maxlength="1000" placeholder="Leave blank to generate a message using the selected dishes."></textarea>
+            </div>
+            <label class="promotion-bulk-check">
+                <input type="checkbox" name="showInPopup" value="true" checked />
+                Include the announcement in the welcome pop-up
+            </label>
+            <label class="promotion-bulk-check">
+                <input type="checkbox" name="featureAnnouncement" value="true" />
+                Feature it above the dining spaces (replaces the current feature)
+            </label>
+            <p class="muted">Announcement options apply only if “Also publish” is selected. Scheduled promotional announcements appear when the offer begins and disappear after its last day.</p>
+        </div>
+        <button type="submit">APPLY TO SELECTED DISHES</button>
+    </form>
+</section>
 
 <section class="card" aria-labelledby="promotion-management-heading">
     <h2 id="promotion-management-heading">Manage dish promotions</h2>

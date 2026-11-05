@@ -107,6 +107,18 @@ namespace RROMS.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsFeatured")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPromotional")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowInPopup")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("StartsAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Message")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -375,6 +387,10 @@ namespace RROMS.Migrations
                     b.Property<string>("AreaType")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
 
                     b.Property<int?>("CreatedByAdministratorID")
                         .HasColumnType("int");

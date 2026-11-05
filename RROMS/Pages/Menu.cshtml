@@ -58,6 +58,11 @@
     {
         <article class="dish">
             <div class="dish-art">
+                @if (MenuPricing.IsPromotionActive(item, ReservationPolicy.Now) && item.PromotionEndDate.HasValue)
+                {
+                    var remaining = Math.Max(1, (item.PromotionEndDate.Value.Date - ReservationPolicy.Now.Date).Days + 1);
+                    <span class="expiry-badge">@(remaining == 1 ? "1 day left" : $"{remaining} days left")</span>
+                }
                 <img src="@MenuImages.Url(item)" alt="@MenuImages.Alt(item)" loading="lazy"
                              onerror="this.onerror=null; this.src='/images/celeste-indoor.png'; this.alt='Dining at Céleste';" />
             </div>

@@ -35,6 +35,24 @@
         <img src="~/images/celeste-indoor.png" alt="An intimate dining room with warm architectural lighting and elegantly set tables" fetchpriority="high" />
     </figure>
 </section>
+@if (Model.Featured is { } feature)
+{
+    <section class="homepage-featured" aria-label="Featured Céleste news">
+        <div class="homepage-featured-content">
+            <p class="eyebrow">@(feature.IsPromotional ? "A CÉLESTE OFFER" : "FEATURED FROM CÉLESTE")</p>
+            <h2>@feature.Title</h2>
+            <p>@feature.Message</p>
+            <a class="text-link" href="@(feature.IsPromotional ? "/Menu" : "#announcements")">
+                @(feature.IsPromotional ? "Explore the menu" : "Read our news") →
+            </a>
+        </div>
+        @if (feature.ExpiresAt.HasValue)
+        {
+            var remaining = Math.Max(1, (feature.ExpiresAt.Value.Date - Model.Today).Days);
+            <span class="expiry-badge feature-expiry">@(remaining == 1 ? "1 day left" : $"{remaining} days left")</span>
+        }
+    </section>
+}
 <section id="dining-spaces" class="dining-spaces">
     <div class="section-heading">
         <div>
@@ -116,19 +134,26 @@
             @foreach (var announcement in Model.Announcements)
             {
                 <article class="celeste-announcement">
-                    <p class="eyebrow">@announcement.CreatedAt.ToString("dd MMM yyyy")</p>
+                    @if (announcement.ExpiresAt.HasValue)
+                    {
+                        var remaining = Math.Max(1, (announcement.ExpiresAt.Value.Date - Model.Today).Days);
+                        <span class="expiry-badge">@(remaining == 1 ? "1 day left" : $"{remaining} days left")</span>
+                    }
+                    <p class="eyebrow">@(announcement.IsPromotional ? "PROMOTION · " : "")@announcement.CreatedAt.ToString("dd MMM yyyy")</p>
                     <h3>@announcement.Title</h3>
                     <p>@announcement.Message</p>
                 </article>
             }
         </div>
     </section>
+    @if (Model.PopupAnnouncements.Count > 0)
+    {
     <dialog id="celeste-announcement-dialog" class="celeste-announcement-dialog" aria-labelledby="celeste-announcement-title">
         <div class="celeste-announcement-dialog-body">
             <p class="eyebrow">A NOTE FROM CÉLESTE</p>
             <h2 id="celeste-announcement-title">What's new at Céleste</h2>
             <div class="celeste-announcement-dialog-items">
-                @foreach (var announcement in Model.Announcements)
+                @foreach (var announcement in Model.PopupAnnouncements)
                 {
                     <article data-announcement-id="@announcement.AnnouncementID" class="celeste-announcement-dialog-item">
                         <h3>@announcement.Title</h3>
@@ -142,6 +167,7 @@
             </form>
         </div>
     </dialog>
+    }
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const track = document.getElementById('celeste-announcement-track');
@@ -209,6 +235,11 @@
             {
                 <article class="dish">
                     <div class="dish-art">
+                        @if (MenuPricing.IsPromotionActive(item, ReservationPolicy.Now) && item.PromotionEndDate.HasValue)
+                        {
+                            var remaining = Math.Max(1, (item.PromotionEndDate.Value.Date - Model.Today).Days + 1);
+                            <span class="expiry-badge">@(remaining == 1 ? "1 day left" : $"{remaining} days left")</span>
+                        }
                         <img src="@MenuImages.Url(item)" alt="@MenuImages.Alt(item)" loading="lazy"
                              onerror="this.onerror=null; this.src='/images/celeste-indoor.png'; this.alt='Dining at Céleste';" />
                     </div>
@@ -216,7 +247,15 @@
                         <h3>@item.Name</h3>
                         <p>@item.Description</p>
                         <div class="dish-bottom">
-                            <span class="price">RM @item.Price.ToString("0.00")</span>
+                            @if (MenuPricing.IsPromotionActive(item, ReservationPolicy.Now))
+                            {
+                                <span class="price">RM @MenuPricing.CurrentPrice(item, ReservationPolicy.Now).ToString("0.00")</span>
+                                <del class="muted">RM @item.Price.ToString("0.00")</del>
+                            }
+                            else
+                            {
+                                <span class="price">RM @item.Price.ToString("0.00")</span>
+                            }
                             <a asp-page="/Menu" asp-route-q="@item.Name">Order →</a>
                         </div>
                     </div>

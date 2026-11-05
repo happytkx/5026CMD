@@ -2868,3 +2868,7 @@ button.reservation-cancel-button:focus-visible {
     .staff-dining-search-controls button,
     .staff-dining-search-controls .button { flex: 1; }
 }
+
+/* Countdown labels sit on top of discounted dish photos. */
+.dish-art { position: relative; }
+.dish-art .expiry-badge { top: 10px; right: 10px; font-size: 10px; }
