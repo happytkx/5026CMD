@@ -24,6 +24,7 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
     public Dictionary<string, int> UpcomingBookings { get; private set; } = [];
     public int VipRoomCount => Tables.Count(t => t.DiningArea.AreaType == "VIP Room");
     public int AvailableCount => Tables.Count(t => t.Status == "Available");
+    public int SlotIntervalMinutes { get; private set; } = 30;
 
     [BindProperty(SupportsGet = true)] public DateTime? CheckDate { get; set; }
     [BindProperty(SupportsGet = true)] public string? CheckTime { get; set; }
@@ -39,6 +40,9 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
 
     public async Task OnGetAsync()
     {
+        var configuredInterval = await db.RestaurantSettings.AsNoTracking()
+            .OrderBy(s => s.SettingID).Select(s => (int?)s.SlotIntervalMinutes).FirstOrDefaultAsync();
+        SlotIntervalMinutes = configuredInterval is 15 or 30 or 60 ? configuredInterval.Value : 30;
         Areas = await db.DiningAreas.AsNoTracking()
             .Where(a => SupportedAreas.Contains(a.AreaType))
             .OrderBy(a => a.DiningAreaID).ToListAsync();
@@ -70,10 +74,9 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
     {
         if (!CheckDate.HasValue || !TimeSpan.TryParseExact(
                 CheckTime, @"hh\:mm", CultureInfo.InvariantCulture, out var time) ||
-            time < TimeSpan.Zero || time >= TimeSpan.FromDays(1) ||
-            time.Ticks % TimeSpan.FromMinutes(30).Ticks != 0)
+            time < TimeSpan.Zero || time >= TimeSpan.FromDays(1))
         {
-            AvailabilityError = "Choose a date and an arrival time in 30-minute increments.";
+            AvailabilityError = "Choose a valid date and arrival time.";
             return;
         }
 
@@ -91,6 +94,11 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
         if (settings is null)
         {
             AvailabilityError = "Restaurant opening hours have not been configured.";
+            return;
+        }
+        if ((time - settings.OpeningTime).Ticks % TimeSpan.FromMinutes(settings.SlotIntervalMinutes).Ticks != 0)
+        {
+            AvailabilityError = $"Choose an arrival time on a {settings.SlotIntervalMinutes}-minute interval, starting from opening time.";
             return;
         }
         if (time < settings.OpeningTime || time >= settings.ClosingTime)

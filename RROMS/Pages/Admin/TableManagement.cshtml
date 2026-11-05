@@ -48,7 +48,7 @@
         </div>
         <div>
             <label for="check-time">Arrival time</label>
-            <input id="check-time" type="time" name="CheckTime" step="1800"
+            <input id="check-time" type="time" name="CheckTime" step="@(Model.SlotIntervalMinutes * 60)"
                    value="@(Model.CheckTime ?? "19:00")" required />
         </div>
         <button type="submit">CHECK AVAILABILITY</button>

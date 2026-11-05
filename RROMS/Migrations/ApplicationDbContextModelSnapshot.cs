@@ -849,6 +849,9 @@ namespace RROMS.Migrations
                     b.Property<TimeSpan>("OpeningTime")
                         .HasColumnType("time");
 
+                    b.Property<int>("SlotIntervalMinutes")
+                        .HasColumnType("int");
+
                     b.Property<int?>("UpdatedByAdministratorID")
                         .HasColumnType("int");
 

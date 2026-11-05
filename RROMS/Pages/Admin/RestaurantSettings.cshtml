@@ -1,0 +1,62 @@
+@page
+@model RROMS.Pages.Admin.RestaurantSettingsModel
+@{
+    ViewData["Title"] = "Restaurant Settings";
+}
+<style>
+    .restaurant-settings-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 1.4rem 0; }
+    .restaurant-settings-field label { display: block; font-weight: 600; margin-bottom: .5rem; }
+    .restaurant-settings-field input, .restaurant-settings-field select { width: 100%; }
+    .restaurant-settings-note { padding: 1rem; border-radius: .4rem; background: #f5f1e8; margin: 1rem 0; }
+    @@media (max-width: 760px) { .restaurant-settings-grid { grid-template-columns: 1fr; } }
+</style>
+
+<p class="eyebrow">ADMINISTRATOR / RESTAURANT CONFIGURATION</p>
+<h1>Restaurant Settings</h1>
+<p>Control daily opening hours and how frequently customers can select arrival times. Changes apply to new bookings immediately.</p>
+
+@if (TempData["RestaurantSettingsSuccess"] is string success)
+{
+    <p class="success" role="status">@success</p>
+}
+@if (TempData["RestaurantSettingsError"] is string error)
+{
+    <p class="error" role="alert">@error</p>
+}
+
+<section class="card" aria-labelledby="restaurant-hours-heading">
+    <p class="eyebrow">RESERVATION CONFIGURATION</p>
+    <h2 id="restaurant-hours-heading">Opening hours &amp; booking slots</h2>
+    <p class="muted">All times are Malaysia time (UTC+8). The restaurant uses the same schedule every day.</p>
+    <form method="post">
+        <div class="restaurant-settings-grid">
+            <div class="restaurant-settings-field">
+                <label asp-for="Opening">Opening time</label>
+                <input asp-for="Opening" type="time" step="900" required />
+            </div>
+            <div class="restaurant-settings-field">
+                <label asp-for="Closing">Closing time</label>
+                <input asp-for="Closing" type="time" step="900" required />
+            </div>
+            <div class="restaurant-settings-field">
+                <label asp-for="IntervalMinutes">Reservation slot interval</label>
+                <select asp-for="IntervalMinutes" required>
+                    <option value="15">Every 15 minutes</option>
+                    <option value="30">Every 30 minutes</option>
+                    <option value="60">Every 60 minutes</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="restaurant-settings-note">
+            <strong>How this affects reservations</strong>
+            <ul>
+                <li>Arrival slots begin at opening time and repeat at your selected interval.</li>
+                <li>Indoor and Outdoor reservations continue to last two hours; VIP rooms remain booked until closing.</li>
+                <li>Opening or closing time changes are blocked when they would disrupt existing active reservations.</li>
+                <li>Changing the slot interval does not cancel or move any existing reservations.</li>
+            </ul>
+        </div>
+        <button type="submit">SAVE RESTAURANT SETTINGS</button>
+    </form>
+</section>

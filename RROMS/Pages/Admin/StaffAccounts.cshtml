@@ -1,0 +1,133 @@
+@page
+@model RROMS.Pages.Admin.StaffAccountsModel
+@{
+    ViewData["Title"] = "Staff Account Management";
+}
+
+<style>
+    .account-page-header { margin-bottom: 1.5rem; }
+    .account-form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; align-items: end; }
+    .account-form-grid label, .account-edit-grid label { display: block; margin-bottom: .4rem; font-weight: 600; }
+    .account-form-grid input, .account-edit-grid input { width: 100%; }
+    .account-form-grid button { min-height: 44px; }
+    .account-table-wrapper { overflow-x: auto; }
+    .account-table { width: 100%; border-collapse: collapse; }
+    .account-table th, .account-table td { padding: .9rem .65rem; border-bottom: 1px solid #e5e0d6; text-align: left; vertical-align: top; }
+    .account-table th { font-size: .8rem; letter-spacing: .05em; text-transform: uppercase; }
+    .account-status { display: inline-block; border-radius: 99px; padding: .2rem .7rem; background: #e8eddf; color: #344a2b; }
+    .account-status.inactive { background: #f1e8e2; color: #854737; }
+    .account-actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+    .account-actions button { padding: .55rem .8rem; }
+    .account-actions details { min-width: 10rem; }
+    .account-actions summary { cursor: pointer; font-weight: 600; }
+    .account-edit-grid { display: grid; grid-template-columns: 1fr; gap: .65rem; min-width: 17rem; padding: .75rem 0; }
+    .account-help { font-size: .88rem; opacity: .8; }
+    @@media (max-width: 800px) { .account-form-grid { grid-template-columns: 1fr; } }
+</style>
+
+<p class="eyebrow">ADMINISTRATOR / ACCOUNT MANAGEMENT</p>
+<h1>Staff Accounts</h1>
+<p class="account-page-header">Create and manage restaurant staff logins. Deactivating a staff account prevents sign-in and ends existing sessions without removing reservation or activity history.</p>
+
+@if (TempData["StaffAccountsSuccess"] is string success)
+{
+    <p class="success" role="status">@success</p>
+}
+@if (TempData["StaffAccountsError"] is string error)
+{
+    <p class="error" role="alert">@error</p>
+}
+
+<section class="card" aria-labelledby="create-staff-heading">
+    <p class="eyebrow">NEW ACCOUNT</p>
+    <h2 id="create-staff-heading">Create staff login</h2>
+    <p class="muted">New accounts receive the Restaurant Staff role only. Use a temporary password and share it privately with the employee.</p>
+    <form method="post" asp-page-handler="Create">
+        <div class="account-form-grid">
+            <div>
+                <label for="staff-name">Staff name</label>
+                <input id="staff-name" name="staffName" maxlength="100" required autocomplete="off" />
+            </div>
+            <div>
+                <label for="staff-email">Email address</label>
+                <input id="staff-email" type="email" name="email" maxlength="100" required autocomplete="off" />
+            </div>
+            <div>
+                <label for="staff-password">Temporary password</label>
+                <input id="staff-password" type="password" name="password" minlength="10" maxlength="128"
+                       autocomplete="new-password" required />
+            </div>
+        </div>
+        <p class="account-help">Passwords must be 10–128 characters. Existing customer and administrator emails cannot be reused.</p>
+        <button type="submit">CREATE STAFF ACCOUNT</button>
+    </form>
+</section>
+
+<section class="card" aria-labelledby="staff-directory-heading">
+    <p class="eyebrow">ACCOUNT DIRECTORY</p>
+    <h2 id="staff-directory-heading">Staff directory</h2>
+    <p class="muted">@Model.ActiveCount active · @Model.InactiveCount deactivated</p>
+    @if (Model.Staff.Count == 0)
+    {
+        <p>No staff accounts have been created yet.</p>
+    }
+    else
+    {
+        <div class="account-table-wrapper">
+            <table class="account-table">
+                <thead>
+                    <tr><th>Staff member</th><th>Email</th><th>Role</th><th>Status</th><th>Manage</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var account in Model.Staff)
+                    {
+                        <tr>
+                            <td>@account.StaffName</td>
+                            <td>@account.Email</td>
+                            <td>Restaurant Staff</td>
+                            <td>
+                                <span class="account-status @(account.IsActive ? "" : "inactive")">
+                                    @(account.IsActive ? "Active" : "Deactivated")
+                                </span>
+                            </td>
+                            <td>
+                                <div class="account-actions">
+                                    <details>
+                                        <summary>Edit details / password</summary>
+                                        <form method="post" asp-page-handler="Update" class="account-edit-grid">
+                                            <input type="hidden" name="staffAccountId" value="@account.StaffAccountID" />
+                                            <div>
+                                                <label for="staff-name-@account.StaffAccountID">Name</label>
+                                                <input id="staff-name-@account.StaffAccountID" name="staffName"
+                                                       value="@account.StaffName" maxlength="100" required />
+                                            </div>
+                                            <div>
+                                                <label for="staff-email-@account.StaffAccountID">Email</label>
+                                                <input id="staff-email-@account.StaffAccountID" type="email" name="email"
+                                                       value="@account.Email" maxlength="100" required />
+                                            </div>
+                                            <div>
+                                                <label for="staff-new-password-@account.StaffAccountID">New password (optional)</label>
+                                                <input id="staff-new-password-@account.StaffAccountID" type="password"
+                                                       name="newPassword" minlength="10" maxlength="128"
+                                                       autocomplete="new-password" placeholder="Leave blank to keep current" />
+                                            </div>
+                                            <button type="submit">SAVE CHANGES</button>
+                                        </form>
+                                    </details>
+                                    <form method="post" asp-page-handler="SetActive">
+                                        <input type="hidden" name="staffAccountId" value="@account.StaffAccountID" />
+                                        <input type="hidden" name="isActive" value="@(account.IsActive ? "false" : "true")" />
+                                        <button type="submit" onclick="return confirm('@(account.IsActive ? "Deactivate this staff account and end its sessions?" : "Reactivate this staff account?")')">
+                                            @(account.IsActive ? "DEACTIVATE" : "REACTIVATE")
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
