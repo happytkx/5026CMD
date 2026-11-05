@@ -344,12 +344,15 @@
             // Apply Céleste's consistent dropdown style to customer, staff and admin pages.
             // Preserve the native select element, its name and change events for Razor form submissions.
             if (window.TomSelect) {
-                document.querySelectorAll('select:not([multiple]):not([data-native-select])')
+                document.querySelectorAll('select:not([data-native-select]):not(.menu-tag-select)')
                     .forEach(function (select) {
                         if (select.tomselect) return;
                         new TomSelect(select, {
                             create: false,
-                            maxItems: 1,
+                            maxItems: select.multiple ? null : 1,
+                            plugins: select.multiple ? ['remove_button'] : [],
+                            closeAfterSelect: !select.multiple,
+                            placeholder: select.dataset.placeholder || select.getAttribute('placeholder') || undefined,
                             allowEmptyOption: true,
                             controlInput: null
                         });

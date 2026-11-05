@@ -25,6 +25,9 @@
     .dining-zone-label { min-width: 13rem; flex: 1; }
     .dining-zone-row form { display: flex; align-items: end; gap: .45rem; flex-wrap: wrap; }
     .dining-zone-row button { padding: .55rem .8rem; }
+    .dining-zone-remove { min-height: 44px; padding: .65rem 1rem !important; background: #9c5148 !important; border: 1px solid #9c5148 !important; border-radius: 4px; color: #fff !important; font: 600 12px var(--body); letter-spacing: .07em; cursor: pointer; transition: background .15s ease, border-color .15s ease; }
+    .dining-zone-remove:hover { background: #7c3b33 !important; border-color: #7c3b33 !important; color: #fff !important; }
+    .dining-zone-remove:focus-visible { outline: 3px solid rgba(156,81,72,.25); outline-offset: 2px; }
     @@media (max-width: 750px) { .dining-zone-form { grid-template-columns: 1fr; } }
 </style>
 
@@ -85,7 +88,7 @@
                     <form method="post" asp-page-handler="RemoveDiningArea"
                           onsubmit="return confirm('Remove this empty dining zone?');">
                         <input type="hidden" name="diningAreaId" value="@area.DiningAreaID" />
-                        <button type="submit" class="quiet danger">REMOVE</button>
+                        <button type="submit" class="dining-zone-remove">REMOVE</button>
                     </form>
                 }
             }

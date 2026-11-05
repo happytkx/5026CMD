@@ -458,31 +458,94 @@ else
             </p>
         }
     </section>
-    <section class="card">
-        <h2>Reservation updates</h2>
-        @foreach (var n in Model.Notifications)
+    @{
+        var guestUpdates = Model.Notifications.Where(n => n.NotificationType != "Audit").ToList();
+        var auditUpdates = Model.Notifications.Where(n => n.NotificationType == "Audit").ToList();
+        var paidDepositTotal = r.Payments.Where(p => p.PaymentType == "Deposit" && p.PaymentStatus == "Paid").Sum(p => p.Amount);
+    }
+    <section class="card reservation-record-card" aria-labelledby="reservation-updates-heading">
+        <div class="reservation-record-heading">
+            <div>
+                <h2 id="reservation-updates-heading">Reservation updates</h2>
+                <p class="muted">Important changes to this booking, newest first.</p>
+            </div>
+            <span class="reservation-count-badge">@guestUpdates.Count @(guestUpdates.Count == 1 ? "update" : "updates")</span>
+        </div>
+        @if (guestUpdates.Count == 0)
         {
-            <p>
-                <small>@n.SentDate.ToString("dd MMM yyyy HH:mm")</small>
-                <br/>
-                @n.Message
-            </p>
+            <p class="muted">No reservation updates yet.</p>
+        }
+        else
+        {
+            <ol class="reservation-update-timeline">
+                @foreach (var n in guestUpdates)
+                {
+                    <li>
+                        <div class="reservation-update-time">@n.SentDate.ToString("dd MMM yyyy · h:mm tt")</div>
+                        <div class="reservation-update-message">
+                            <span class="reservation-update-type">@(n.NotificationType switch { "Pay" => "Deposit paid", "Late" => "Late arrival", "CheckIn" => "Guest checked in", "Modify" => "Rescheduled", "Reassign" => "Table changed", "Complete" => "Visit completed", "Cancel" => "Cancellation", "NoShow" => "No-show", _ => n.NotificationType })</span>
+                            <p>@n.Message</p>
+                        </div>
+                    </li>
+                }
+            </ol>
+        }
+        @if (Model.IsStaff && auditUpdates.Count > 0)
+        {
+            <details class="reservation-audit-details">
+                <summary>Staff audit trail (@auditUpdates.Count)</summary>
+                <p class="muted">Technical action records for staff review.</p>
+                <ol>
+                    @foreach (var n in auditUpdates)
+                    {
+                        <li><small>@n.SentDate.ToString("dd MMM yyyy HH:mm")</small><p>@n.Message</p></li>
+                    }
+                </ol>
+            </details>
         }
     </section>
-    <section class="card">
-        <h2>Deposit payment records</h2>
-        @foreach (var p in r.Payments)
+    <section class="card reservation-record-card" aria-labelledby="deposit-records-heading">
+        <div class="reservation-record-heading">
+            <div>
+                <h2 id="deposit-records-heading">Deposit payment records</h2>
+                <p class="muted">Payment attempts and receipt details for this reservation.</p>
+            </div>
+            <span class="reservation-count-badge">@r.Payments.Count @(r.Payments.Count == 1 ? "record" : "records")</span>
+        </div>
+        <p class="reservation-paid-summary">Total paid deposits <strong>RM @paidDepositTotal.ToString("N2")</strong></p>
+        @if (r.Payments.Count == 0)
         {
-            <p>
-                @p.PaymentDate.ToString("dd MMM yyyy HH:mm") · RM @p.Amount.ToString("N2") · @p.PaymentStatus · @p.PaymentType
-                <br/>
-                <small>@p.PaymentMethod · Reference @p.PaymentReference</small>
-                @if (p.PaymentStatus == "Paid" && (p.PaymentType == "Deposit" || p.PaymentType == "DiningBill"))
-                {
-                    <a asp-page="@(Model.IsStaff ? "/Staff/PaymentReceipt" : "/Reservations/Receipt")" asp-route-id="@p.PaymentID">View / print receipt</a>
-                }
-
-            </p>
+            <p class="muted">No payment records yet.</p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="reservation-record-table">
+                    <thead><tr><th>Date &amp; time</th><th>Type</th><th>Method / reference</th><th>Status</th><th class="amount-column">Amount</th><th>Receipt</th></tr></thead>
+                    <tbody>
+                        @foreach (var p in r.Payments.OrderByDescending(p => p.PaymentDate))
+                        {
+                            <tr>
+                                <td>@p.PaymentDate.ToString("dd MMM yyyy")<small>@p.PaymentDate.ToString("h:mm tt")</small></td>
+                                <td>@p.PaymentType</td>
+                                <td>@p.PaymentMethod<small class="reservation-ref">@p.PaymentReference</small></td>
+                                <td><span class="reservation-status-chip" data-status="@p.PaymentStatus">@p.PaymentStatus</span></td>
+                                <td class="amount-column"><strong>RM @p.Amount.ToString("N2")</strong></td>
+                                <td>
+                                    @if (p.PaymentStatus == "Paid" && (p.PaymentType == "Deposit" || p.PaymentType == "DiningBill"))
+                                    {
+                                        <a asp-page="@(Model.IsStaff ? "/Staff/PaymentReceipt" : "/Reservations/Receipt")" asp-route-id="@p.PaymentID">View receipt</a>
+                                    }
+                                    else
+                                    {
+                                        <span class="muted">—</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         }
     </section>
     @if (r.ReservationHistories.Any())
@@ -497,15 +560,39 @@ else
     }
     @if (Model.IsStaff)
     {
-        <section class="card">
-            <h2>Customer reservation history</h2>
-            @foreach (var h in Model.CustomerHistory)
+        <section class="card reservation-record-card" aria-labelledby="customer-history-heading">
+            <div class="reservation-record-heading">
+                <div>
+                    <h2 id="customer-history-heading">Customer reservation history</h2>
+                    <p class="muted">This customer's bookings, most recent first.</p>
+                </div>
+                <span class="reservation-count-badge">@Model.CustomerHistory.Count @(Model.CustomerHistory.Count == 1 ? "booking" : "bookings")</span>
+            </div>
+            @if (Model.CustomerHistory.Count == 0)
             {
-                <p>
-                    <a asp-page="Details" asp-route-id="@h.ReservationID">
-                        @h.ReservationDate.ToString("dd MMM yyyy") · @h.ReservationStatus · @h.PartySize guests
-                    </a>
-                </p>
+                <p class="muted">No previous reservations found.</p>
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table class="reservation-record-table">
+                        <thead><tr><th>#</th><th>Reservation date</th><th>Reference</th><th>Guests</th><th>Status</th><th>Details</th></tr></thead>
+                        <tbody>
+                            @for (var index = 0; index < Model.CustomerHistory.Count; index++)
+                            {
+                                var h = Model.CustomerHistory[index];
+                                <tr>
+                                    <td>@(index + 1)</td>
+                                    <td><strong>@h.ReservationDate.ToString("dd MMM yyyy")</strong><small>@h.ReservationDate.Add(h.StartTime).ToString("h:mm tt")</small></td>
+                                    <td class="reservation-ref">@h.BookingReference</td>
+                                    <td>@h.PartySize</td>
+                                    <td><span class="reservation-status-chip" data-status="@h.ReservationStatus">@h.ReservationStatus</span></td>
+                                    <td><a asp-page="Details" asp-route-id="@h.ReservationID">View booking</a></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             }
         </section>
     }

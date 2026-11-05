@@ -2941,3 +2941,35 @@ button.reservation-cancel-button:focus-visible {
 @media (prefers-reduced-motion: reduce) {
     .staff-sidebar .sidebar-section > summary.sidebar-label::after { transition: none; }
 }
+
+/* Menu discovery: five filters with a two-choice multi-select. */
+.menu-toolbar .menu-filters {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) max-content max-content;
+}
+.menu-toolbar .menu-filters .ts-wrapper { width: 100%; min-width: 0; }
+.menu-toolbar .menu-filters .ts-control { min-height: 48px; }
+.menu-toolbar .menu-filters .ts-wrapper.multi .ts-control { gap: 4px; flex-wrap: wrap; }
+.menu-toolbar .menu-filters .ts-wrapper.multi .item {
+    background: #e9ecdd;
+    color: #4d5939;
+    border-radius: 3px;
+    padding: 3px 7px;
+    font-size: 12px;
+}
+.dish-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin: 3px 0 12px; }
+.dish-tags .badge { margin: 0; white-space: nowrap; }
+.dish-tags .offer-badge { background: #f4e9d4; color: #735323; }
+.dish-pricing { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.dish-pricing .price { white-space: nowrap; }
+.dish-pricing del { white-space: nowrap; font-size: 12px; }
+.dish-bottom { gap: 12px; }
+.dish-bottom > .muted { max-width: 45%; text-align: right; font-size: 12px; }
+@media (max-width: 1250px) {
+    .menu-toolbar .menu-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 800px) {
+    .menu-toolbar .menu-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+    .menu-toolbar .menu-filters { grid-template-columns: 1fr; }
+}

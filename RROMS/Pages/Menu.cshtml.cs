@@ -33,6 +33,8 @@ public class MenuModel(ApplicationDbContext db) : PageModel
     {
         get; set;
     }
+    [BindProperty(SupportsGet = true)]
+    public List<string> Highlights { get; set; } = [];
 
     public async Task OnGetAsync()
     {
@@ -47,6 +49,17 @@ public class MenuModel(ApplicationDbContext db) : PageModel
             query = query.Where(i => i.DietaryTags.Contains(Dietary));
         if (!string.IsNullOrWhiteSpace(Protein))
             query = query.Where(i => i.ProteinType == Protein);
+        // Selecting both highlights shows dishes that are popular OR currently discounted.
+        var popularOnly = Highlights.Contains("popular", StringComparer.OrdinalIgnoreCase);
+        var promotionOnly = Highlights.Contains("promotion", StringComparer.OrdinalIgnoreCase);
+        if (popularOnly || promotionOnly)
+        {
+            var today = ReservationPolicy.Now.Date;
+            query = query.Where(i => (popularOnly && i.IsPopular) ||
+                (promotionOnly && i.DiscountPercent > 0m && i.DiscountPercent <= 50m &&
+                 i.PromotionStartDate.HasValue && i.PromotionEndDate.HasValue &&
+                 i.PromotionStartDate.Value <= today && i.PromotionEndDate.Value >= today));
+        }
         Items = await query.OrderByDescending(i => i.IsPopular).ThenBy(i => i.Category).ThenBy(i => i.Name).ToListAsync();
         Categories = await db.MenuItems.Where(i => i.IsAvailable).Select(i => i.Category).Distinct().OrderBy(c => c).ToListAsync();
     }
