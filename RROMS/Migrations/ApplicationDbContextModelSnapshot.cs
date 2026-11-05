@@ -207,6 +207,9 @@ namespace RROMS.Migrations
                     b.Property<bool>("IsDemo")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime?>("LockedUntilUtc")
                         .HasColumnType("datetime2");
 

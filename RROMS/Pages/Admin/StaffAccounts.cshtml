@@ -1,7 +1,7 @@
 @page
 @model RROMS.Pages.Admin.StaffAccountsModel
 @{
-    ViewData["Title"] = "Staff Account Management";
+    ViewData["Title"] = "Account Management";
 }
 
 <style>
@@ -22,12 +22,21 @@
     .account-actions summary { cursor: pointer; font-weight: 600; }
     .account-edit-grid { display: grid; grid-template-columns: 1fr; gap: .65rem; min-width: 17rem; padding: .75rem 0; }
     .account-help { font-size: .88rem; opacity: .8; }
+    .account-tabs { display: flex; gap: .55rem; border-bottom: 1px solid #d9d0c0; margin: 1.5rem 0; }
+    .account-tabs a { padding: .8rem 1.3rem; color: #595447; text-decoration: none; border-radius: .4rem .4rem 0 0; }
+    .account-tabs a.active { background: #666d4d; color: #fff; font-weight: 600; }
+    .account-tabs a:focus-visible { outline: 2px solid #a0804c; outline-offset: 3px; }
+    .account-actions button.account-danger { background-color: #a33932 !important; border-color: #a33932 !important; color: #fff !important; }
+    .account-actions button.account-danger:hover { background-color: #862820 !important; }
+    .account-role-note { display: block; margin-top: .3rem; font-size: .8rem; color: #766f62; }
+    .account-edit-grid textarea { width: 100%; min-height: 5rem; }
+
     @@media (max-width: 800px) { .account-form-grid { grid-template-columns: 1fr; } }
 </style>
 
 <p class="eyebrow">ADMINISTRATOR / ACCOUNT MANAGEMENT</p>
-<h1>Staff Accounts</h1>
-<p class="account-page-header">Create and manage restaurant staff logins. Deactivating a staff account prevents sign-in and ends existing sessions without removing reservation or activity history.</p>
+<h1>Account Management</h1>
+<p class="account-page-header">Manage restaurant staff and customer accounts. Deactivating an account blocks sign-in and revokes existing sessions while preserving reservation and order history.</p>
 
 @if (TempData["StaffAccountsSuccess"] is string success)
 {
@@ -38,6 +47,17 @@
     <p class="error" role="alert">@error</p>
 }
 
+<nav class="account-tabs" aria-label="Account type">
+    <a asp-page="/Admin/StaffAccounts" asp-route-tab="staff"
+       class="@(Model.ActiveTab == "staff" ? "active" : "")"
+       aria-current="@(Model.ActiveTab == "staff" ? "page" : null)">Staff</a>
+    <a asp-page="/Admin/StaffAccounts" asp-route-tab="customers"
+       class="@(Model.ActiveTab == "customers" ? "active" : "")"
+       aria-current="@(Model.ActiveTab == "customers" ? "page" : null)">Customers</a>
+</nav>
+
+@if (Model.ActiveTab == "staff")
+{
 <section class="card" aria-labelledby="create-staff-heading">
     <p class="eyebrow">NEW ACCOUNT</p>
     <h2 id="create-staff-heading">Create staff login</h2>
@@ -115,10 +135,11 @@
                                             <button type="submit">SAVE CHANGES</button>
                                         </form>
                                     </details>
-                                    <form method="post" asp-page-handler="SetActive">
+                                    <form method="post" asp-page-handler="SetActive"
+                                          onsubmit="return confirm('@(account.IsActive ? "Deactivate this staff account? All signed-in sessions will end." : "Reactivate this staff account?")')">
                                         <input type="hidden" name="staffAccountId" value="@account.StaffAccountID" />
                                         <input type="hidden" name="isActive" value="@(account.IsActive ? "false" : "true")" />
-                                        <button type="submit" onclick="return confirm('@(account.IsActive ? "Deactivate this staff account and end its sessions?" : "Reactivate this staff account?")')">
+                                        <button class="@(account.IsActive ? "account-danger" : "")" type="submit">
                                             @(account.IsActive ? "DEACTIVATE" : "REACTIVATE")
                                         </button>
                                     </form>
@@ -131,3 +152,122 @@
         </div>
     }
 </section>
+
+}
+else
+{
+<section class="card" aria-labelledby="create-customer-heading">
+    <p class="eyebrow">NEW ACCOUNT</p>
+    <h2 id="create-customer-heading">Create customer login</h2>
+    <p class="muted">Create a customer account with a temporary password. Share the password privately. Existing reservation-only customers can also be given a password in the directory.</p>
+    <form method="post" asp-page-handler="CreateCustomer">
+        <div class="account-form-grid">
+            <div>
+                <label for="customer-name">Customer name</label>
+                <input id="customer-name" name="customerName" maxlength="100" required />
+            </div>
+            <div>
+                <label for="customer-email">Email address</label>
+                <input id="customer-email" type="email" name="email" maxlength="100" required />
+            </div>
+            <div>
+                <label for="customer-phone">Phone number (optional)</label>
+                <input id="customer-phone" name="phoneNo" maxlength="20" autocomplete="tel" />
+            </div>
+            <div>
+                <label for="customer-password">Temporary password</label>
+                <input id="customer-password" type="password" name="password" minlength="10" maxlength="128"
+                       autocomplete="new-password" required />
+            </div>
+        </div>
+        <p class="account-help">Passwords must be 10–128 characters. Email addresses must be unique across customer, staff and administrator accounts.</p>
+        <button type="submit">CREATE CUSTOMER ACCOUNT</button>
+    </form>
+</section>
+
+<section class="card" aria-labelledby="customer-directory-heading">
+    <p class="eyebrow">ACCOUNT DIRECTORY</p>
+    <h2 id="customer-directory-heading">Customer directory</h2>
+    <p class="muted">@Model.ActiveCustomerCount active · @Model.InactiveCustomerCount deactivated</p>
+    @if (Model.Customers.Count == 0)
+    {
+        <p>No customer accounts have been created yet.</p>
+    }
+    else
+    {
+        <div class="account-table-wrapper">
+            <table class="account-table">
+                <thead>
+                    <tr><th>Customer</th><th>Email</th><th>Role</th><th>Status</th><th>Manage</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var account in Model.Customers)
+                    {
+                        <tr>
+                            <td>@account.CustomerName</td>
+                            <td>
+                                @account.Email
+                                @if (account.PasswordHash is null)
+                                {
+                                    <span class="account-role-note">Reservation-only record (no login)</span>
+                                }
+                            </td>
+                            <td>Customer</td>
+                            <td>
+                                <span class="account-status @(account.IsActive ? "" : "inactive")">
+                                    @(account.IsActive ? "Active" : "Deactivated")
+                                </span>
+                            </td>
+                            <td>
+                                <div class="account-actions">
+                                    <details>
+                                        <summary>Edit details / password</summary>
+                                        <form method="post" asp-page-handler="UpdateCustomer" class="account-edit-grid">
+                                            <input type="hidden" name="customerId" value="@account.CustomerID" />
+                                            <div>
+                                                <label for="customer-name-@account.CustomerID">Name</label>
+                                                <input id="customer-name-@account.CustomerID" name="customerName"
+                                                       value="@account.CustomerName" maxlength="100" required />
+                                            </div>
+                                            <div>
+                                                <label for="customer-email-@account.CustomerID">Email</label>
+                                                <input id="customer-email-@account.CustomerID" type="email" name="email"
+                                                       value="@account.Email" maxlength="100" required />
+                                            </div>
+                                            <div>
+                                                <label for="customer-phone-@account.CustomerID">Phone number</label>
+                                                <input id="customer-phone-@account.CustomerID" name="phoneNo"
+                                                       value="@account.PhoneNo" maxlength="20" />
+                                            </div>
+                                            <div>
+                                                <label for="customer-address-@account.CustomerID">Address (optional)</label>
+                                                <textarea id="customer-address-@account.CustomerID" name="address"
+                                                          maxlength="250">@account.Address</textarea>
+                                            </div>
+                                            <div>
+                                                <label for="customer-password-@account.CustomerID">New password (optional)</label>
+                                                <input id="customer-password-@account.CustomerID" type="password"
+                                                       name="newPassword" minlength="10" maxlength="128"
+                                                       autocomplete="new-password" placeholder="Leave blank to keep current" />
+                                            </div>
+                                            <button type="submit">SAVE CHANGES</button>
+                                        </form>
+                                    </details>
+                                    <form method="post" asp-page-handler="SetCustomerActive"
+                                          onsubmit="return confirm('@(account.IsActive ? "Deactivate this customer account? Sign-in will be blocked and existing sessions will end." : "Reactivate this customer account?")')">
+                                        <input type="hidden" name="customerId" value="@account.CustomerID" />
+                                        <input type="hidden" name="isActive" value="@(account.IsActive ? "false" : "true")" />
+                                        <button class="@(account.IsActive ? "account-danger" : "")" type="submit">
+                                            @(account.IsActive ? "DEACTIVATE" : "REACTIVATE")
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+}

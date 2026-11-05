@@ -40,8 +40,8 @@ public class CustomerCookieEvents(ApplicationDbContext db, IWebHostEnvironment e
         if (!user.IsInRole("Customer") && !user.IsInRole("Restaurant Staff") && !user.IsInRole("Administrator")) return;
         var id = ReservationIdentity.CustomerId(user);
         var account = await db.Customers.AsNoTracking().Where(c => c.CustomerID == id && c.Role == "Customer" && c.PasswordHash != null)
-            .Select(c => new { c.SessionVersion, c.IsDemo, c.Role }).SingleOrDefaultAsync();
-        if (account == null || user.FindFirst("SessionVersion")?.Value != account.SessionVersion.ToString() ||
+            .Select(c => new { c.SessionVersion, c.IsDemo, c.IsActive, c.Role }).SingleOrDefaultAsync();
+        if (account == null || !account.IsActive || user.FindFirst("SessionVersion")?.Value != account.SessionVersion.ToString() ||
             !user.IsInRole(account.Role) ||
             (account.IsDemo && (!environment.IsDevelopment() || !config.GetValue<bool>("DemoData:Enabled"))))
         {

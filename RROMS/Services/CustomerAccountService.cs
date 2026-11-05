@@ -34,7 +34,7 @@ public class CustomerAccountService(ApplicationDbContext db, IPasswordHasher<Cus
 
     public async Task<bool> SendVerification(Customer customer, CancellationToken cancellationToken)
     {
-        if (customer.EmailConfirmed || customer.PasswordHash == null ||
+        if (!customer.IsActive || customer.EmailConfirmed || customer.PasswordHash == null ||
             customer.VerificationSentUtc > DateTime.UtcNow.AddMinutes(-1)) return false;
         // Use a configured origin rather than trusting the incoming Host header.
         var origin = configuration["Accounts:PublicBaseUrl"] ?? "https://localhost:7096";
@@ -68,7 +68,7 @@ public class CustomerAccountService(ApplicationDbContext db, IPasswordHasher<Cus
         if (token.Length != 64 || !token.All(Uri.IsHexDigit)) return false;
         var hash = TokenHash(token);
         var now = DateTime.UtcNow;
-        return await db.Customers.Where(c => c.CustomerID == id && !c.EmailConfirmed &&
+        return await db.Customers.Where(c => c.CustomerID == id && c.IsActive && !c.EmailConfirmed &&
             c.VerificationTokenHash == hash && c.VerificationExpiresUtc > now)
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.EmailConfirmed, true)
                 .SetProperty(c => c.VerificationTokenHash, (string?)null)
@@ -87,6 +87,7 @@ public class CustomerAccountService(ApplicationDbContext db, IPasswordHasher<Cus
             return null;
         }
         var result = passwords.VerifyHashedPassword(customer, customer.PasswordHash, password);
+        if (!customer.IsActive) return null;
         if (customer.IsDemo && (environment?.IsDevelopment() != true || !configuration.GetValue<bool>("DemoData:Enabled"))) return null;
         if (customer.LockedUntilUtc > DateTime.UtcNow || customer.LockoutEnd > ReservationPolicy.Now) return null;
         if (result == PasswordVerificationResult.Failed)
@@ -110,7 +111,7 @@ public class CustomerAccountService(ApplicationDbContext db, IPasswordHasher<Cus
     {
         var normalized = Normalize(email);
         var customer = await db.Customers.SingleOrDefaultAsync(c => c.NormalizedEmail == normalized || c.Email.ToUpper() == normalized);
-        if (customer?.PasswordHash == null || customer.IsDemo || (!customer.EmailConfirmed && customer.NormalizedEmail != null) ||
+        if (customer?.PasswordHash == null || !customer.IsActive || customer.IsDemo || (!customer.EmailConfirmed && customer.NormalizedEmail != null) ||
             customer.PasswordResetSentUtc > DateTime.UtcNow.AddMinutes(-1)) return false;
         var origin = configuration["Accounts:PublicBaseUrl"] ?? "https://localhost:7096";
         if (!Uri.TryCreate(origin, UriKind.Absolute, out var baseUri) || baseUri.Scheme != "https")
@@ -141,7 +142,7 @@ public class CustomerAccountService(ApplicationDbContext db, IPasswordHasher<Cus
     {
         if (token == null || token.Length != 64 || !token.All(Uri.IsHexDigit)) return false;
         var hash = TokenHash(token); var now = DateTime.UtcNow;
-        return await db.Customers.AsNoTracking().AnyAsync(c => c.CustomerID == id && (c.EmailConfirmed || c.NormalizedEmail == null) &&
+        return await db.Customers.AsNoTracking().AnyAsync(c => c.CustomerID == id && c.IsActive && (c.EmailConfirmed || c.NormalizedEmail == null) &&
             c.PasswordHash != null && c.PasswordResetTokenHash == hash && c.PasswordResetExpiresUtc > now);
     }
 
@@ -152,7 +153,7 @@ public class CustomerAccountService(ApplicationDbContext db, IPasswordHasher<Cus
         var customer = await db.Customers.AsNoTracking().SingleAsync(c => c.CustomerID == id);
         var passwordHash = passwords.HashPassword(customer, password);
         // The predicate and token consumption are atomic: racing requests cannot reuse a link.
-        return await db.Customers.Where(c => c.CustomerID == id && (c.EmailConfirmed || c.NormalizedEmail == null) &&
+        return await db.Customers.Where(c => c.CustomerID == id && c.IsActive && (c.EmailConfirmed || c.NormalizedEmail == null) &&
             c.PasswordResetTokenHash == hash && c.PasswordResetExpiresUtc > now)
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.PasswordHash, passwordHash)
                 .SetProperty(c => c.PasswordResetTokenHash, (string?)null)
