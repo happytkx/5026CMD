@@ -40,6 +40,12 @@ public class BillDetailsModel : PageModel
     public decimal OutstandingBalance =>
         Bill?.BillStatus == "Paid" ? 0m : Bill?.BalanceToPay ?? 0m;
 
+    // Successful final dining payments, shown as "Final Payment Received" on a paid bill.
+    public decimal PaidDiningPayments =>
+        Payments
+            .Where(p => p.PaymentType == "DiningBill" && p.PaymentStatus == "Paid")
+            .Sum(p => p.Amount);
+
     // Financial settlement checks.
     // This does not verify the source of food orders.
     public BillSettlementCheck? SettlementCheck { get; set; }
