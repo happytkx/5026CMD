@@ -2869,6 +2869,69 @@ button.reservation-cancel-button:focus-visible {
     .staff-dining-search-controls .button { flex: 1; }
 }
 
-/* Countdown labels sit on top of discounted dish photos. */
-.dish-art { position: relative; }
-.dish-art .expiry-badge { top: 10px; right: 10px; font-size: 10px; }
+
+/* Compact, role-aware workspace navigation. */
+.staff-sidebar {
+    padding: 20px 14px 24px;
+    scrollbar-width: thin;
+    overscroll-behavior: contain;
+}
+.staff-sidebar .brand { margin-bottom: 20px; }
+.staff-sidebar nav { gap: 2px; }
+.staff-sidebar nav a {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 38px;
+    padding: 9px 11px;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 1.35;
+}
+.staff-sidebar nav a:hover:not(.active) { background: rgba(255, 255, 255, .6); }
+.staff-sidebar nav a.active {
+    border-left: 3px solid var(--olive-deep);
+    font-weight: 600;
+}
+.staff-sidebar .sidebar-label {
+    margin: 12px 10px 7px;
+    font-weight: 600;
+}
+.staff-sidebar .sidebar-group-divider { margin-top: 16px; margin-bottom: 7px; }
+.staff-sidebar .sidebar-section { margin-top: 10px; }
+.staff-sidebar .sidebar-section > summary.sidebar-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0;
+    padding: 8px 10px;
+    border-radius: 4px;
+    color: #686451;
+    cursor: pointer;
+    list-style: none;
+}
+.staff-sidebar .sidebar-section > summary.sidebar-label::-webkit-details-marker { display: none; }
+.staff-sidebar .sidebar-section > summary.sidebar-label::after {
+    content: "⌄";
+    font-size: 15px;
+    transition: transform .15s ease;
+}
+.staff-sidebar .sidebar-section[open] > summary.sidebar-label::after { transform: rotate(180deg); }
+.staff-sidebar .sidebar-section > summary.sidebar-label:hover { background: rgba(255, 255, 255, .6); }
+.staff-sidebar .sidebar-section > summary.sidebar-label:focus-visible {
+    outline: 2px solid var(--olive-deep);
+    outline-offset: 2px;
+}
+.staff-sidebar .sidebar-section nav { padding-top: 3px; }
+.staff-sidebar .staff-account { margin-top: 19px; padding-top: 14px; }
+
+@media (max-width: 800px) {
+    .staff-sidebar { padding: 18px; overflow: visible; }
+    .staff-sidebar .sidebar-section > summary.sidebar-label { display: flex; }
+    .staff-sidebar .sidebar-section nav { flex-direction: row; flex-wrap: wrap; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .staff-sidebar .sidebar-section > summary.sidebar-label::after { transition: none; }
+}
