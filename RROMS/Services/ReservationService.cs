@@ -15,7 +15,7 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
     public string GenerateBookingReference() => "BK" + Guid.NewGuid().ToString("N");
     public async Task<RestaurantSetting> Settings() => await db.RestaurantSettings.OrderBy(s => s.SettingID).FirstAsync();
 
-    public async Task<DateTime> ValidateSlot(int size, string area, DateTime start)
+    public async Task<DateTime> ValidateSlot(int size, string area, DateTime start, bool enforceCurrentInterval = true)
     {
         var settings = await Settings();
         if (!ReservationPolicy.Areas(size).Contains(area))
@@ -25,8 +25,9 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
         var end = ReservationPolicy.End(start, area, settings.ClosingTime);
         if (start <= ReservationPolicy.Now || start.TimeOfDay < settings.OpeningTime ||
             end.Date != start.Date || end.TimeOfDay > settings.ClosingTime || end <= start ||
-            start.TimeOfDay.Ticks % TimeSpan.FromMinutes(30).Ticks != 0)
-            throw new InvalidOperationException("Choose a future half-hour slot within opening hours. Indoor and Outdoor require two hours before closing.");
+            (enforceCurrentInterval &&
+             (start.TimeOfDay - settings.OpeningTime).Ticks % TimeSpan.FromMinutes(settings.SlotIntervalMinutes).Ticks != 0))
+            throw new InvalidOperationException("Choose a valid future arrival slot within opening hours. Indoor and Outdoor require two hours before closing.");
         return end;
     }
     
@@ -35,7 +36,7 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
         await Expire();
         var settings = await Settings();
         var result = new List<DateTime>();
-        for (var start = date.Date.Add(settings.OpeningTime); start < date.Date.Add(settings.ClosingTime); start = start.AddMinutes(30))
+        for (var start = date.Date.Add(settings.OpeningTime); start < date.Date.Add(settings.ClosingTime); start = start.AddMinutes(settings.SlotIntervalMinutes))
         {
             if (!ReservationPolicy.MeetsAdvance(area, start, ReservationPolicy.Now))
                 continue;
@@ -101,7 +102,7 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
             case "Pay":
                 if (paymentMethod is not ("Card" or "TNG" or "Bank Transfer"))
                     throw new InvalidOperationException("Choose a supported simulated payment method.");
-                await ValidateSlot(r.PartySize, r.PreferredDiningOption, start);
+                await ValidateSlot(r.PartySize, r.PreferredDiningOption, start, enforceCurrentInterval: false);
                 if (!(await allocation.Available(r.PartySize, r.PreferredDiningOption, start, r.ReservationDate.Add(r.EndTime), id)).Any(t => t.TableID == r.TableID))
                     throw new InvalidOperationException("The assigned table is no longer available.");
                 r.DepositAmount = CalculateDeposit(r.PartySize);

@@ -1,0 +1,262 @@
+@page
+@model RROMS.Pages.Admin.StaffAccountsModel
+@{
+    ViewData["Title"] = "Account Management";
+}
+
+<style>
+    .account-page-header { margin-bottom: 1.5rem; }
+    .account-form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; align-items: end; }
+    .account-form-grid label, .account-edit-grid label { display: block; margin-bottom: .4rem; font-weight: 600; }
+    .account-form-grid input, .account-edit-grid input { width: 100%; }
+    .account-form-grid button { min-height: 44px; }
+    .account-table-wrapper { overflow-x: auto; }
+    .account-table { width: 100%; border-collapse: collapse; }
+    .account-table th, .account-table td { padding: .9rem .65rem; border-bottom: 1px solid #e5e0d6; text-align: left; vertical-align: top; }
+    .account-table th { font-size: .8rem; letter-spacing: .05em; text-transform: uppercase; }
+    .account-status { display: inline-block; border-radius: 99px; padding: .2rem .7rem; background: #e8eddf; color: #344a2b; }
+    .account-status.inactive { background: #f1e8e2; color: #854737; }
+    .account-actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+    .account-actions button { padding: .55rem .8rem; }
+    .account-actions details { min-width: 10rem; }
+    .account-actions summary { cursor: pointer; font-weight: 600; }
+    .account-edit-grid { display: grid; grid-template-columns: 1fr; gap: .65rem; min-width: 17rem; padding: .75rem 0; }
+    .account-help { font-size: .88rem; opacity: .8; }
+    .account-tabs { display: flex; gap: .55rem; border-bottom: 1px solid #d9d0c0; margin: 1.5rem 0; }
+    .account-tabs a { padding: .8rem 1.3rem; color: #595447; text-decoration: none; border-radius: .4rem .4rem 0 0; }
+    .account-tabs a.active { background: #666d4d; color: #fff; font-weight: 600; }
+    .account-tabs a:focus-visible { outline: 2px solid #a0804c; outline-offset: 3px; }
+    .account-actions button.account-danger { background-color: #a33932 !important; border-color: #a33932 !important; color: #fff !important; }
+    .account-actions button.account-danger:hover { background-color: #862820 !important; }
+    .account-actions form button.account-deactivate-button { background: #ab3333 !important; border: 1px solid #ab3333 !important; color: #fff !important; }
+    .account-actions form button.account-deactivate-button:hover { background: #8d2929 !important; border-color: #8d2929 !important; }
+    .account-actions form button.account-deactivate-button:focus-visible { outline: 2px solid #ab3333; outline-offset: 3px; }
+    .account-role-note { display: block; margin-top: .3rem; font-size: .8rem; color: #766f62; }
+    .account-edit-grid textarea { width: 100%; min-height: 5rem; }
+
+
+    .account-directory-search { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin: 1.2rem 0 .8rem; }
+    .account-directory-search input { flex: 1 1 280px; min-height: 48px; }
+    .account-profile-link { color: #526343; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+    .account-profile-link:hover { color: #303d28; }
+    .account-table td:first-child, .account-table th:first-child { width: 40px; text-align: center; }
+    .account-bulk-actions { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; padding: 1rem 0 0; }
+    .account-bulk-danger { background: #ab3333 !important; border: 1px solid #ab3333 !important; color: #fff !important; }
+    .account-bulk-danger:hover { background: #872525 !important; }
+    .account-directory-pager { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1.2rem; }
+    @@media (max-width: 800px) { .account-form-grid { grid-template-columns: 1fr; } }
+
+</style>
+
+<p class="eyebrow">ADMINISTRATOR / ACCOUNT MANAGEMENT</p>
+<h1>Account Management</h1>
+<p class="account-page-header">Manage restaurant staff and customer accounts. Deactivating an account blocks sign-in and revokes existing sessions while preserving reservation and order history.</p>
+
+@if (TempData["StaffAccountsSuccess"] is string success)
+{
+    <p class="success" role="status">@success</p>
+}
+@if (TempData["StaffAccountsError"] is string error)
+{
+    <p class="error" role="alert">@error</p>
+}
+
+<nav class="account-tabs" aria-label="Account type">
+    <a asp-page="/Admin/StaffAccounts" asp-route-tab="staff"
+       class="@(Model.ActiveTab == "staff" ? "active" : "")"
+       aria-current="@(Model.ActiveTab == "staff" ? "page" : null)">Staff</a>
+    <a asp-page="/Admin/StaffAccounts" asp-route-tab="customers"
+       class="@(Model.ActiveTab == "customers" ? "active" : "")"
+       aria-current="@(Model.ActiveTab == "customers" ? "page" : null)">Customers</a>
+</nav>
+
+@if (Model.ActiveTab == "staff")
+{
+<section class="card" aria-labelledby="create-staff-heading">
+    <p class="eyebrow">NEW ACCOUNT</p>
+    <h2 id="create-staff-heading">Create staff login</h2>
+    <p class="muted">New accounts receive the Restaurant Staff role only. Use a temporary password and share it privately with the employee.</p>
+    <form method="post" asp-page-handler="Create">
+        <div class="account-form-grid">
+            <div>
+                <label for="staff-name">Staff name</label>
+                <input id="staff-name" name="staffName" maxlength="100" required autocomplete="off" />
+            </div>
+            <div>
+                <label for="staff-email">Email address</label>
+                <input id="staff-email" type="email" name="email" maxlength="100" required autocomplete="off" />
+            </div>
+            <div>
+                <label for="staff-password">Temporary password</label>
+                <input id="staff-password" type="password" name="password" minlength="10" maxlength="128"
+                       autocomplete="new-password" required />
+            </div>
+        </div>
+        <p class="account-help">Passwords must be 10–128 characters. Existing customer and administrator emails cannot be reused.</p>
+        <button type="submit">CREATE STAFF ACCOUNT</button>
+    </form>
+</section>
+
+<section class="card" aria-labelledby="staff-directory-heading">
+    <p class="eyebrow">ACCOUNT DIRECTORY</p>
+    <h2 id="staff-directory-heading">Staff directory</h2>
+    <p class="muted">@Model.ActiveCount active · @Model.InactiveCount deactivated</p>
+    <form method="get" class="account-directory-search">
+        <input type="hidden" name="tab" value="staff" />
+        <input type="search" name="Search" value="@Model.Search" placeholder="Search staff name or email..." aria-label="Search staff accounts" />
+        <button type="submit">SEARCH</button>
+        <a class="button secondary" asp-page="/Admin/StaffAccounts" asp-route-tab="staff">CLEAR</a>
+    </form>
+    <p class="muted">@Model.FilteredCount matching @(Model.FilteredCount == 1 ? "account" : "accounts") · Page @Model.PageNumber of @Model.TotalPages</p>
+    @if (Model.Staff.Count == 0)
+    {
+        <p>No staff accounts match your search.</p>
+    }
+    else
+    {
+        <form method="post" asp-page-handler="BulkDeactivateStaff" onsubmit="return confirm('Deactivate the selected staff accounts? Their active sessions will end.');">
+            <input type="hidden" name="search" value="@Model.Search" />
+            <input type="hidden" name="p" value="@Model.PageNumber" />
+            <div class="account-table-wrapper">
+                <table class="account-table">
+                    <thead><tr>
+                        <th><input type="checkbox" data-select-all aria-label="Select all active staff on this page" /></th>
+                        <th>Staff member</th><th>Email</th><th>Role</th><th>Status</th><th>Profile</th>
+                    </tr></thead>
+                    <tbody>
+                        @foreach (var account in Model.Staff)
+                        {
+                            <tr>
+                                <td><input type="checkbox" name="selectedIds" value="@account.StaffAccountID" disabled="@(!account.IsActive)" aria-label="Select @account.StaffName" /></td>
+                                <td><a class="account-profile-link" asp-page="/Admin/AccountDetails" asp-route-type="staff" asp-route-id="@account.StaffAccountID">@account.StaffName</a></td>
+                                <td>@account.Email</td>
+                                <td>Restaurant Staff</td>
+                                <td><span class="account-status @(account.IsActive ? "" : "inactive")">@(account.IsActive ? "Active" : "Deactivated")</span></td>
+                                <td><a class="account-profile-link" asp-page="/Admin/AccountDetails" asp-route-type="staff" asp-route-id="@account.StaffAccountID">View profile</a></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="account-bulk-actions">
+                <span class="muted">Select active accounts on this page.</span>
+                <button class="account-bulk-danger" type="submit">DEACTIVATE SELECTED</button>
+            </div>
+        </form>
+    }
+    @if (Model.TotalPages > 1)
+    {
+        <nav class="account-directory-pager" aria-label="Staff directory pages">
+            @if (Model.PageNumber > 1)
+            { <a class="button secondary" asp-route-tab="staff" asp-route-Search="@Model.Search" asp-route-p="@(Model.PageNumber - 1)">Previous</a> }
+            <span>Page @Model.PageNumber of @Model.TotalPages</span>
+            @if (Model.PageNumber < Model.TotalPages)
+            { <a class="button secondary" asp-route-tab="staff" asp-route-Search="@Model.Search" asp-route-p="@(Model.PageNumber + 1)">Next</a> }
+        </nav>
+    }
+</section>
+
+}
+else
+{
+<section class="card" aria-labelledby="create-customer-heading">
+    <p class="eyebrow">NEW ACCOUNT</p>
+    <h2 id="create-customer-heading">Create customer login</h2>
+    <p class="muted">Create a customer account with a temporary password. Share the password privately. Existing reservation-only customers can also be given a password in the directory.</p>
+    <form method="post" asp-page-handler="CreateCustomer">
+        <div class="account-form-grid">
+            <div>
+                <label for="customer-name">Customer name</label>
+                <input id="customer-name" name="customerName" maxlength="100" required />
+            </div>
+            <div>
+                <label for="customer-email">Email address</label>
+                <input id="customer-email" type="email" name="email" maxlength="100" required />
+            </div>
+            <div>
+                <label for="customer-phone">Phone number (optional)</label>
+                <input id="customer-phone" name="phoneNo" maxlength="20" autocomplete="tel" />
+            </div>
+            <div>
+                <label for="customer-password">Temporary password</label>
+                <input id="customer-password" type="password" name="password" minlength="10" maxlength="128"
+                       autocomplete="new-password" required />
+            </div>
+        </div>
+        <p class="account-help">Passwords must be 10–128 characters. Email addresses must be unique across customer, staff and administrator accounts.</p>
+        <button type="submit">CREATE CUSTOMER ACCOUNT</button>
+    </form>
+</section>
+
+<section class="card" aria-labelledby="customer-directory-heading">
+    <p class="eyebrow">ACCOUNT DIRECTORY</p>
+    <h2 id="customer-directory-heading">Customer directory</h2>
+    <p class="muted">@Model.ActiveCustomerCount active · @Model.InactiveCustomerCount deactivated</p>
+    <form method="get" class="account-directory-search">
+        <input type="hidden" name="tab" value="customers" />
+        <input type="search" name="Search" value="@Model.Search" placeholder="Search customer name or email..." aria-label="Search customer accounts" />
+        <button type="submit">SEARCH</button>
+        <a class="button secondary" asp-page="/Admin/StaffAccounts" asp-route-tab="customers">CLEAR</a>
+    </form>
+    <p class="muted">@Model.FilteredCount matching @(Model.FilteredCount == 1 ? "account" : "accounts") · Page @Model.PageNumber of @Model.TotalPages</p>
+    @if (Model.Customers.Count == 0)
+    {
+        <p>No customers match your search.</p>
+    }
+    else
+    {
+        <form method="post" asp-page-handler="BulkDeactivateCustomers" onsubmit="return confirm('Deactivate the selected customers? Sign-in will be blocked and sessions revoked.');">
+            <input type="hidden" name="search" value="@Model.Search" />
+            <input type="hidden" name="p" value="@Model.PageNumber" />
+            <div class="account-table-wrapper">
+                <table class="account-table">
+                    <thead><tr>
+                        <th><input type="checkbox" data-select-all aria-label="Select all active customers on this page" /></th>
+                        <th>Customer</th><th>Email</th><th>Role</th><th>Status</th><th>Profile</th>
+                    </tr></thead>
+                    <tbody>
+                        @foreach (var account in Model.Customers)
+                        {
+                            <tr>
+                                <td><input type="checkbox" name="selectedIds" value="@account.CustomerID" disabled="@(!account.IsActive)" aria-label="Select @account.CustomerName" /></td>
+                                <td><a class="account-profile-link" asp-page="/Admin/AccountDetails" asp-route-type="customer" asp-route-id="@account.CustomerID">@account.CustomerName</a></td>
+                                <td>@account.Email
+                                    @if (account.PasswordHash is null)
+                                    { <small class="account-role-note">Reservation-only record</small> }
+                                </td>
+                                <td>Customer</td>
+                                <td><span class="account-status @(account.IsActive ? "" : "inactive")">@(account.IsActive ? "Active" : "Deactivated")</span></td>
+                                <td><a class="account-profile-link" asp-page="/Admin/AccountDetails" asp-route-type="customer" asp-route-id="@account.CustomerID">View profile</a></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="account-bulk-actions">
+                <span class="muted">Select active accounts on this page.</span>
+                <button class="account-bulk-danger" type="submit">DEACTIVATE SELECTED</button>
+            </div>
+        </form>
+    }
+    @if (Model.TotalPages > 1)
+    {
+        <nav class="account-directory-pager" aria-label="Customer directory pages">
+            @if (Model.PageNumber > 1)
+            { <a class="button secondary" asp-route-tab="customers" asp-route-Search="@Model.Search" asp-route-p="@(Model.PageNumber - 1)">Previous</a> }
+            <span>Page @Model.PageNumber of @Model.TotalPages</span>
+            @if (Model.PageNumber < Model.TotalPages)
+            { <a class="button secondary" asp-route-tab="customers" asp-route-Search="@Model.Search" asp-route-p="@(Model.PageNumber + 1)">Next</a> }
+        </nav>
+    }
+</section>
+}
+@section Scripts {
+<script>
+    document.querySelectorAll('[data-select-all]').forEach(toggle => {
+        toggle.addEventListener('change', () => {
+            toggle.closest('form').querySelectorAll('input[name="selectedIds"]:not(:disabled)')
+                .forEach(box => { box.checked = toggle.checked; });
+        });
+    });
+</script>
+}

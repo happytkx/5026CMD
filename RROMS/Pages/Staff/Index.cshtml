@@ -16,7 +16,7 @@
     <article class="card">
         <small>EXPECTED ARRIVALS</small>
         <h2>@Model.DailyBookings.Count(r=>r.ReservationStatus=="Confirmed")</h2>
-        <p>Confirmed and awaiting check-in</p>
+        <p>Confirmed bookings for this date, awaiting check-in</p>
     </article>
     <article class="card">
         <a class="text-reset text-decoration-none"
@@ -137,6 +137,13 @@
                                 <a class="staff-reservation-shortcut" asp-page="/Reservations/Details"
                                    asp-route-id="@r.ReservationID" asp-route-View="Modify">
                                     Reschedule
+                                </a>
+                            }
+                            @if (r.ReservationStatus == "Confirmed")
+                            {
+                                <a class="staff-reservation-shortcut" asp-page="/Reservations/Details"
+                                   asp-route-id="@r.ReservationID" asp-fragment="staff-guest-arrival">
+                                    Guest check-in
                                 </a>
                             }
                         </td>

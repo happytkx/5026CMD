@@ -43,7 +43,7 @@ foreach (var area in new[] { "Indoor", "Outdoor", "VIP Room" }) {
  Check(!ReservationPolicy.MeetsAdvance(area, now.AddHours(hours).AddTicks(-1), now), area + " below advance boundary rejected");
  Check(ReservationPolicy.MeetsAdvance(area, now.AddHours(hours).AddTicks(1), now), area + " above advance boundary allowed");
 }
-SimulatedDeposit.Validate("TNG", "0123456789", null, null, null, null, null);
+SimulatedDeposit.Validate("TNG", "Demo Guest", null, null, null, null, null);
 SimulatedDeposit.Validate("Card", null, "Demo Guest", "4242424242424242", "12/30", "123", null);
 var currentExpiry = ReservationPolicy.Now.ToString("MM/yy", System.Globalization.CultureInfo.InvariantCulture);
 SimulatedDeposit.Validate("Card", null, "Test Guest", "5555-5555-5555-4444", currentExpiry, "9876", null);
@@ -55,7 +55,8 @@ await Reject(() => { SimulatedDeposit.Validate("Card", null, "Test", "5555555555
 SimulatedDeposit.Validate("Bank Transfer", null, null, null, null, null, "DEMO-123");
 await Reject(() => { SimulatedDeposit.Validate("Card", null, "Demo", "12345", "12/30", "123", null); return Task.CompletedTask; }, "Short card number rejected");
 await Reject(() => { SimulatedDeposit.Validate("Bank Transfer", null, null, null, null, null, ""); return Task.CompletedTask; }, "Missing bank reference rejected");
-await Reject(() => { SimulatedDeposit.Validate("TNG", "", null, null, null, null, null); return Task.CompletedTask; }, "Missing TNG phone rejected");
+await Reject(() => { SimulatedDeposit.Validate("TNG", "", null, null, null, null, null); return Task.CompletedTask; }, "Missing TNG account name rejected");
+await Reject(() => { SimulatedDeposit.Validate("TNG", "0123456789", null, null, null, null, null); return Task.CompletedTask; }, "Phone number rejected as TNG account name");
 
 Check(ReservationPolicy.Areas(1).SequenceEqual(new[] { "Indoor", "Outdoor" }), "1 guest area filter");
 Check(ReservationPolicy.Areas(3).Length == 2 && ReservationPolicy.Areas(4).Length == 2 && ReservationPolicy.Areas(5).Length == 2 && ReservationPolicy.Areas(6).Length == 3 && ReservationPolicy.Areas(8).Length == 3, "3/4/5/6/8 guest boundaries");

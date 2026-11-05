@@ -35,6 +35,9 @@ builder.Services.AddRateLimiter(options => {
     options.AddPolicy("staff-accounts", context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 15, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+    options.AddPolicy("customer-chat", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 8, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
 });
 builder.Services.AddAuthorization(options =>
 {
@@ -51,6 +54,8 @@ builder.Services.AddScoped<BusinessAnalyticsService>();
 builder.Services.AddScoped<OccupancyReportingService>();
 builder.Services.AddScoped<BillingService>();
 builder.Services.AddScoped<ReviewService>();
+builder.Services.AddScoped<CustomerConciergeService>();
+builder.Services.AddHttpClient("celeste-concierge", client => client.Timeout = TimeSpan.FromSeconds(15));
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
 builder.Services.AddScoped<IEmailSender, EmailService>();
 builder.Services.AddScoped<ReservationEmailService>();

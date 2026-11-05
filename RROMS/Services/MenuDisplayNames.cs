@@ -26,8 +26,6 @@ public static class MenuDisplayNames
             ["Citron & Thym"] = "Lemon & Thyme Cooler",
             ["Pêche Blanche"] = "White Peach Cooler",
             ["Fleur de Sureau"] = "Elderflower Citrus Cooler",
-            ["Eau Minérale"] = "Still Mineral Water",
-            ["Eau Pétillante"] = "Sparkling Mineral Water",
         };
 
     public static string InEnglish(string name) =>

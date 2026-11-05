@@ -168,10 +168,11 @@
 }
 <section class="card announcement-admin-panel">
     <h2>Announcements</h2>
-    <p class="muted">Announcements appear on the customer home page while active. They automatically disappear after their expiry date and can also be removed manually.</p>
+    <p class="muted">Choose where announcements appear and how long they stay visible. Pin published announcements to keep them first in the customer announcements list. Pinning is separate from featuring above dining spaces. Expired announcements are hidden automatically; only one can be featured at a time.</p>
     @foreach (var a in Model.Announcements)
     {
         var expired = a.ExpiresAt.HasValue && a.ExpiresAt.Value <= Model.CurrentTime;
+        var scheduled = a.StartsAt.HasValue && a.StartsAt.Value > Model.CurrentTime;
         var expiryText = !a.ExpiresAt.HasValue ? "No scheduled expiry"
             : $"Through {a.ExpiresAt.Value.AddDays(-1):dd MMM yyyy}";
         var selectedEndDate = a.ExpiresAt?.Date;
@@ -180,13 +181,28 @@
         <div class="announcement-admin-row">
             <div class="announcement-admin-copy">
                 <strong>@a.Title</strong>
+                @if (a.IsPinned)
+                {
+                    <span class="announcement-pin-label">Pinned</span>
+                }
                 <p>@a.Message</p>
                 <small class="@(expired ? "announcement-expired" : "muted")">
-                    @(expired ? "Expired" : "Visible")
+                    @(expired ? "Expired" : scheduled ? "Scheduled" : "Visible")
                     · @expiryText
                 </small>
             </div>
             <div class="announcement-admin-actions">
+                <form method="post" asp-page-handler="SetAnnouncementPin" class="announcement-pin-form">
+                    <input type="hidden" name="id" value="@a.AnnouncementID" />
+                    <input type="hidden" name="isPinned" value="@(a.IsPinned ? "false" : "true")" />
+                    <button type="submit" class="secondary">@(a.IsPinned ? "Unpin" : "Pin to top")</button>
+                </form>
+                <form method="post" asp-page-handler="SetAnnouncementDisplay" class="announcement-display-form">
+                    <input type="hidden" name="id" value="@a.AnnouncementID" />
+                    <label><input type="checkbox" name="isFeatured" value="true" checked="@a.IsFeatured" /> Feature above dining spaces</label>
+                    <label><input type="checkbox" name="showInPopup" value="true" checked="@a.ShowInPopup" /> Welcome pop-up</label>
+                    <button type="submit" class="secondary">Update display</button>
+                </form>
                 <form method="post" asp-page-handler="SetAnnouncementExpiry"
                       class="announcement-duration-form" data-announcement-duration-form>
                     <input type="hidden" name="id" value="@a.AnnouncementID" />
@@ -241,6 +257,10 @@
                 <input id="announcement-end" type="date" name="endDate"
                        min="@Model.CurrentTime.ToString("yyyy-MM-dd")" />
             </label>
+        </div>
+        <div class="announcement-duration-fields">
+            <label><input type="checkbox" name="showInPopup" value="true" checked /> Show in the welcome pop-up</label>
+            <label><input type="checkbox" name="isFeatured" value="true" /> Feature above dining spaces</label>
         </div>
         <p class="muted">The announcement is published immediately. An end date keeps it visible through the chosen day (Malaysia time).</p>
         <button type="submit">Publish</button>

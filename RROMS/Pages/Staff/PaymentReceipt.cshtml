@@ -74,10 +74,10 @@
     {
         <section class="receipt-section" aria-labelledby="receipt-dishes-heading">
             <div class="receipt-section-title">
-                <h2 id="receipt-dishes-heading">Ordered Dishes</h2>
+                <h2 id="receipt-dishes-heading">Ordered Dishes &amp; Payment Breakdown</h2>
                 <span>@(Model.Dishes.Sum(item => item.Quantity)) items</span>
             </div>
-            @if (Model.Dishes.Count == 0)
+            @if (Model.Dishes.Count == 0 && bill is null)
             {
                 <p class="receipt-empty">No billable dining items were found for this reservation.</p>
             }
@@ -87,49 +87,52 @@
                     <table class="receipt-lines">
                         <thead>
                             <tr>
-                                <th>Dish</th>
-                                <th class="receipt-number">Qty</th>
-                                <th class="receipt-number">Unit Price</th>
-                                <th class="receipt-number">Amount</th>
+                                <th scope="col">Dish / Description</th>
+                                <th scope="col" class="receipt-number">Qty</th>
+                                <th scope="col" class="receipt-number">Unit Price</th>
+                                <th scope="col" class="receipt-number">Amount</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var item in Model.Dishes)
+                            @if (Model.Dishes.Count == 0)
                             {
-                                <tr>
-                                    <td>@item.Name</td>
-                                    <td class="receipt-number">@item.Quantity</td>
-                                    <td class="receipt-number">RM @item.UnitPrice.ToString("N2")</td>
-                                    <td class="receipt-number">RM @item.TotalPrice.ToString("N2")</td>
-                                </tr>
+                                <tr><td colspan="4" class="receipt-empty-row">No billable dining items recorded.</td></tr>
+                            }
+                            else
+                            {
+                                @foreach (var item in Model.Dishes)
+                                {
+                                    <tr>
+                                        <td>@item.Name</td>
+                                        <td class="receipt-number">@item.Quantity</td>
+                                        <td class="receipt-number">RM @item.UnitPrice.ToString("N2")</td>
+                                        <td class="receipt-number">RM @item.TotalPrice.ToString("N2")</td>
+                                    </tr>
+                                }
                             }
                         </tbody>
+                        @if (bill is not null)
+                        {
+                            <tfoot class="receipt-charges">
+                                <tr><th scope="row" colspan="3">Food &amp; Beverage Subtotal</th><td class="receipt-number">RM @bill.FoodSubtotal.ToString("N2")</td></tr>
+                                <tr><th scope="row" colspan="3">Tax (6%)</th><td class="receipt-number">RM @bill.TaxAmount.ToString("N2")</td></tr>
+                                <tr class="receipt-grand-total"><th scope="row" colspan="3">Grand Total</th><td class="receipt-number">RM @bill.TotalBill.ToString("N2")</td></tr>
+                                @if (bill.MinSpend > 0)
+                                {
+                                    <tr class="receipt-note-row"><th scope="row" colspan="3">Minimum Spending Requirement</th><td class="receipt-number">RM @bill.MinSpend.ToString("N2")</td></tr>
+                                }
+                                <tr><th scope="row" colspan="3">Reservation Deposit Applied</th><td class="receipt-number">− RM @bill.DepositApplied.ToString("N2")</td></tr>
+                                <tr><th scope="row" colspan="3">Final Payment Received</th><td class="receipt-number">− RM @payment.Amount.ToString("N2")</td></tr>
+                                <tr class="receipt-balance-row"><th scope="row" colspan="3">Outstanding Balance</th><td class="receipt-number">RM @Model.OutstandingBalance.ToString("N2")</td></tr>
+                            </tfoot>
+                        }
                     </table>
                 </div>
             }
         </section>
-
-        @if (bill is not null)
+        @if (bill is null)
         {
-            <section class="receipt-section receipt-summary" aria-labelledby="receipt-summary-heading">
-                <h2 id="receipt-summary-heading">Charges &amp; Payments</h2>
-                <dl>
-                    <div><dt>Food &amp; Beverage Subtotal</dt><dd>RM @bill.FoodSubtotal.ToString("N2")</dd></div>
-                    <div><dt>Tax (6%)</dt><dd>RM @bill.TaxAmount.ToString("N2")</dd></div>
-                    <div class="receipt-summary-total"><dt>Grand Total</dt><dd>RM @bill.TotalBill.ToString("N2")</dd></div>
-                    @if (bill.MinSpend > 0)
-                    {
-                        <div><dt>Minimum Spending Requirement</dt><dd>RM @bill.MinSpend.ToString("N2")</dd></div>
-                    }
-                    <div><dt>Reservation Deposit Applied</dt><dd>− RM @bill.DepositApplied.ToString("N2")</dd></div>
-                    <div><dt>Final Payment Received</dt><dd>− RM @payment.Amount.ToString("N2")</dd></div>
-                    <div class="receipt-summary-balance"><dt>Outstanding Balance</dt><dd>RM @Model.OutstandingBalance.ToString("N2")</dd></div>
-                </dl>
-            </section>
-        }
-        else
-        {
-            <p class="receipt-empty">The original final bill breakdown is unavailable. The confirmed payment details below remain valid.</p>
+            <p class="receipt-empty">The original final bill breakdown is unavailable. The confirmed payment details remain valid.</p>
         }
     }
 
@@ -233,8 +236,8 @@
         display: flex;
         justify-content: space-between;
         flex-wrap: wrap;
-        gap: 14px 26px;
-        padding: 20px 0;
+        gap: 10px 22px;
+        padding: 15px 0;
         border-bottom: 1px solid #e6dfd5;
     }
 
@@ -251,51 +254,48 @@
     }
 
     .receipt-reference-bar strong {
-        font-size: .91rem;
+        font-size: .85rem;
         font-weight: 600;
     }
 
     .receipt-meta-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 34px;
-        padding: 22px 0 6px;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 16px;
+        padding: 18px 0 4px;
     }
 
     .receipt-details h2,
     .receipt-section h2 {
-        font-size: 1.48rem;
-        margin: 0 0 15px;
+        font-size: 1.24rem;
+        margin: 0 0 9px;
     }
 
-    .receipt-details dl,
-    .receipt-summary dl {
+    .receipt-details dl {
         margin: 0;
     }
 
     .receipt-details dl > div {
-        display: flex;
-        justify-content: space-between;
-        gap: 10px;
-        padding: 8px 0;
+        display: grid;
+        grid-template-columns: minmax(155px, .48fr) minmax(0, 1fr);
+        gap: 14px;
+        padding: 6px 0;
         border-bottom: 1px solid #f0eae2;
-        font-size: .85rem;
+        font-size: .83rem;
     }
 
-    .receipt-details dt,
-    .receipt-summary dt {
+    .receipt-details dt {
         color: #756f65;
     }
 
-    .receipt-details dd,
-    .receipt-summary dd {
+    .receipt-details dd {
         margin: 0;
         text-align: right;
         overflow-wrap: anywhere;
     }
 
     .receipt-details dd {
-        max-width: 57%;
+        min-width: 0;
         font-weight: 500;
     }
 
@@ -358,41 +358,43 @@
         font-variant-numeric: tabular-nums;
     }
 
-    .receipt-summary {
-        max-width: 450px;
-        margin-left: auto;
+    .receipt-charges th,
+    .receipt-charges td {
+        background: #fff;
+        border-bottom: 1px solid #ece6dc;
+        font-size: .86rem;
+        text-transform: none;
+        letter-spacing: 0;
     }
 
-    .receipt-summary dl > div {
-        display: flex;
-        justify-content: space-between;
-        gap: 22px;
-        padding: 9px 0;
-        font-size: .91rem;
+    .receipt-charges th {
+        color: #756f65;
+        text-align: right;
+        font-weight: 500;
     }
 
-    .receipt-summary dd {
-        white-space: nowrap;
-        font-variant-numeric: tabular-nums;
-    }
-
-    .receipt-summary-total {
-        border-top: 1px solid #ded5c7;
-        padding-top: 15px !important;
+    .receipt-charges .receipt-grand-total th,
+    .receipt-charges .receipt-grand-total td {
+        padding-top: 16px;
+        border-top: 2px solid #c8bda9;
+        color: #33332b;
         font-weight: 700;
     }
 
-    .receipt-summary-balance {
-        margin-top: 5px;
-        padding: 13px !important;
+    .receipt-charges .receipt-note-row th,
+    .receipt-charges .receipt-note-row td {
+        color: #8b806f;
+        font-size: .8rem;
+    }
+
+    .receipt-charges .receipt-balance-row th,
+    .receipt-charges .receipt-balance-row td {
         background: #ecefe6;
         color: #48583a;
         font-weight: 700;
     }
 
-    .receipt-summary-balance dt {
-        color: inherit;
-    }
+    .receipt-empty-row { color: #797168; font-style: italic; }
 
     .receipt-amount {
         display: flex;
@@ -467,7 +469,9 @@
     @@media (max-width: 650px) {
         .receipt-sheet { padding: 25px 18px; }
         .receipt-header { flex-direction: column; gap: 12px; }
-        .receipt-meta-grid { grid-template-columns: 1fr; gap: 24px; }
+        .receipt-meta-grid { gap: 18px; }
+        .receipt-details dl > div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+        .receipt-details dd { text-align: left; }
         .receipt-lines th, .receipt-lines td { padding: 9px 7px; font-size: .77rem; }
         .receipt-amount strong { font-size: 1.65rem; }
         .receipt-actions { flex-wrap: wrap; }
@@ -499,14 +503,14 @@
         .receipt-header h1 { font-size: 24pt; }
         .receipt-details h2, .receipt-section h2 { font-size: 15pt; }
         .receipt-reference-bar { gap: 12px; }
-        .receipt-meta-grid { grid-template-columns: 1fr 1fr; gap: 24px; }
+        .receipt-meta-grid { grid-template-columns: 1fr; gap: 14px; }
         .receipt-lines { font-size: 9pt; }
         .receipt-lines th, .receipt-lines td { padding: 7px 8px; }
         .receipt-lines thead { display: table-header-group; }
         .receipt-lines tr, .receipt-amount, .receipt-footer { break-inside: avoid; }
         .receipt-table-wrap { overflow: visible; }
-        .receipt-summary { break-inside: avoid; }
-        .receipt-paid, .receipt-summary-balance, .receipt-amount,
+        .receipt-charges { break-inside: avoid; }
+        .receipt-paid, .receipt-amount,
         .receipt-lines th {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;

@@ -16,7 +16,7 @@ public abstract class ReviewListModel(ReviewService reviews) : PageModel
     public ReviewSummary Summary { get; private set; } = new(0, 0, [0, 0, 0, 0, 0]);
     public ReviewPage Reviews { get; private set; } = new([], 0, 1, ReviewService.PageSize);
 
-    public async Task OnGetAsync(CancellationToken cancellationToken)
+    public virtual async Task OnGetAsync(CancellationToken cancellationToken)
     {
         if (Rating is < 1 or > 5)
             Rating = null;

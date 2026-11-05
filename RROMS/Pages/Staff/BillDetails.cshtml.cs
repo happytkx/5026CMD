@@ -32,7 +32,8 @@ public class BillDetailsModel : PageModel
 
     public List<Payment> Payments { get; set; } = new();
 
-    // Sum recorded final payments separately from the reservation deposit.
+    // The amount collected at checkout, excluding the reservation deposit.
+    // Only successful dining-bill payments count toward the final bill.
     public decimal PaidDiningPayments => Payments
         .Where(p => p.PaymentType == "DiningBill" && p.PaymentStatus == "Paid")
         .Sum(p => p.Amount);

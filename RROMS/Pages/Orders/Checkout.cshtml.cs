@@ -16,7 +16,7 @@ public class CheckoutModel(ApplicationDbContext db) : PageModel
     // Service tax added to dine-in orders.
     private const decimal TaxRate = .06m;
 
-    public record BasketLine(int Id, string Name, decimal Price, int Quantity);
+    public record BasketLine(int Id, string Name, decimal Price, int Quantity, decimal OriginalPrice);
     public List<BasketLine> Lines { get; set; } = [];
     public List<Reservation> EligibleReservations { get; set; } = [];
     public decimal Subtotal => Lines.Sum(l => l.Price * l.Quantity);
@@ -39,7 +39,9 @@ public class CheckoutModel(ApplicationDbContext db) : PageModel
     {
         var basket = Basket.Read(HttpContext.Session);
         var items = await db.MenuItems.AsNoTracking().Where(i => basket.Keys.Contains(i.MenuItemID) && i.IsAvailable).ToListAsync();
-        Lines = items.Select(i => new BasketLine(i.MenuItemID, i.Name, i.Price, Math.Clamp(basket[i.MenuItemID], 1, Basket.MaxQuantity))).ToList();
+        var currentTime = ReservationPolicy.Now;
+        Lines = items.Select(i => new BasketLine(i.MenuItemID, i.Name,
+            MenuPricing.CurrentPrice(i, currentTime), Math.Clamp(basket[i.MenuItemID], 1, Basket.MaxQuantity), i.Price)).ToList();
         EligibleReservations = await DineInOrdering.EligibleReservations(db, CustomerId)
             .OrderByDescending(r => r.ReservationDate).ThenByDescending(r => r.StartTime)
             .ToListAsync();

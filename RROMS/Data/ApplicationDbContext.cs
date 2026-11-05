@@ -155,14 +155,15 @@ namespace RROMS.Data
                 .HasOne(l => l.MenuItem).WithMany().HasForeignKey(l => l.MenuItemID)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // One review per customer per order
+            // One review per customer per order, with one optional general review.
             modelBuilder.Entity<Review>()
                 .HasOne(r => r.Customer).WithMany().HasForeignKey(r => r.CustomerID)
                 .OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<Review>()
                 .HasOne(r => r.Order).WithMany().HasForeignKey(r => r.OrderID)
                 .OnDelete(DeleteBehavior.Restrict);
-            modelBuilder.Entity<Review>().HasIndex(r => new { r.CustomerID, r.OrderID }).IsUnique();
+            // Unique for each completed order and also for a single general review (null OrderID) per customer.
+            modelBuilder.Entity<Review>().HasIndex(r => new { r.CustomerID, r.OrderID }).IsUnique().HasFilter(null);
 
             modelBuilder.Entity<CustomerNotification>()
                 .HasOne(n => n.Customer).WithMany().HasForeignKey(n => n.CustomerID)

@@ -6,6 +6,10 @@
 }
 <p class="eyebrow">REPORTING &amp; ANALYTICS</p>
 <h1>Customer Reviews</h1>
-<p>Ratings and written feedback from guests after their dining orders were completed.</p>
+<p>View customer feedback, open reviewer profiles, and remove inappropriate reviews. Only order-linked reviews display as verified dining.</p>
+@if (TempData["ReviewModerationSuccess"] is string success)
+{
+    <p class="success" role="status">@success</p>
+}
 @{ var board = new ReviewBoardView(Model, "/Admin/CustomerReviews", true, true, false); }
 <partial name="_ReviewBoard" model="board" />
