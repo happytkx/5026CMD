@@ -238,7 +238,8 @@
                         </div>
                         <p>@table.Capacity guests · @table.DiningArea.DisplayLabel</p>
                         <small>@upcoming active or upcoming @(upcoming == 1 ? "reservation" : "reservations")</small>
-                        <form method="post" asp-page-handler="ToggleTable" class="table-management-toggle">
+                        <form method="post" asp-page-handler="ToggleTable" class="table-management-toggle"
+                              onsubmit="return @(table.Status == "Available" ? "confirm('Disable this table? It will no longer be available for new reservations.');" : "true;")">
                             <input type="hidden" name="tableId" value="@table.TableID" />
                             @if (table.Status == "Available")
                             {
