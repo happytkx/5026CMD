@@ -32,7 +32,7 @@
                     <label for="billing-email">Billing email</label>
                     <input id="billing-email" value="@r.Customer.Email" readonly/>
 <label>Payment method <select id="paymentMethod" name="paymentMethod"><option value="TNG">Touch 'n Go eWallet</option><option value="Card">Credit / Debit Card</option><option value="Bank Transfer">Bank Transfer</option></select></label>
-<fieldset data-method="TNG"><legend>Touch 'n Go simulation</legend><img src="/images/demo-payment-qr.svg" width="180" height="180" alt="Simulated merchant QR" /><p>Demo merchant QR. No real payment.</p><label>TNG phone number <input name="phone" type="tel" maxlength="14" required /></label></fieldset>
+<fieldset data-method="TNG"><legend>Touch 'n Go simulation</legend><img src="/images/demo-payment-qr.svg" width="180" height="180" alt="Simulated merchant QR" /><p>Demo merchant QR. No real payment.</p><label>Name on TNG account <input name="tngAccountName" type="text" maxlength="100" autocomplete="name" placeholder="Full name shown on your Touch 'n Go account" required /></label></fieldset>
 <fieldset data-method="Card"><legend>Demo card only</legend><p>Use fictional card details for this simulation. Do not enter real card details.</p><label>Cardholder name <input name="cardholder" maxlength="100" required autocomplete="off" /></label><label>Card number <input name="cardNumber" inputmode="numeric" pattern="[0-9 \-]{13,32}" maxlength="32" required autocomplete="off" /></label><label>Expiry MM/YY <input name="expiry" placeholder="MM/YY" pattern="(0[1-9]|1[0-2])/[0-9]{2}" maxlength="5" required autocomplete="off" /></label><label>CVV <input name="cvv" type="password" inputmode="numeric" pattern="[0-9]{3,4}" maxlength="4" required autocomplete="off" /></label></fieldset>
 <fieldset data-method="Bank Transfer"><legend>Simulated bank transfer</legend><p>Bank: @Model.BankName<br />Account name: @Model.BankAccountName<br />Account number: @Model.BankAccountNumber</p><p>No real transfer or online banking credentials required.</p><label>Transaction reference <input name="dummyReference" maxlength="40" pattern="[A-Za-z0-9-]+" required /></label></fieldset>
 <script>(() => { const selector = document.getElementById('paymentMethod'); function update() { document.querySelectorAll('[data-method]').forEach(panel => { panel.hidden = panel.dataset.method !== selector.value; panel.disabled = panel.hidden; }); } selector.addEventListener('change', update); update(); })();</script>
@@ -50,6 +50,12 @@
                         <p>The deposit is credited to your final dining bill. Minimum spend: RM @r.MinimumSpend.ToString("N2").</p>
                         <p>All cancellations forfeit the full paid deposit. One date/time change is allowed more than 168 hours before the original booking.</p>
                     </div>
+                    <details class="reservation-policy reservation-policy-disclosure">
+                        <summary>Review the full reservation policies</summary>
+                        <div class="reservation-policy-disclosure-content">
+                            <partial name="_ReservationPolicy" />
+                        </div>
+                    </details>
                     <label class="check">
                         <input type="checkbox" required/>
                         <span>I understand and agree to the deposit, cancellation and rescheduling policies.</span>
