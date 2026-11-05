@@ -85,7 +85,7 @@ public class IndexModel(ApplicationDbContext db, BusinessAnalyticsService analyt
             .Select(item => item.Name).ToList();
         ZeroOrderDishCount = ZeroOrderDishNames.Count;
 
-        Announcements = await db.Announcements.AsNoTracking().Where(a => a.IsActive).OrderByDescending(a => a.CreatedAt).ToListAsync();
+        Announcements = await db.Announcements.AsNoTracking().Where(a => a.IsActive).OrderByDescending(a => a.IsPinned).ThenByDescending(a => a.CreatedAt).ToListAsync();
     }
 
     public async Task<IActionResult> OnPostToggleMenuAsync(int itemId)
@@ -155,6 +155,18 @@ public class IndexModel(ApplicationDbContext db, BusinessAnalyticsService analyt
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
         TempData["Success"] = $"Display settings saved for {announcement.Title}.";
+        return RedirectToPage();
+    }
+
+    // Pinning changes homepage announcement order without changing its featured/banner or pop-up settings.
+    public async Task<IActionResult> OnPostSetAnnouncementPinAsync(int id, bool isPinned)
+    {
+        var announcement = await db.Announcements.FindAsync(id);
+        if (announcement is null || !announcement.IsActive) return NotFound();
+        announcement.IsPinned = isPinned;
+        announcement.UpdatedByAdministratorID = AdministratorId;
+        await db.SaveChangesAsync();
+        TempData["Success"] = isPinned ? $"Pinned {announcement.Title} to the top of the customer announcements." : $"Unpinned {announcement.Title}.";
         return RedirectToPage();
     }
 

@@ -168,7 +168,7 @@
 }
 <section class="card announcement-admin-panel">
     <h2>Announcements</h2>
-    <p class="muted">Choose where announcements appear and how long they stay visible. Expired announcements are hidden automatically; only one can be featured at a time.</p>
+    <p class="muted">Choose where announcements appear and how long they stay visible. Pin published announcements to keep them first in the customer announcements list. Pinning is separate from featuring above dining spaces. Expired announcements are hidden automatically; only one can be featured at a time.</p>
     @foreach (var a in Model.Announcements)
     {
         var expired = a.ExpiresAt.HasValue && a.ExpiresAt.Value <= Model.CurrentTime;
@@ -181,6 +181,10 @@
         <div class="announcement-admin-row">
             <div class="announcement-admin-copy">
                 <strong>@a.Title</strong>
+                @if (a.IsPinned)
+                {
+                    <span class="announcement-pin-label">Pinned</span>
+                }
                 <p>@a.Message</p>
                 <small class="@(expired ? "announcement-expired" : "muted")">
                     @(expired ? "Expired" : scheduled ? "Scheduled" : "Visible")
@@ -188,6 +192,11 @@
                 </small>
             </div>
             <div class="announcement-admin-actions">
+                <form method="post" asp-page-handler="SetAnnouncementPin" class="announcement-pin-form">
+                    <input type="hidden" name="id" value="@a.AnnouncementID" />
+                    <input type="hidden" name="isPinned" value="@(a.IsPinned ? "false" : "true")" />
+                    <button type="submit" class="secondary">@(a.IsPinned ? "Unpin" : "Pin to top")</button>
+                </form>
                 <form method="post" asp-page-handler="SetAnnouncementDisplay" class="announcement-display-form">
                     <input type="hidden" name="id" value="@a.AnnouncementID" />
                     <label><input type="checkbox" name="isFeatured" value="true" checked="@a.IsFeatured" /> Feature above dining spaces</label>

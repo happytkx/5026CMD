@@ -3582,3 +3582,52 @@ td small
 .reservation-policy-disclosure-content { padding: 20px; }
 .reservation-policy-disclosure .reservation-policy-grid { margin-top: 16px; gap: 20px; }
 .reservation-policy-disclosure .reservation-policy-grid h4 { font-size: 20px; }
+
+/* Unified dropdown styling on all customer, staff and administrator pages. */
+.guest-view .ts-wrapper,
+.staff-workspace .ts-wrapper {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+}
+.guest-view .ts-control {
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+    padding: 12px 15px;
+    background: #fff;
+    border: 1px solid #d8d1c4;
+    border-radius: 4px;
+    color: #34372c;
+    font: 13px var(--body);
+    box-shadow: none;
+}
+.guest-view .ts-wrapper.focus .ts-control {
+    border-color: #737957;
+    box-shadow: 0 0 0 2px rgba(115,121,87,.13);
+}
+.guest-view .ts-dropdown {
+    z-index: 1500;
+    background: #fcfaf6;
+    border: 1px solid #d8d1c4;
+    border-radius: 5px;
+    padding: 6px;
+    box-shadow: 0 12px 28px rgba(45,42,38,.12);
+}
+.guest-view .ts-dropdown .option { padding: 11px 13px; border-radius: 4px; color: #34372c; }
+.guest-view .ts-dropdown .option.active { background: #e9ecdd; color: #34372c; }
+.guest-view .ts-dropdown .option.selected { background: #737957; color: #fff; }
+.staff-workspace .ts-wrapper .ts-control { background-image: none; }
+
+/* Pinned announcement indicators are independent of the featured banner. */
+.announcement-pin-label {
+    display: inline-block;
+    margin-left: 10px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: #e9ecdd;
+    color: #4d5939;
+    font: 600 11px var(--body);
+    vertical-align: middle;
+}
+.announcement-pin-form button { white-space: nowrap; }

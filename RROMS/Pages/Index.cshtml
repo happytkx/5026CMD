@@ -139,7 +139,7 @@
                         var remaining = Math.Max(1, (announcement.ExpiresAt.Value.Date - Model.Today).Days);
                         <span class="expiry-badge">@(remaining == 1 ? "1 day left" : $"{remaining} days left")</span>
                     }
-                    <p class="eyebrow">@(announcement.IsPromotional ? "PROMOTION · " : "")@announcement.CreatedAt.ToString("dd MMM yyyy")</p>
+                    <p class="eyebrow">@(announcement.IsPinned ? "PINNED · " : "")@(announcement.IsPromotional ? "PROMOTION · " : "")@announcement.CreatedAt.ToString("dd MMM yyyy")</p>
                     <h3>@announcement.Title</h3>
                     <p>@announcement.Message</p>
                 </article>
@@ -244,7 +244,13 @@
                              onerror="this.onerror=null; this.src='/images/celeste-indoor.png'; this.alt='Dining at Céleste';" />
                     </div>
                     <div class="dish-body">
-                        <h3>@item.Name</h3>
+                        <div class="dish-title">
+                            <h3>@item.Name</h3>
+                            @if (item.IsPopular)
+                            {
+                                <span class="badge">Popular</span>
+                            }
+                        </div>
                         <p>@item.Description</p>
                         <div class="dish-bottom">
                             @if (MenuPricing.IsPromotionActive(item, ReservationPolicy.Now))

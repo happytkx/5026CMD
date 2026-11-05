@@ -110,6 +110,9 @@ namespace RROMS.Migrations
                     b.Property<bool>("IsFeatured")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsPinned")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsPromotional")
                         .HasColumnType("bit");
 
