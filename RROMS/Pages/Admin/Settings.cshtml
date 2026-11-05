@@ -1,0 +1,100 @@
+﻿@page
+@model RROMS.Pages.Admin.SettingsModel
+
+@{
+    ViewData["Title"] = "Restaurant Settings";
+}
+
+<p class="eyebrow">ADMINISTRATOR / CONFIGURATION</p>
+
+<h1>Restaurant Settings</h1>
+
+<p>
+    Configure reservation deposits, allowed party sizes
+    and the tax charged on new customer orders.
+</p>
+
+@if (TempData["Success"] is string message)
+{
+    <p class="success" role="status">@message</p>
+}
+
+<section class="card">
+
+    <h2>Reservation and Billing Configuration</h2>
+
+    <form method="post">
+
+        <div asp-validation-summary="All" class="error"></div>
+
+        <h3>Reservation Deposit</h3>
+
+        <label asp-for="DepositPerGuest">
+            Deposit per Guest (RM)
+        </label>
+
+        <input asp-for="DepositPerGuest"
+               type="number"
+               min="0"
+               max="10000"
+               step="0.01"
+               required />
+
+        <p class="muted">
+            The deposit for a new reservation is calculated
+            by multiplying this amount by the number of guests.
+        </p>
+
+        <h3>Party Size Limits</h3>
+
+        <label asp-for="MinimumPartySize">
+            Minimum Party Size
+        </label>
+
+        <input asp-for="MinimumPartySize"
+               type="number"
+               min="1"
+               max="12"
+               required />
+
+        <label asp-for="MaximumPartySize">
+            Maximum Party Size
+        </label>
+
+        <input asp-for="MaximumPartySize"
+               type="number"
+               min="1"
+               max="12"
+               required />
+
+        <p class="muted">
+            Party sizes must remain between 1 and 12 guests,
+            based on the restaurant's existing table allocation rules.
+        </p>
+
+        <h3>Billing Charges</h3>
+
+        <label asp-for="TaxPercentage">
+            Tax Rate (%)
+        </label>
+
+        <input asp-for="TaxPercentage"
+               type="number"
+               min="0"
+               max="100"
+               step="0.01"
+               required />
+
+        <p class="muted">
+            This percentage will be applied to the subtotal
+            of new customer orders once checkout is connected
+            to these settings.
+        </p>
+
+        <button type="submit">
+            Save Settings
+        </button>
+
+    </form>
+
+</section>

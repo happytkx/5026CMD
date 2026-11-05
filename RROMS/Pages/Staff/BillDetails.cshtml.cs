@@ -32,6 +32,14 @@ public class BillDetailsModel : PageModel
 
     public List<Payment> Payments { get; set; } = new();
 
+    //Error fix from Cloned Rep (temp)
+    public decimal PaidDiningPayments =>
+    Payments
+        .Where(p => p.PaymentType == "DiningBill" &&
+                    p.PaymentStatus == "Paid")
+        .Sum(p => p.Amount);
+    //Error fix from Cloned Rep (temp)
+
     // Actual non-cancelled order lines, shown on the itemised final bill.
     public List<CustomerOrder> DiningOrders { get; set; } = new();
 

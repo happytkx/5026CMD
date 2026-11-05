@@ -11,86 +11,231 @@ using RROMS.Services;
 namespace RROMS.Pages.Account;
 
 [Authorize]
-public class ProfileModel(ApplicationDbContext db) : PageModel
+public class ProfileModel : PageModel
 {
+    private readonly ApplicationDbContext _context;
+
+    public ProfileModel(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
     [BindProperty]
     public ProfileInput Input { get; set; } = new();
+
     [BindProperty(SupportsGet = true)]
     public bool Edit { get; set; }
-    public bool IsCustomer => User.IsInRole(Customer.CustomerRole);
-    public bool IsAdministrator => User.IsInRole(Customer.AdminRole);
-    private int InternalId(string claim) => int.TryParse(User.FindFirst(claim)?.Value, out var id) ? id : -1;
+
     public string Email { get; set; } = "";
+
+    public bool IsCustomer =>
+        User.IsInRole(Customer.CustomerRole);
+
+    public bool IsAdministrator =>
+        User.IsInRole(Customer.AdminRole);
 
     public class ProfileInput
     {
-        [Required, StringLength(100)]
+        [Required]
+        [StringLength(100)]
         public string FullName { get; set; } = "";
-        [Phone, StringLength(20)]
-        public string? PhoneNo
-        {
-            get; set;
-        }
+
+        [Phone]
+        [StringLength(20)]
+        public string? PhoneNo { get; set; }
+
         [StringLength(250)]
-        public string? Address
-        {
-            get; set;
-        }
+        public string? Address { get; set; }
     }
 
     public async Task<IActionResult> OnGetAsync()
     {
-        if (!IsCustomer) return await InternalProfile(false);
-        var customer = await Find();
-        if (customer == null)
-            return Challenge();
-        Email = customer.Email;
-        Input = new() { FullName = customer.CustomerName, PhoneNo = customer.PhoneNo, Address = customer.Address };
-        return Page();
+        if (IsCustomer)
+        {
+            var customer = await GetCustomerAsync();
+
+            if (customer == null)
+            {
+                return Challenge();
+            }
+
+            Email = customer.Email;
+            Input.FullName = customer.CustomerName;
+            Input.PhoneNo = customer.PhoneNo;
+            Input.Address = customer.Address;
+
+            return Page();
+        }
+
+        return await LoadInternalProfileAsync();
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
-        if (!Edit) return RedirectToPage();
-        if (!IsCustomer) return await InternalProfile(true);
-        var customer = await Find();
+        if (!Edit)
+        {
+            return RedirectToPage();
+        }
+
+        if (IsCustomer)
+        {
+            return await UpdateCustomerProfileAsync();
+        }
+
+        return await UpdateInternalProfileAsync();
+    }
+
+    private async Task<Customer?> GetCustomerAsync()
+    {
+        var customerId = ReservationIdentity.CustomerId(User);
+
+        return await _context.Customers
+            .FirstOrDefaultAsync(c => c.CustomerID == customerId);
+    }
+
+    private int GetAccountId(string claimName)
+    {
+        string? value = User.FindFirst(claimName)?.Value;
+
+        if (int.TryParse(value, out int accountId))
+        {
+            return accountId;
+        }
+
+        return -1;
+    }
+
+    private async Task<IActionResult> UpdateCustomerProfileAsync()
+    {
+        var customer = await GetCustomerAsync();
+
         if (customer == null)
+        {
             return Challenge();
+        }
+
+        Email = customer.Email;
+
         if (!ModelState.IsValid)
         {
-            Email = customer.Email;
             Edit = true;
             return Page();
         }
+
         customer.CustomerName = Input.FullName.Trim();
         customer.PhoneNo = Input.PhoneNo?.Trim() ?? "";
-        customer.Address = string.IsNullOrWhiteSpace(Input.Address) ? null : Input.Address.Trim();
-        await db.SaveChangesAsync();
-        // Refresh the cookie so the name shown in the navigation updates immediately.
+
+        if (string.IsNullOrWhiteSpace(Input.Address))
+        {
+            customer.Address = null;
+        }
+        else
+        {
+            customer.Address = Input.Address.Trim();
+        }
+
+        await _context.SaveChangesAsync();
+
         await CustomerAuth.SignInAsync(HttpContext, customer);
+
         TempData["Success"] = "Your profile has been updated.";
+
         return RedirectToPage();
     }
 
-    private async Task<IActionResult> InternalProfile(bool save)
+    private async Task<IActionResult> LoadInternalProfileAsync()
     {
-        var admin = User.IsInRole(Customer.AdminRole) ? await db.Administrators.FindAsync(InternalId("AdministratorID")) : null;
-        var staff = User.IsInRole(Customer.StaffRole) ? await db.StaffAccounts.FindAsync(InternalId("StaffAccountID")) : null;
-        if (admin == null && staff == null) return Challenge();
-        Email = admin?.Email ?? staff!.Email;
-        if (!save) { Input.FullName = admin?.Name ?? staff!.StaffName; return Page(); }
-        if (!ModelState.IsValid) { Edit = true; return Page(); }
-        if (admin != null) admin.Name = Input.FullName.Trim(); else staff!.StaffName = Input.FullName.Trim();
-        await db.SaveChangesAsync();
-        if (admin != null) await InternalAccountAuth.SignInAsync(HttpContext, admin);
-        else await InternalAccountAuth.SignInAsync(HttpContext, staff!);
-        TempData["Success"] = "Your profile has been updated.";
-        return RedirectToPage();
+        if (IsAdministrator)
+        {
+            var admin = await _context.Administrators.FindAsync(
+                GetAccountId("AdministratorID"));
+
+            if (admin == null)
+            {
+                return Challenge();
+            }
+
+            Email = admin.Email;
+            Input.FullName = admin.Name;
+
+            return Page();
+        }
+
+        if (User.IsInRole(Customer.StaffRole))
+        {
+            var staff = await _context.StaffAccounts.FindAsync(
+                GetAccountId("StaffAccountID"));
+
+            if (staff == null)
+            {
+                return Challenge();
+            }
+
+            Email = staff.Email;
+            Input.FullName = staff.StaffName;
+
+            return Page();
+        }
+
+        return Challenge();
     }
 
-    private Task<Customer?> Find()
+    private async Task<IActionResult> UpdateInternalProfileAsync()
     {
-        var id = ReservationIdentity.CustomerId(User);
-        return db.Customers.FirstOrDefaultAsync(c => c.CustomerID == id);
+        if (IsAdministrator)
+        {
+            var admin = await _context.Administrators.FindAsync(
+                GetAccountId("AdministratorID"));
+
+            if (admin == null)
+            {
+                return Challenge();
+            }
+
+            Email = admin.Email;
+
+            if (!ModelState.IsValid)
+            {
+                Edit = true;
+                return Page();
+            }
+
+            admin.Name = Input.FullName.Trim();
+
+            await _context.SaveChangesAsync();
+            await InternalAccountAuth.SignInAsync(HttpContext, admin);
+        }
+        else if (User.IsInRole(Customer.StaffRole))
+        {
+            var staff = await _context.StaffAccounts.FindAsync(
+                GetAccountId("StaffAccountID"));
+
+            if (staff == null)
+            {
+                return Challenge();
+            }
+
+            Email = staff.Email;
+
+            if (!ModelState.IsValid)
+            {
+                Edit = true;
+                return Page();
+            }
+
+            staff.StaffName = Input.FullName.Trim();
+
+            await _context.SaveChangesAsync();
+            await InternalAccountAuth.SignInAsync(HttpContext, staff);
+        }
+        else
+        {
+            return Challenge();
+        }
+
+        TempData["Success"] = "Your profile has been updated.";
+
+        return RedirectToPage();
     }
 }
+

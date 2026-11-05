@@ -14,7 +14,7 @@ namespace RROMS.Pages.Orders;
 public class CheckoutModel(ApplicationDbContext db) : PageModel
 {
     // Service tax added to dine-in orders.
-    private const decimal TaxRate = .06m;
+    public decimal TaxRate { get; set; } = 0.06m; 
 
     public record BasketLine(int Id, string Name, decimal Price, int Quantity);
     public List<BasketLine> Lines { get; set; } = [];
@@ -37,6 +37,15 @@ public class CheckoutModel(ApplicationDbContext db) : PageModel
 
     private async Task Load()
     {
+        var settings = await db.RestaurantSettings
+            .OrderBy(s => s.SettingID)
+            .FirstOrDefaultAsync();
+
+        if (settings != null)
+        {
+            TaxRate = settings.TaxRate;
+        }
+
         var basket = Basket.Read(HttpContext.Session);
         var items = await db.MenuItems.AsNoTracking().Where(i => basket.Keys.Contains(i.MenuItemID) && i.IsAvailable).ToListAsync();
         Lines = items.Select(i => new BasketLine(i.MenuItemID, i.Name, i.Price, Math.Clamp(basket[i.MenuItemID], 1, Basket.MaxQuantity))).ToList();

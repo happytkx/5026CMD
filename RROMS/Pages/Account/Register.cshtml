@@ -4,27 +4,66 @@
 @{
     ViewData["Title"] = "Create account";
 }
+
 <section class="account-heading">
     <p class="eyebrow">REGISTER WITH CÉLESTE</p>
     <h1>Create your account</h1>
     <p>Book tables, order from the menu once you are seated, and keep every reservation in one place.</p>
 </section>
+
 <section class="card auth-card">
     <form method="post">
-        <input type="hidden" asp-for="ReturnUrl" />
-        <div asp-validation-summary="All" class="error"></div>
+        <input asp-for="ReturnUrl" type="hidden" />
+
+        <div class="error" asp-validation-summary="All"></div>
+
         <label asp-for="FullName">Full name</label>
-        <input asp-for="FullName" autocomplete="name" maxlength="100" required />
+        <input asp-for="FullName"
+               required
+               maxlength="100"
+               autocomplete="name" />
+
         <label asp-for="Email">Email address</label>
-        <input asp-for="Email" type="email" autocomplete="username" maxlength="100" required />
-        <label asp-for="PhoneNo">Phone number <span class="optional">(optional)</span></label>
-        <input asp-for="PhoneNo" type="tel" autocomplete="tel" maxlength="20" />
+        <input asp-for="Email"
+               required
+               maxlength="100"
+               type="email"
+               autocomplete="username" />
+
+        <label asp-for="PhoneNo">
+            Phone number <span class="optional">(optional)</span>
+        </label>
+        <input asp-for="PhoneNo"
+               maxlength="20"
+               type="tel"
+               autocomplete="tel" />
+
         <label asp-for="Password">Password</label>
-        <input asp-for="Password" type="password" autocomplete="new-password" required />
-        <p class="fine-print">At least 8 characters, with an upper-case letter, a lower-case letter and a digit.</p>
+        <input asp-for="Password"
+               required
+               type="password"
+               autocomplete="new-password" />
+
+        <p class="fine-print">
+            At least 8 characters, with an upper-case letter,
+            a lower-case letter and a digit.
+        </p>
+
         <label asp-for="ConfirmPassword">Confirm password</label>
-        <input asp-for="ConfirmPassword" type="password" autocomplete="new-password" required />
-        <button type="submit" class="wide-button">Create account</button>
+        <input asp-for="ConfirmPassword"
+               required
+               type="password"
+               autocomplete="new-password" />
+
+        <button class="wide-button" type="submit">
+            Create account
+        </button>
     </form>
-    <p class="muted">Already registered? <a asp-page="Login" asp-route-ReturnUrl="@Model.ReturnUrl">Sign in</a></p>
+
+    <p class="muted">
+        Already registered?
+        <a asp-page="Login" asp-route-ReturnUrl="@Model.ReturnUrl">
+            Sign in
+        </a>
+    </p>
 </section>

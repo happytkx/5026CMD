@@ -90,59 +90,146 @@
         <article class="card"><small>AVAILABLE DISHES WITH ZERO ORDERS</small><h2>@Model.NoOrderAvailableCount</h2></article>
     </section>
 }
+
+
+@* US08: Administrator Menu Category Management *@
+
 <details class="menu-category-tools">
-    <summary>Manage categories <span class="badge">@Model.Categories.Count categories</span></summary>
+    <summary>
+        Menu Category Management
+        <span class="badge">@Model.Categories.Count categories</span>
+    </summary>
+
     <div class="menu-category-tools-body">
-        <p class="muted">Add or rename categories, and delete categories that contain no dishes.</p>
-    <form method="post" asp-page-handler="CreateCategory" class="menu-category-create">
-                    <input type="hidden" name="Search" value="@Model.Search" />
-                    <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
-                    <input type="hidden" name="FilterAvailability" value="@Model.FilterAvailability" />
-                    <input type="hidden" name="SortBy" value="@Model.SortBy" />
-                    <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
-                    <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
-        <label for="new-category">New category name</label>
-        <div>
-            <input id="new-category" name="name" maxlength="120" placeholder="e.g. Chef's Specials" required />
-            <button type="submit">Add Category</button>
+
+        <p class="muted">
+            Add new menu categories, rename existing categories,
+            or delete categories that do not contain any dishes.
+        </p>
+
+        @* Add a new category *@
+        <form method="post"
+              asp-page-handler="CreateCategory"
+              class="menu-category-create">
+
+            <input type="hidden" name="Search" value="@Model.Search" />
+            <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
+            <input type="hidden" name="FilterAvailability" value="@Model.FilterAvailability" />
+            <input type="hidden" name="SortBy" value="@Model.SortBy" />
+            <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+            <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+
+            <label for="new-category">New Category Name</label>
+
+            <div>
+                <input id="new-category"
+                       type="text"
+                       name="name"
+                       maxlength="120"
+                       placeholder="Enter category name"
+                       required />
+
+                <button type="submit">Add Category</button>
+            </div>
+
+        </form>
+
+        @* Display existing categories *@
+        <div class="menu-category-list">
+
+            @if (Model.Categories.Count == 0)
+            {
+                <p class="notice">
+                    No menu categories have been added.
+                </p>
+            }
+            else
+            {
+                @foreach (var category in Model.Categories)
+                {
+                    int dishCount = Model.AllItems.Count(
+                        item => item.MenuCategoryID == category.MenuCategoryID);
+
+                    <article class="menu-category-row">
+
+                        @* Rename category *@
+                        <form method="post"
+                              asp-page-handler="RenameCategory"
+                              class="menu-category-rename">
+
+                            <input type="hidden" name="Search" value="@Model.Search" />
+                            <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
+                            <input type="hidden" name="FilterAvailability" value="@Model.FilterAvailability" />
+                            <input type="hidden" name="SortBy" value="@Model.SortBy" />
+                            <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                            <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+
+                            <input type="hidden"
+                                   name="categoryId"
+                                   value="@category.MenuCategoryID" />
+
+                            <label for="category-@category.MenuCategoryID">
+                                @dishCount dish@(dishCount == 1 ? "" : "es")
+                            </label>
+
+                            <div>
+                                <input id="category-@category.MenuCategoryID"
+                                       type="text"
+                                       name="name"
+                                       value="@category.Name"
+                                       maxlength="120"
+                                       required />
+
+                                <button type="submit" class="secondary">
+                                    Rename
+                                </button>
+                            </div>
+
+                        </form>
+
+                        @* Delete category *@
+                        <form method="post"
+                              asp-page-handler="DeleteCategory"
+                              onsubmit="return confirm('Are you sure you want to delete this category?');">
+
+                            <input type="hidden" name="Search" value="@Model.Search" />
+                            <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
+                            <input type="hidden" name="FilterAvailability" value="@Model.FilterAvailability" />
+                            <input type="hidden" name="SortBy" value="@Model.SortBy" />
+                            <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                            <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+
+                            <input type="hidden"
+                                   name="categoryId"
+                                   value="@category.MenuCategoryID" />
+
+                            @if (dishCount > 0)
+                            {
+                                <button type="submit"
+                                        class="quiet danger"
+                                        disabled
+                                        title="Remove or move dishes before deleting this category">
+                                    Delete
+                                </button>
+                            }
+                            else
+                            {
+                                <button type="submit" class="quiet danger">
+                                    Delete
+                                </button>
+                            }
+
+                        </form>
+
+                    </article>
+                }
+            }
+
         </div>
-    </form>
-    <div class="menu-category-list">
-        @foreach (var category in Model.Categories)
-        {
-            var dishCount = Model.AllItems.Count(i => i.Category == category.Name);
-            <article class="menu-category-row">
-                <form method="post" asp-page-handler="RenameCategory" class="menu-category-rename">
-                    <input type="hidden" name="Search" value="@Model.Search" />
-                    <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
-                    <input type="hidden" name="FilterAvailability" value="@Model.FilterAvailability" />
-                    <input type="hidden" name="SortBy" value="@Model.SortBy" />
-                    <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
-                    <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
-                    <input type="hidden" name="categoryId" value="@category.MenuCategoryID" />
-                    <label for="category-@category.MenuCategoryID">@dishCount dish@(dishCount == 1 ? "" : "es")</label>
-                    <div>
-                        <input id="category-@category.MenuCategoryID" name="name" value="@category.Name" maxlength="120" required />
-                        <button type="submit" class="secondary">Rename</button>
-                    </div>
-                </form>
-                <form method="post" asp-page-handler="DeleteCategory"
-                      onsubmit="return confirm('Delete this empty category?');">
-                    <input type="hidden" name="Search" value="@Model.Search" />
-                    <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
-                    <input type="hidden" name="FilterAvailability" value="@Model.FilterAvailability" />
-                    <input type="hidden" name="SortBy" value="@Model.SortBy" />
-                    <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
-                    <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
-                    <input type="hidden" name="categoryId" value="@category.MenuCategoryID" />
-                    <button type="submit" class="quiet danger" disabled="@(dishCount > 0)"
-                            title="@(dishCount > 0 ? "Move its dishes before deleting" : "Delete empty category")">Delete</button>
-                </form>
-            </article>
-        }
-    </div>
+
     </div>
 </details>
+
 <details class="menu-category-tools menu-option-tools">
     <summary>Manage protein types, dietary tags &amp; allergens <span class="badge">@Model.MenuOptions.Count options</span></summary>
     <div class="menu-category-tools-body">

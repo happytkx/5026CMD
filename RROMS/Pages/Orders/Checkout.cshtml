@@ -68,7 +68,7 @@ else
             <p class="checkout-summary-subtitle">Charges for the dishes in this basket. Your paid reservation deposit is deducted from the final dining bill.</p>
             <dl class="order-totals">
                 <div><dt>Subtotal</dt><dd>RM @Model.Subtotal.ToString("0.00")</dd></div>
-                <div><dt>Tax (6%)</dt><dd>RM @Model.Tax.ToString("0.00")</dd></div>
+                <div><dt>Tax (@((Model.TaxRate * 100).ToString("0.##"))%)</dt><dd>RM @Model.Tax.ToString("0.00")</dd></div>
                 <div class="grand"><dt>Order Total</dt><dd>RM @Model.Total.ToString("0.00")</dd></div>
             </dl>
             @if (Model.EligibleReservations.Count == 0)

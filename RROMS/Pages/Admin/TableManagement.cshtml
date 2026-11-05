@@ -1,33 +1,61 @@
 @page
 @model RROMS.Pages.Admin.TableManagementModel
+
 @{
     ViewData["Title"] = "Table Management";
 }
+
 <p class="eyebrow">RESTAURANT CONFIGURATION</p>
 <h1>Table Management</h1>
-<p>Manage Céleste's dining tables, guest capacity and reservation availability. Changes to available tables also affect new booking allocations.</p>
 
-@if (TempData["TableManagementSuccess"] is string success)
+<p>
+    Manage Céleste's dining tables, guest capacity and reservation availability.
+    Changes to available tables also affect new booking allocations.
+</p>
+
+@if (TempData["TableManagementSuccess"] != null)
 {
-    <p class="success" role="status">@success</p>
+    <p class="success" role="status">
+        @TempData["TableManagementSuccess"]
+    </p>
 }
-@if (TempData["TableManagementError"] is string error)
+
+@if (TempData["TableManagementError"] != null)
 {
-    <p class="notice table-management-error" role="alert">@error</p>
+    <p class="notice table-management-error" role="alert">
+        @TempData["TableManagementError"]
+    </p>
 }
 
 <section class="table-management-summary" aria-label="Table inventory overview">
-    <article class="card"><small>TOTAL TABLES &amp; ROOMS</small><strong>@Model.Tables.Count</strong></article>
-    <article class="card"><small>AVAILABLE FOR BOOKING</small><strong>@Model.AvailableCount</strong></article>
-    <article class="card"><small>UNAVAILABLE</small><strong>@(Model.Tables.Count - Model.AvailableCount)</strong></article>
-    <article class="card"><small>VIP ROOMS</small><strong>@Model.VipRoomCount / 2</strong></article>
+    <article class="card">
+        <small>TOTAL TABLES &amp; ROOMS</small>
+        <strong>@Model.Tables.Count</strong>
+    </article>
+
+    <article class="card">
+        <small>AVAILABLE FOR BOOKING</small>
+        <strong>@Model.AvailableCount</strong>
+    </article>
+
+    <article class="card">
+        <small>UNAVAILABLE</small>
+        <strong>@(Model.Tables.Count - Model.AvailableCount)</strong>
+    </article>
+
+    <article class="card">
+        <small>VIP ROOMS</small>
+        <strong>@Model.VipRoomCount / 2</strong>
+    </article>
 </section>
 
 @if (Model.VipRoomCount > 2)
 {
     <p class="notice table-management-warning">
-        This database currently contains @Model.VipRoomCount VIP rooms, but Céleste's agreed design allows only two.
-        Existing records and reservations have been preserved; please review the extra rooms before changing them.
+        This database currently contains @Model.VipRoomCount VIP rooms,
+        but Céleste's agreed design allows only two.
+        Existing records and reservations have been preserved;
+        please review the extra rooms before changing them.
     </p>
 }
 
@@ -36,73 +64,125 @@
         <div>
             <p class="eyebrow">BOOKING AVAILABILITY</p>
             <h2>Check tables &amp; rooms</h2>
-            <p class="muted">Enter an arrival date and time to check which spaces can accept a new reservation.</p>
+            <p class="muted">
+                Enter an arrival date and time to check which spaces
+                can accept a new reservation.
+            </p>
         </div>
     </div>
+
     <form method="get" class="table-availability-form">
         <div>
             <label for="check-date">Dining date</label>
-            <input id="check-date" type="date" name="CheckDate"
+            <input id="check-date"
+                   type="date"
+                   name="CheckDate"
                    min="@ReservationPolicy.Now.ToString("yyyy-MM-dd")"
-                   value="@(Model.CheckDate?.ToString("yyyy-MM-dd") ?? ReservationPolicy.Now.AddDays(1).ToString("yyyy-MM-dd"))" required />
+                   value="@(Model.CheckDate?.ToString("yyyy-MM-dd") ?? ReservationPolicy.Now.AddDays(1).ToString("yyyy-MM-dd"))"
+                   required />
         </div>
+
         <div>
             <label for="check-time">Arrival time</label>
-            <input id="check-time" type="time" name="CheckTime" step="1800"
-                   value="@(Model.CheckTime ?? "19:00")" required />
+            <input id="check-time"
+                   type="time"
+                   name="CheckTime"
+                   step="1800"
+                   value="@(Model.CheckTime ?? "19:00")"
+                   required />
         </div>
+
         <button type="submit">CHECK AVAILABILITY</button>
     </form>
 
-    @if (Model.AvailabilityError is { } availabilityError)
+    @if (!string.IsNullOrWhiteSpace(Model.AvailabilityError))
     {
-        <p class="notice table-management-error" role="alert">@availabilityError</p>
+        <p class="notice table-management-error" role="alert">
+            @Model.AvailabilityError
+        </p>
     }
     else if (Model.HasAvailabilityResult)
     {
-        <div class="table-availability-results" role="region" aria-label="Availability results">
+        <div class="table-availability-results"
+             role="region"
+             aria-label="Availability results">
+
             <div class="table-availability-result-heading">
                 <div>
-                    <strong>@Model.BookableCount of @Model.AvailabilityResults.Count available</strong>
+                    <strong>
+                        @Model.BookableCount of
+                        @Model.AvailabilityResults.Count available
+                    </strong>
+
                     <p class="muted">
-                        @(Model.CheckDate?.ToString("dd MMM yyyy")) at @Model.CheckTime (Malaysia time).
-                        Indoor and Outdoor tables are checked for two hours; VIP rooms are checked until closing.
+                        @(Model.CheckDate?.ToString("dd MMM yyyy"))
+                        at @Model.CheckTime (Malaysia time).
+                        Indoor and Outdoor tables are checked for two hours;
+                        VIP rooms are checked until closing.
                     </p>
                 </div>
             </div>
+
             @foreach (var area in Model.Areas)
             {
-                var spaces = Model.AvailabilityResults.Where(t => t.Area == area.AreaType)
-                    .OrderByDescending(t => t.IsBookable).ThenBy(t => t.TableId).ToList();
+                var spaces = Model.AvailabilityResults
+                    .Where(t => t.Area == area.AreaType)
+                    .OrderByDescending(t => t.IsBookable)
+                    .ThenBy(t => t.TableId)
+                    .ToList();
+
+                int availableSpaces = spaces.Count(t => t.IsBookable);
+
                 <div class="table-availability-area">
                     <div class="table-availability-area-heading">
                         <h3>@area.AreaType</h3>
-                        <span>@spaces.Count(t => t.IsBookable) of @spaces.Count available</span>
+                        <span>
+                            @availableSpaces of @spaces.Count available
+                        </span>
                     </div>
+
                     @if (spaces.Count == 0)
                     {
-                        <p class="muted">No @(area.AreaType == "VIP Room" ? "rooms" : "tables") configured.</p>
+                        <p class="muted">
+                            No @(area.AreaType == "VIP Room" ? "rooms" : "tables")
+                            configured.
+                        </p>
                     }
                     else
                     {
                         <div class="table-availability-grid">
                             @foreach (var space in spaces)
                             {
-                                <article class="table-availability-tile @(space.IsBookable ? "is-free" : "is-blocked")">
+                                string tileClass = space.IsBookable
+                                    ? "is-free" : "is-blocked";
+
+                                string statusClass = space.IsBookable
+                                    ? "is-available" : "is-unavailable";
+
+                                <article class="table-availability-tile @tileClass">
                                     <div class="table-management-tile-top">
                                         <strong>@space.TableId</strong>
-                                        <span class="table-management-status @(space.IsBookable ? "is-available" : "is-unavailable")">@space.State</span>
+                                        <span class="table-management-status @statusClass">
+                                            @space.State
+                                        </span>
                                     </div>
-                                    <small>@space.Capacity guests · @(area.AreaType == "VIP Room" ? "Private room" : "Table")</small>
+
+                                    <small>
+                                        @space.Capacity guests ·
+                                        @(area.AreaType == "VIP Room" ? "Private room" : "Table")
+                                    </small>
                                 </article>
                             }
                         </div>
                     }
                 </div>
             }
+
             <p class="muted table-availability-footnote">
-                Pending payment holds count as reserved. Booking lead times are at least two hours for regular tables
-                and 24 hours for VIP rooms. Party-size eligibility also applies. Results are a snapshot and do not hold a table.
+                Pending payment holds count as reserved.
+                Booking lead times are at least two hours for regular tables
+                and 24 hours for VIP rooms. Party-size eligibility also applies.
+                Results are a snapshot and do not hold a table.
             </p>
         </div>
     }
@@ -113,120 +193,242 @@
         <div>
             <p class="eyebrow">TABLE INVENTORY</p>
             <h2>Add a table</h2>
-            <p class="muted">Choose an existing dining area and table size. Table IDs must be unique.</p>
+            <p class="muted">
+                Choose an existing dining area and table size.
+                Table IDs must be unique.
+            </p>
         </div>
-        <a class="button secondary" asp-page="/Staff/Seating">View seating plan</a>
+
+        <a class="button secondary" asp-page="/Staff/Seating">
+            View seating plan
+        </a>
     </div>
-    <form method="post" asp-page-handler="AddTable" class="table-management-add-form">
+
+    <form method="post"
+          asp-page-handler="AddTable"
+          class="table-management-add-form">
+
         <div>
             <label for="new-table-id">Table ID</label>
-            <input id="new-table-id" name="tableId" type="text" maxlength="10" pattern="[A-Za-z0-9-]{1,10}" placeholder="e.g. T11" required />
+            <input id="new-table-id"
+                   name="tableId"
+                   type="text"
+                   maxlength="5"
+                   pattern="([Tt]|[Vv][Ii][Pp])(0[1-9]|1[0-9]|2[0-5])"
+                   placeholder="e.g. T11 or VIP01"
+                   title="Use T01–T25 or VIP01–VIP25"
+                   required />
         </div>
+
         <div>
             <label for="new-table-area">Dining area</label>
-            <select id="new-table-area" name="diningAreaId" required>
+            <select id="new-table-area"
+                    name="diningAreaId"
+                    required>
                 @foreach (var area in Model.Areas)
                 {
-                    <option value="@area.DiningAreaID">@area.AreaType</option>
+                    <option value="@area.DiningAreaID">
+                        @area.AreaType
+                    </option>
                 }
             </select>
         </div>
+
         <div>
             <label for="new-table-capacity">Guest capacity</label>
-            <select id="new-table-capacity" name="capacity" required>
-                @foreach (var capacity in new[] { 2, 4, 6, 8, 12 })
+            <select id="new-table-capacity"
+                    name="capacity"
+                    required>
+                @foreach (int capacity in new[] { 2, 4, 6, 8, 12 })
                 {
-                    <option value="@capacity">@capacity guests</option>
+                    <option value="@capacity">
+                        @capacity guests
+                    </option>
                 }
             </select>
         </div>
+
         <button type="submit">ADD TABLE</button>
     </form>
+
     <p class="muted table-management-policy">
-        Indoor/Outdoor tables seat 2, 4, 6 or 8 guests. VIP rooms seat 8 or 12 guests.
+        Indoor/Outdoor tables seat 2, 4, 6 or 8 guests.
+        VIP rooms seat 8 or 12 guests.
         Only two VIP rooms are permitted.
     </p>
 </section>
 
 @foreach (var area in Model.Areas)
 {
-    var areaTables = Model.Tables.Where(t => t.DiningAreaID == area.DiningAreaID).ToList();
-    <section class="card table-management-area" aria-label="@area.AreaType tables">
+    var areaTables = Model.Tables
+        .Where(t => t.DiningAreaID == area.DiningAreaID)
+        .ToList();
+
+    <section class="card table-management-area"
+             aria-label="@area.AreaType tables">
+
         <div class="table-management-header">
             <div>
                 <p class="eyebrow">DINING AREA</p>
                 <h2>@area.AreaType</h2>
-                <p class="muted">@areaTables.Count @(area.AreaType == "VIP Room" ? "private dining rooms" : "tables") configured</p>
+
+                <p class="muted">
+                    @areaTables.Count
+                    @(area.AreaType == "VIP Room" ? "private dining rooms" : "tables")
+                    configured
+                </p>
             </div>
         </div>
+
         @if (areaTables.Count == 0)
         {
-            <p class="muted">No tables are currently assigned to this dining area.</p>
+            <p class="muted">
+                No tables are currently assigned to this dining area.
+            </p>
         }
         else
         {
             <div class="table-management-grid">
                 @foreach (var table in areaTables)
                 {
-                    var upcoming = Model.UpcomingBookings.GetValueOrDefault(table.TableID);
+                    int upcoming = Model.UpcomingBookings
+                        .GetValueOrDefault(table.TableID);
+
+                    bool isAvailable = table.Status == "Available";
+
+                    string statusClass = isAvailable
+                        ? "is-available" : "is-unavailable";
+
                     <article class="table-management-tile">
                         <div class="table-management-tile-top">
                             <strong>@table.TableID</strong>
-                            <span class="table-management-status @(table.Status == "Available" ? "is-available" : "is-unavailable")">@table.Status</span>
+
+                            <span class="table-management-status @statusClass">
+                                @table.Status
+                            </span>
                         </div>
-                        <p>@table.Capacity guests · @table.DiningArea.AreaType</p>
-                        <small>@upcoming active or upcoming @(upcoming == 1 ? "reservation" : "reservations")</small>
-                        <form method="post" asp-page-handler="ToggleTable" class="table-management-toggle">
-                            <input type="hidden" name="tableId" value="@table.TableID" />
-                            @if (table.Status == "Available")
+
+                        <p>
+                            @table.Capacity guests · @table.DiningArea.AreaType
+                        </p>
+
+                        <small>
+                            @upcoming active or upcoming
+                            @(upcoming == 1 ? "reservation" : "reservations")
+                        </small>
+
+                        <form method="post"
+                              asp-page-handler="ToggleTable"
+                              class="table-management-toggle">
+
+                            <input type="hidden"
+                                   name="tableId"
+                                   value="@table.TableID" />
+
+                            @if (isAvailable)
                             {
-                                <button type="submit" class="table-management-toggle-button disable"
+                                <button type="submit"
+                                        class="table-management-toggle-button disable"
                                         disabled="@(upcoming > 0)"
                                         title="@(upcoming > 0 ? "Resolve active or upcoming reservations first." : "Disable this table for new reservations.")">
                                     Disable table
                                 </button>
+
                                 @if (upcoming > 0)
                                 {
-                                    <small>Resolve the @upcoming existing @(upcoming == 1 ? "reservation" : "reservations") before disabling.</small>
+                                    <small>
+                                        Resolve the @upcoming existing
+                                        @(upcoming == 1 ? "reservation" : "reservations")
+                                        before disabling.
+                                    </small>
                                 }
                             }
                             else
                             {
-                                <button type="submit" class="table-management-toggle-button enable">Enable table</button>
-                                <small>This table is excluded from new reservations.</small>
+                                <button type="submit"
+                                        class="table-management-toggle-button enable">
+                                    Enable table
+                                </button>
+
+                                <small>
+                                    This table is excluded from new reservations.
+                                </small>
                             }
                         </form>
+
                         <details class="table-management-edit">
                             <summary>Edit table details</summary>
-                            <form method="post" asp-page-handler="UpdateTable">
-                                <input type="hidden" name="tableId" value="@table.TableID" />
+
+                            <form method="post"
+                                  asp-page-handler="UpdateTable">
+
+                                <input type="hidden"
+                                       name="tableId"
+                                       value="@table.TableID" />
+
                                 <div>
-                                    <label for="area-@table.TableID">Dining area</label>
-                                    <select id="area-@table.TableID" name="diningAreaId">
+                                    <label for="area-@table.TableID">
+                                        Dining area
+                                    </label>
+
+                                    <select id="area-@table.TableID"
+                                            name="diningAreaId">
                                         @foreach (var destination in Model.Areas)
                                         {
-                                            <option value="@destination.DiningAreaID" selected="@(destination.DiningAreaID == table.DiningAreaID)">@destination.AreaType</option>
+                                            <option value="@destination.DiningAreaID"
+                                                    selected="@(destination.DiningAreaID == table.DiningAreaID)">
+                                                @destination.AreaType
+                                            </option>
                                         }
                                     </select>
                                 </div>
+
                                 <div>
-                                    <label for="capacity-@table.TableID">Guest capacity</label>
-                                    <select id="capacity-@table.TableID" name="capacity">
-                                        @foreach (var capacity in new[] { 2, 4, 6, 8, 12 })
+                                    <label for="capacity-@table.TableID">
+                                        Guest capacity
+                                    </label>
+
+                                    <select id="capacity-@table.TableID"
+                                            name="capacity">
+                                        @foreach (int capacity in new[] { 2, 4, 6, 8, 12 })
                                         {
-                                            <option value="@capacity" selected="@(capacity == table.Capacity)">@capacity guests</option>
+                                            <option value="@capacity"
+                                                    selected="@(capacity == table.Capacity)">
+                                                @capacity guests
+                                            </option>
                                         }
                                     </select>
                                 </div>
+
                                 <div>
-                                    <label for="status-@table.TableID">Availability</label>
-                                    <select id="status-@table.TableID" name="status">
-                                        <option value="Available" selected="@(table.Status == "Available")">Available</option>
-                                        <option value="Unavailable" selected="@(table.Status != "Available")">Unavailable</option>
+                                    <label for="status-@table.TableID">
+                                        Availability
+                                    </label>
+
+                                    <select id="status-@table.TableID"
+                                            name="status">
+                                        <option value="Available"
+                                                selected="@(table.Status == "Available")">
+                                            Available
+                                        </option>
+
+                                        <option value="Unavailable"
+                                                selected="@(table.Status != "Available")">
+                                            Unavailable
+                                        </option>
                                     </select>
                                 </div>
-                                <button type="submit" class="table-management-save">SAVE CHANGES</button>
-                                <p class="muted">Tables with active bookings cannot be disabled. Dining areas cannot be changed after a table has reservation history.</p>
+
+                                <button type="submit"
+                                        class="table-management-save">
+                                    SAVE CHANGES
+                                </button>
+
+                                <p class="muted">
+                                    Tables with active bookings cannot be disabled.
+                                    Dining areas cannot be changed after a table
+                                    has reservation history.
+                                </p>
                             </form>
                         </details>
                     </article>
@@ -235,7 +437,11 @@
         }
     </section>
 }
+
 <p class="notice table-management-policy-note">
-    Disabling a table removes it from new table allocations without deleting past reservations.
-    For table safety and reporting integrity, permanent deletion is not offered.
+    Disabling a table removes it from new table allocations
+    without deleting past reservations.
+    For table safety and reporting integrity,
+    permanent deletion is not offered.
 </p>
+
