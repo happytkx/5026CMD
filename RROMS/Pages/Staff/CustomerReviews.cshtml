@@ -1,11 +1,11 @@
 @page
-@* Restaurant staff: read-only customer feedback to understand service quality. *@
+@* Restaurant staff: customer feedback with hide/restore controls for the public page. *@
 @model RROMS.Pages.Staff.CustomerReviewsModel
 @{
     ViewData["Title"] = "Customer Reviews";
 }
 <p class="eyebrow">RESTAURANT OPERATIONS</p>
 <h1>Customer Reviews</h1>
-<p>Read guest feedback to understand service quality. Reviews are read-only.</p>
-@{ var board = new ReviewBoardView(Model, "/Staff/CustomerReviews", false, true, false); }
+<p>Read guest feedback to understand service quality. Staff can hide a review from the public Guest Reviews page and restore it later; reviews cannot be edited or deleted.</p>
+@{ var board = new ReviewBoardView(Model, "/Staff/CustomerReviews", false, true, false, true); }
 <partial name="_ReviewBoard" model="board" />

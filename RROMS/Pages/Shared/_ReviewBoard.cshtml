@@ -1,4 +1,4 @@
-@* Review summary, rating filter, review cards and pager shared by the admin, staff and public review pages. *@
+@* Review summary, filters, review cards and pager shared by the admin, staff and public review pages. Moderation controls appear only for admin and staff. *@
 @model ReviewBoardView
 @{
     var board = Model.Page;
@@ -6,17 +6,32 @@
     var list = board.Reviews;
     var noun = "reviews";
 }
+@if (Model.Moderation)
+{
+    @if (TempData["Success"] is string moderationOk)
+    {
+        <p class="success">@moderationOk</p>
+    }
+    @if (TempData["Error"] is string moderationError)
+    {
+        <p class="error">@moderationError</p>
+    }
+}
 <section class="review-summary card" aria-label="Rating summary">
     <div class="review-average">
         <strong>@(summary.Total == 0 ? "–" : summary.Average.ToString("0.0"))</strong>
         <partial name="_ReviewStars" model="(int)Math.Round(summary.Average, MidpointRounding.AwayFromZero)" />
         <small>@summary.Total @(summary.Total == 1 ? "review" : "reviews")</small>
+        @if (Model.Moderation && summary.HiddenCount > 0)
+        {
+            <small>@summary.HiddenCount hidden from guests</small>
+        }
     </div>
     <ul class="review-bars" aria-label="Ratings breakdown">
         @for (var star = 5; star >= 1; star--)
         {
             <li>
-                <a asp-page="@Model.PagePath" asp-route-Rating="@star" class="@(board.Rating == star ? "active" : "")"
+                <a asp-page="@Model.PagePath" asp-route-Rating="@star" asp-route-Show="@board.Show" class="@(board.Rating == star ? "active" : "")"
                    aria-label="Show @star-star reviews (@summary.CountFor(star))">
                     <span>@star ★</span>
                     <span class="review-bar"><span style="width:@(summary.PercentFor(star))%"></span></span>
@@ -36,6 +51,15 @@
             <option value="@star" selected="@(board.Rating == star)">@star @(star == 1 ? "star" : "stars")</option>
         }
     </select>
+    @if (Model.Moderation)
+    {
+        <label for="review-show">Visibility</label>
+        <select id="review-show" name="Show" onchange="this.form.requestSubmit()">
+            <option value="">All reviews</option>
+            <option value="visible" selected="@(board.Show == "visible")">Visible to guests</option>
+            <option value="hidden" selected="@(board.Show == "hidden")">Hidden from guests</option>
+        </select>
+    }
     <button type="submit">Apply</button>
     <a class="button secondary" asp-page="@Model.PagePath">Clear</a>
     <span class="review-count">@list.Total @(list.Total == 1 ? "review" : "reviews") shown</span>
@@ -44,9 +68,9 @@
 @if (list.Items.Count == 0)
 {
     <section class="card empty-state">
-        @if (board.Rating.HasValue)
+        @if (board.Rating.HasValue || board.Show is not null)
         {
-            <text>No @board.Rating-star @noun yet.</text>
+            <text>No reviews match these filters.</text>
         }
         else
         {
@@ -59,7 +83,7 @@ else
     <section class="review-list" aria-label="Customer reviews">
         @foreach (var review in list.Items)
         {
-            <article class="card review-card">
+            <article class="card review-card @(review.IsHidden ? "review-hidden" : "")">
                 <header>
                     <partial name="_ReviewStars" model="review.Rating" />
                     <time datetime="@review.CreatedAt.ToString("yyyy-MM-dd")">@review.CreatedAt.ToString("dd MMM yyyy")</time>
@@ -71,9 +95,24 @@ else
                     {
                         <span class="badge review-verified">Verified dining</span>
                     }
+                    @if (review.IsHidden)
+                    {
+                        <span class="badge review-hidden-badge">Hidden from guests@(string.IsNullOrWhiteSpace(review.HiddenBy) ? "" : " · by " + review.HiddenBy)</span>
+                    }
                     @if (Model.ShowOrder)
                     {
                         <small>Order <span class="reference">@review.OrderReference</span></small>
+                    }
+                    @if (Model.Moderation)
+                    {
+                        <form method="post" asp-page="@Model.PagePath" asp-page-handler="Visibility" class="review-moderate">
+                            <input type="hidden" name="id" value="@review.ReviewID" />
+                            <input type="hidden" name="hide" value="@(review.IsHidden ? "false" : "true")" />
+                            <input type="hidden" name="Rating" value="@board.Rating" />
+                            <input type="hidden" name="Show" value="@board.Show" />
+                            <input type="hidden" name="p" value="@list.PageNumber" />
+                            <button type="submit" class="secondary">@(review.IsHidden ? "Show to guests" : "Hide from guests")</button>
+                        </form>
                     }
                 </footer>
             </article>
@@ -84,12 +123,12 @@ else
         <nav class="review-pager" aria-label="Review pages">
             @if (list.PageNumber > 1)
             {
-                <a class="button secondary" asp-page="@Model.PagePath" asp-route-Rating="@board.Rating" asp-route-p="@(list.PageNumber - 1)">&larr; Newer</a>
+                <a class="button secondary" asp-page="@Model.PagePath" asp-route-Rating="@board.Rating" asp-route-Show="@board.Show" asp-route-p="@(list.PageNumber - 1)">&larr; Newer</a>
             }
             <span>Page @list.PageNumber of @list.TotalPages</span>
             @if (list.PageNumber < list.TotalPages)
             {
-                <a class="button secondary" asp-page="@Model.PagePath" asp-route-Rating="@board.Rating" asp-route-p="@(list.PageNumber + 1)">Older &rarr;</a>
+                <a class="button secondary" asp-page="@Model.PagePath" asp-route-Rating="@board.Rating" asp-route-Show="@board.Show" asp-route-p="@(list.PageNumber + 1)">Older &rarr;</a>
             }
         </nav>
     }

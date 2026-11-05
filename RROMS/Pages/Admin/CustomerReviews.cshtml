@@ -6,6 +6,6 @@
 }
 <p class="eyebrow">REPORTING &amp; ANALYTICS</p>
 <h1>Customer Reviews</h1>
-<p>Ratings and written feedback from guests after their dining orders were completed.</p>
-@{ var board = new ReviewBoardView(Model, "/Admin/CustomerReviews", true, true, false); }
+<p>Ratings and written feedback from guests after their dining orders were completed. Hide a review to remove it from the public Guest Reviews page; you can restore it at any time.</p>
+@{ var board = new ReviewBoardView(Model, "/Admin/CustomerReviews", true, true, false, true); }
 <partial name="_ReviewBoard" model="board" />

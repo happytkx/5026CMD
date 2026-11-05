@@ -903,6 +903,16 @@ namespace RROMS.Migrations
                     b.Property<int>("CustomerID")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("HiddenAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("HiddenBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("bit");
+
                     b.Property<int>("OrderID")
                         .HasColumnType("int");
 

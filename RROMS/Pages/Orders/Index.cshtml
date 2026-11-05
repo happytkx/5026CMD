@@ -27,6 +27,7 @@
 {
     var rounds = session.OrderBy(o => o.CreatedAt).ThenBy(o => o.OrderID).ToList();
     var booking = rounds[0].Reservation;
+    var reviewPending = rounds.Any(o => o.Status == "Completed" && !Model.ReviewedOrderIds.Contains(o.OrderID));
     <article class="card order-card dining-session-card" data-reservation-id="@booking.ReservationID">
         <div class="order-head">
             <div>
@@ -43,7 +44,11 @@
                 <small>Food and tax, before deposit</small>
             </div>
         </div>
-        <details class="order-details">
+        @if (reviewPending)
+        {
+            <p class="review-prompt" data-review-prompt>★ Your dining is complete. Rate your experience and leave a comment in the review box below.</p>
+        }
+        <details class="order-details" open="@reviewPending">
             <summary>
                 <strong>View Details</strong>
                 <span>Dishes, quantities and status</span>
@@ -90,19 +95,19 @@
                         {
                             <form method="post" asp-page-handler="Review" class="review-form" hidden="@(o.Status != "Completed")">
                                 <input type="hidden" name="orderId" value="@o.OrderID" />
+                                <fieldset class="star-picker">
+                                    <legend>Your rating</legend>
+                                    <div class="star-picker-stars">
+                                        @foreach (var star in new[] { 5, 4, 3, 2, 1 })
+                                        {
+                                            <input type="radio" id="star-@o.OrderID-@star" name="rating" value="@star" required />
+                                            <label for="star-@o.OrderID-@star" title="@star out of 5" aria-label="@star out of 5 stars">★</label>
+                                        }
+                                    </div>
+                                </fieldset>
                                 <div>
-                                    <label for="rating-@o.OrderID">Rating</label>
-                                    <select id="rating-@o.OrderID" name="rating">
-                                        <option value="5">5 - Excellent</option>
-                                        <option value="4">4 - Good</option>
-                                        <option value="3">3 - Okay</option>
-                                        <option value="2">2 - Poor</option>
-                                        <option value="1">1 - Bad</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="comment-@o.OrderID">Feedback</label>
-                                    <textarea id="comment-@o.OrderID" name="comment" rows="2" maxlength="800" placeholder="Tell us about your experience" required></textarea>
+                                    <label for="comment-@o.OrderID">Your review</label>
+                                    <textarea id="comment-@o.OrderID" name="comment" rows="3" maxlength="800" placeholder="Tell us about your food, service and atmosphere (max 800 characters)" required></textarea>
                                 </div>
                                 <button type="submit" class="secondary">Submit review</button>
                             </form>

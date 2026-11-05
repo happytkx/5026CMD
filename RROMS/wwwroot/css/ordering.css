@@ -2662,3 +2662,29 @@ form.card.mybill-selector {
     .review-summary { grid-template-columns: 1fr; gap: 20px; }
     .review-count { margin-left: 0; width: 100%; }
 }
+
+/* Review form: the hidden attribute must win over the grid display, otherwise unfinished orders show a form the server rejects. */
+.review-form[hidden] { display: none; }
+.review-form { align-items: start; }
+.review-form button { align-self: end; }
+.review-prompt { margin: 14px 0 0; padding: 12px 16px; background: #F4EFE4; border-left: 2px solid var(--gold); font-size: 13px; color: var(--ink); }
+
+/* Star picker: radios are listed 5..1 and reversed so hovering or choosing a star also fills the ones before it. */
+.star-picker { border: 0; margin: 0; padding: 0; min-width: 0; }
+.star-picker legend { font-size: 12px; color: var(--muted); padding: 0; margin-bottom: 6px; }
+.star-picker-stars { display: inline-flex; flex-direction: row-reverse; justify-content: flex-end; }
+.star-picker input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.star-picker label { margin: 0; padding: 0 2px; font-size: 30px; line-height: 1; color: #CFC6B4; cursor: pointer; transition: color .12s; }
+.star-picker input:checked ~ label,
+.star-picker label:hover,
+.star-picker label:hover ~ label { color: var(--gold); }
+.star-picker input:focus-visible + label { outline: 2px solid var(--olive); outline-offset: 2px; border-radius: 3px; }
+
+/* Moderation: hidden reviews stay visible to staff but are clearly marked. */
+.review-hidden { background: #F7F4EE; border-style: dashed; }
+.review-hidden .review-comment { color: var(--muted); }
+.review-hidden-badge { margin: 0; background: #F3E3DC; color: #824737; }
+.review-moderate { margin: 0 0 0 auto; }
+.review-moderate button { margin: 0; }
+.review-card footer small + .review-moderate { margin-left: 12px; }
+@media (prefers-reduced-motion: reduce) { .star-picker label { transition: none; } }

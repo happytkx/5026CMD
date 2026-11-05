@@ -35,6 +35,14 @@ namespace RROMS.Models
             get; set;
         }
 
+        // Staff or administrators can hide a review from the public Guest Reviews page; it is kept for internal review.
+        public bool IsHidden { get; set; }
+
+        public DateTime? HiddenAt { get; set; }
+
+        [StringLength(100)]
+        public string? HiddenBy { get; set; }
+
         public Customer Customer { get; set; } = null!;
 
         public CustomerOrder Order { get; set; } = null!;
