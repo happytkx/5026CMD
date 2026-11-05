@@ -11,6 +11,7 @@ namespace RROMS.Pages;
 public class ReviewsModel(ReviewService reviews, ApplicationDbContext db) : ReviewListModel(reviews)
 {
     public List<CustomerOrder> ReviewableOrders { get; private set; } = [];
+    public bool CanSubmitGeneralReview { get; private set; }
     public bool IsSignedInCustomer => User.IsInRole(Customer.CustomerRole);
 
     public override async Task OnGetAsync(CancellationToken cancellationToken)
@@ -19,6 +20,7 @@ public class ReviewsModel(ReviewService reviews, ApplicationDbContext db) : Revi
         if (!IsSignedInCustomer) return;
 
         var customerId = ReservationIdentity.CustomerId(User);
+        CanSubmitGeneralReview = !await db.Reviews.AnyAsync(r => r.CustomerID == customerId && r.OrderID == null, cancellationToken);
         ReviewableOrders = await db.Orders.AsNoTracking()
             .Where(o => o.CustomerID == customerId && o.Status == "Completed" &&
                 !db.Reviews.Any(r => r.CustomerID == customerId && r.OrderID == o.OrderID))
@@ -32,13 +34,20 @@ public class ReviewsModel(ReviewService reviews, ApplicationDbContext db) : Revi
             return Challenge();
 
         var customerId = ReservationIdentity.CustomerId(User);
-        var order = await db.Orders.AsNoTracking()
-            .FirstOrDefaultAsync(o => o.OrderID == orderId &&
-                o.CustomerID == customerId && o.Status == "Completed");
-        if (order is null)
+        if (orderId < 0)
         {
-            TempData["ReviewError"] = "Only your own completed orders can be reviewed.";
+            TempData["ReviewError"] = "Choose a valid review type.";
             return RedirectToPage();
+        }
+        if (orderId > 0)
+        {
+            var eligible = await db.Orders.AsNoTracking().AnyAsync(o => o.OrderID == orderId &&
+                o.CustomerID == customerId && o.Status == "Completed");
+            if (!eligible)
+            {
+                TempData["ReviewError"] = "Only your own completed orders can be reviewed.";
+                return RedirectToPage();
+            }
         }
 
         if (rating is < 1 or > 5 || string.IsNullOrWhiteSpace(comment) ||
@@ -48,16 +57,16 @@ public class ReviewsModel(ReviewService reviews, ApplicationDbContext db) : Revi
             return RedirectToPage();
         }
 
-        if (await db.Reviews.AnyAsync(r => r.CustomerID == customerId && r.OrderID == orderId))
+        if (await db.Reviews.AnyAsync(r => r.CustomerID == customerId && r.OrderID == (orderId == 0 ? (int?)null : orderId)))
         {
-            TempData["ReviewError"] = "You have already reviewed this order.";
+            TempData["ReviewError"] = orderId == 0 ? "You have already submitted general feedback." : "You have already reviewed this order.";
             return RedirectToPage();
         }
 
         db.Reviews.Add(new Review
         {
             CustomerID = customerId,
-            OrderID = orderId,
+            OrderID = orderId == 0 ? null : orderId,
             Rating = rating,
             Comment = comment.Trim(),
             CreatedAt = ReservationPolicy.Now

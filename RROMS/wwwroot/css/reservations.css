@@ -3707,3 +3707,15 @@ td small
     .reservation-record-heading { gap: 10px; }
     .reservation-paid-summary { flex-wrap: wrap; }
 }
+
+/* Review moderation: reviewer profiles and confirmation-protected remove action. */
+.review-profile-link { color: #526443; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.review-profile-link:hover { color: #303d28; }
+.review-remove-form { margin-left: auto; }
+.review-remove-button {
+    min-height: 42px; padding: 10px 14px !important; border: 1px solid #ad3d35 !important;
+    background: #ad3d35 !important; color: #fff !important; border-radius: 4px;
+    font: 700 11px var(--body); letter-spacing: .05em; white-space: nowrap;
+}
+.review-remove-button:hover { background: #8c2d27 !important; border-color: #8c2d27 !important; }
+.review-remove-button:focus-visible { outline: 3px solid rgba(173,61,53,.3); outline-offset: 2px; }

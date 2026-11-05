@@ -934,7 +934,7 @@ namespace RROMS.Migrations
                     b.Property<int>("CustomerID")
                         .HasColumnType("int");
 
-                    b.Property<int>("OrderID")
+                    b.Property<int?>("OrderID")
                         .HasColumnType("int");
 
                     b.Property<int>("Rating")
@@ -1324,8 +1324,7 @@ namespace RROMS.Migrations
                     b.HasOne("RROMS.Models.CustomerOrder", "Order")
                         .WithMany()
                         .HasForeignKey("OrderID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Customer");
 
