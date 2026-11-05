@@ -2310,6 +2310,15 @@ td small
 }
 
 /* All booking policies are visible together before the customer accepts them. */
+.reservation-policy-preview
+{
+    margin-top: 28px;
+}
+.reservation-policy-preview h3
+{
+    margin-top: 6px;
+}
+
 .reservation-policy-grid
 {
     display: grid;
@@ -2751,7 +2760,7 @@ td small
 .account-shell { display:grid; grid-template-columns:1fr 1fr; max-width:1160px; margin:40px auto 70px; border:1px solid #e1dacd; background:#fff; }
 .account-photo {
     min-height: 600px;
-    background: linear-gradient(0deg,rgba(35,29,20,.74),rgba(35,29,20,.05)),url('/images/celeste-indoor-2.png') center/cover;
+    background: linear-gradient(0deg,rgba(35,29,20,.74),rgba(35,29,20,.05)),url('/images/celeste-indoor.png') center/cover;
     display: flex;
     align-items: flex-end;
     padding: 48px;
@@ -3085,6 +3094,68 @@ td small
 .staff-notification-item form { margin: 0; flex-shrink: 0; }
 .staff-notification-item form button { white-space: nowrap; }
 @media(max-width: 700px) { .staff-notification-item { align-items: flex-start; flex-direction: column; padding: 20px; } .staff-notifications-heading { align-items: flex-start; flex-direction: column; } .workspace-bar-right { gap: 10px; } }
+
+/* Customer inbox follows staff notifications: new messages have a highlight and shadow
+   until a customer explicitly marks them as read. */
+.customer-notification-bell { position: relative; }
+.customer-alert-count {
+    position: absolute;
+    top: -7px;
+    right: -9px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 21px;
+    height: 21px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #9c574b;
+    color: #fff;
+    font: 600 10px/1 var(--body);
+    box-shadow: 0 0 0 2px #fff;
+}
+.customer-notifications-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    max-width: 980px;
+    margin: 0 auto 24px;
+}
+.customer-notifications-toolbar p,
+.customer-notifications-toolbar form { margin: 0; }
+.customer-notifications-list { max-width: 980px; margin: 0 auto; padding: 0; overflow: hidden; }
+.customer-notification-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 24px 30px;
+    border-bottom: 1px solid var(--line);
+    background: #fff;
+    box-shadow: none;
+}
+.customer-notification-item:last-child { border-bottom: 0; }
+.customer-notification-item.unread {
+    background: #f4f5ee;
+    box-shadow: inset 4px 0 #737e4d, 0 3px 11px rgba(58, 62, 43, .09);
+}
+.customer-notification-content { flex: 1 1 auto; min-width: 0; }
+.customer-notification-content h2 {
+    margin: 8px 0;
+    font: 600 16px/1.4 var(--body);
+    letter-spacing: 0;
+}
+.customer-notification-content > p:not(.customer-notification-meta) { margin: 0 0 8px; }
+.customer-notification-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; color: var(--muted); font-size: 11px; }
+.customer-notification-meta span:first-child { letter-spacing: .4px; }
+.customer-notification-item form { flex-shrink: 0; margin: 0; }
+.customer-notification-item form button { white-space: nowrap; }
+@media (max-width: 700px) {
+    .customer-notification-item { align-items: flex-start; flex-direction: column; padding: 20px; }
+    .customer-notifications-toolbar { align-items: flex-start; }
+}
 
 /* Responsive reservation trend: a real SVG line chart with accessible data table. */
 .reservation-line-chart { overflow-x: auto; margin: 26px 0 10px; }

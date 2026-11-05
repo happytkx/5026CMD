@@ -1,28 +1,2 @@
 @page
-@* Internal sign-in for restaurant staff and administrators. *@
 @model RROMS.Pages.Account.StaffLoginModel
-@{
-    ViewData["Title"] = "Staff & administrator sign in";
-}
-<section class="account-heading">
-    <p class="eyebrow">CÉLESTE / STAFF ACCESS</p>
-    <h1>Staff &amp; Administrator Sign In</h1>
-    <p>Secure access for authorised Céleste restaurant personnel.</p>
-    <p><a asp-page="ForgotPassword" asp-route-AccountType="Administrator">Administrator password reset</a></p>
-</section>
-<section class="card auth-card">
-    <form method="post">
-        <input type="hidden" asp-for="ReturnUrl" />
-        <div asp-validation-summary="All" class="error"></div>
-        <label asp-for="Email">Email address</label>
-        <input asp-for="Email" type="email" autocomplete="username" maxlength="100" required />
-        <label asp-for="Password">Password</label>
-        <input asp-for="Password" type="password" autocomplete="current-password" required />
-        <label class="check"><input asp-for="RememberMe" /> Keep me signed in on this device</label>
-        <button type="submit" class="wide-button">Sign in</button>
-    </form>
-    <div class="auth-login-footer">
-        <p class="muted">Staff password help: contact your administrator.</p>
-        <p class="muted auth-switch-link"><a asp-page="Login">&larr; Customer Sign In</a></p>
-    </div>
-</section>

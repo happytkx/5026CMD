@@ -1,5 +1,5 @@
 @page
-@* Customer notification inbox for dining-order updates. *@
+@* Customer notification inbox for dining-order updates. Unread messages stay highlighted until marked as read. *@
 @model RROMS.Pages.NotificationsModel
 @{
     ViewData["Title"] = "Notifications";
@@ -9,25 +9,30 @@
     <h1>Notifications</h1>
     <p>Dining-order updates from the restaurant. Reservation updates appear on each booking's details page.</p>
 </section>
-@if (Model.UnreadCount > 0)
-{
-    <div class="section-heading">
-        <span></span>
+
+<div class="customer-notifications-toolbar">
+    <p class="muted">@(Model.UnreadCount == 0 ? "You're all caught up." : $"{Model.UnreadCount} unread notification{(Model.UnreadCount == 1 ? "" : "s")}")</p>
+    @if (Model.UnreadCount > 0)
+    {
         <form method="post" asp-page-handler="MarkAllRead">
-            <button type="submit" class="secondary">Mark all as read</button>
+            <button type="submit" class="secondary">Mark all as read (@Model.UnreadCount)</button>
         </form>
-    </div>
-}
-@if (Model.Items.Any())
+    }
+</div>
+
+@if (Model.Items.Count > 0)
 {
-    <section class="card">
+    <section class="card customer-notifications-list" aria-label="Your notifications">
         @foreach (var n in Model.Items)
         {
-            <div class="notification-row">
-                <div>
-                    <p><strong>@n.Title</strong> @if (!n.IsRead) { <span class="badge">New</span> }</p>
+            <article class="customer-notification-item @(n.IsRead ? "" : "unread")">
+                <div class="customer-notification-content">
+                    <p class="customer-notification-meta">
+                        <span>@n.CreatedAt.ToString("dd MMM yyyy, h:mm tt")</span>
+                        @if (!n.IsRead) { <span class="staff-alert-new">New</span> }
+                    </p>
+                    <h2>@n.Title</h2>
                     <p>@n.Message</p>
-                    <small>@n.CreatedAt.ToString("dd MMM yyyy, h:mm tt")</small>
                     @if (n.RelatedOrderID.HasValue)
                     {
                         <a asp-page="/Orders/Index">View my orders →</a>
@@ -37,10 +42,10 @@
                 {
                     <form method="post" asp-page-handler="MarkRead">
                         <input type="hidden" name="id" value="@n.CustomerNotificationID" />
-                        <button type="submit" class="secondary quiet">Mark read</button>
+                        <button type="submit" class="secondary">Mark as read</button>
                     </form>
                 }
-            </div>
+            </article>
         }
     </section>
 }

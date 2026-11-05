@@ -7,19 +7,6 @@ namespace RROMS.Services;
 
 public class CustomerCookieEvents(ApplicationDbContext db, IWebHostEnvironment environment, IConfiguration config) : CookieAuthenticationEvents
 {
-    // Staff and administrator protected pages lead to the internal login, not the customer form.
-    public override Task RedirectToLogin(RedirectContext<CookieAuthenticationOptions> context)
-    {
-        var path = context.Request.Path;
-        if (path.StartsWithSegments("/Staff") || path.StartsWithSegments("/Admin"))
-        {
-            var returnUrl = context.Request.PathBase.ToString() + path.ToString() + context.Request.QueryString.ToString();
-            context.Response.Redirect("/Account/StaffLogin?ReturnUrl=" + Uri.EscapeDataString(returnUrl));
-            return Task.CompletedTask;
-        }
-        return base.RedirectToLogin(context);
-    }
-
     public override async Task ValidatePrincipal(CookieValidatePrincipalContext context)
     {
         var user = context.Principal;

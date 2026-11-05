@@ -7,6 +7,16 @@
     var admin = User.IsInRole("Administrator");
     var staff = User.IsInRole("Restaurant Staff") || User.IsInRole("Staff") || admin;
     var workspace = staff && (currentPage.StartsWith("/Staff") || currentPage.StartsWith("/Admin") || currentPage == "/Reservations/Details");
+    var unreadCustomerNotifications = 0;
+    if (!staff && User.IsInRole("Customer"))
+    {
+        var customerId = RROMS.Services.ReservationIdentity.CustomerId(User);
+        if (customerId > 0)
+        {
+            unreadCustomerNotifications = await NotificationDb.CustomerNotifications.AsNoTracking()
+                .CountAsync(n => n.CustomerID == customerId && !n.IsRead);
+        }
+    }
     var unreadStaffNotifications = 0;
     if (workspace)
     {
@@ -204,14 +214,18 @@
                             My orders
                         </a>
                         <a asp-page="/Notifications"
-                           class="nav-icon-link @(currentPage == "/Notifications" ? "active" : "")"
-                           aria-label="Notifications" title="Notifications"
+                           class="nav-icon-link customer-notification-bell @(currentPage == "/Notifications" ? "active" : "")"
+                           aria-label="Notifications@(unreadCustomerNotifications > 0 ? $": {unreadCustomerNotifications} unread" : "")" title="Notifications"
                            aria-current="@(currentPage == "/Notifications" ? "page" : null)">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
                                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
                                 <path d="M10 21h4" />
                             </svg>
+                            @if (unreadCustomerNotifications > 0)
+                            {
+                                <span class="customer-alert-count" aria-hidden="true">@(unreadCustomerNotifications > 99 ? "99+" : unreadCustomerNotifications.ToString())</span>
+                            }
                         </a>
                         <a asp-page="/Account/Profile"
                            class="nav-icon-link @(currentPage == "/Account/Profile" ? "active" : "")"

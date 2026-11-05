@@ -30,6 +30,6 @@ public class ResetPasswordModel(CustomerAccountService accounts, AdministratorAc
         if (!LinkValid || !ModelState.IsValid) return Page();
         if (!await Reset()) { LinkValid = false; return Page(); }
         TempData["AccountMessage"] = "Your password has been updated. Please sign in with your new password. Previous signed-in sessions have been ended.";
-        return RedirectToPage(AccountType == "Administrator" ? "StaffLogin" : "Login");
+        return RedirectToPage("Login");
     }
 }

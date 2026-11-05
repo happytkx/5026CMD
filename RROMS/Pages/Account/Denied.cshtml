@@ -1,31 +1,3 @@
 @page
-@{
-    ViewData["Title"] = "Access unavailable";
-    var returnUrl = ViewContext.HttpContext.Request.Query["ReturnUrl"].ToString();
-    var safeReturnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : null;
-    var customerPage = safeReturnUrl?.StartsWith("/Reservations/", StringComparison.OrdinalIgnoreCase) == true ||
-                       safeReturnUrl?.StartsWith("/Orders/", StringComparison.OrdinalIgnoreCase) == true ||
-                       safeReturnUrl?.StartsWith("/Menu", StringComparison.OrdinalIgnoreCase) == true;
-    var staffPage = safeReturnUrl?.StartsWith("/Staff/", StringComparison.OrdinalIgnoreCase) == true ||
-                    safeReturnUrl?.StartsWith("/Admin/", StringComparison.OrdinalIgnoreCase) == true;
-}
-<section class="account-compact card">
-    <h1>Access unavailable</h1>
-    <p>Your current account does not have permission to open this page.</p>
-    @if (customerPage)
-    {
-        <p>Reservations and dine-in orders require a customer account.</p>
-        <p><a asp-page="Login" asp-route-ReturnUrl="@safeReturnUrl">Sign in with a customer account</a></p>
-    }
-    else if (staffPage)
-    {
-        <p>This page is for authorised restaurant personnel.</p>
-        <p><a asp-page="StaffLogin" asp-route-ReturnUrl="@safeReturnUrl">Sign in with a staff or administrator account</a></p>
-    }
-    else
-    {
-        <p><a asp-page="Login">Customer sign in</a></p>
-        <p><a asp-page="StaffLogin">Staff / Administrator sign in</a></p>
-    }
-    <a asp-page="/Index">Return home</a>
-</section>
+@{ ViewData["Title"] = "Access unavailable"; }
+<section class="account-compact card"><h1>Access unavailable</h1><p>Your account does not have permission to open this page.</p><p><a asp-page="Login">Sign in with a staff account</a></p><a asp-page="/Index">Return home</a></section>

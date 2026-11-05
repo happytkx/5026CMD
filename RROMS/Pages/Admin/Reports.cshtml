@@ -101,7 +101,7 @@
 	</p>
 
 
-	
+
 
 <section id="reservation-overview" class="report-section" aria-labelledby="reservation-overview-heading">
     <header class="report-section-heading">
@@ -232,7 +232,7 @@
 					/ report.TotalReservations);
 
 				<div class="report-status-row">
-					
+
 					<div class="report-status-label">
 
 						<a class="text-reset text-decoration-none"
@@ -258,7 +258,7 @@
 						aria-valuemin="0"
 						aria-valuemax="@report.TotalReservations"
 						aria-valuenow="@status.Count">
-						
+
 						<div class="report-bar-fill"
 							style="width: @(percentage)%">
 						</div>
@@ -398,6 +398,10 @@
 			int totalPayments = Model.DailyDeposits
 				.Sum(d => d.PaymentCount);
 
+			decimal averageDepositPerReservation = Model.PaidDepositReservationCount > 0
+				? totalCollected / Model.PaidDepositReservationCount
+				: 0m;
+
 			decimal maxDailyAmount = Model.DailyDeposits.Count == 0
 				? 0m
 				: Model.DailyDeposits.Max(d => d.TotalAmount);
@@ -412,6 +416,11 @@
 			<article class="card">
 				<small>SUCCESSFUL TRANSACTIONS</small>
 				<h2>@totalPayments</h2>
+			</article>
+
+			<article class="card">
+				<small>AVERAGE DEPOSIT PER RESERVATION</small>
+				<h2>RM @averageDepositPerReservation.ToString("N2")</h2>
 			</article>
 		</div>
 

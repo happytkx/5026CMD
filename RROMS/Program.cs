@@ -78,15 +78,20 @@ using (var scope = app.Services.CreateScope())
     var context = scope.ServiceProvider
         .GetRequiredService<ApplicationDbContext>();
 
-    DbInitializer.Initialize(context, app.Environment.IsDevelopment());
-    if (app.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("DemoData:Enabled"))
-        await DevelopmentDataSeeder.Seed(context, builder.Configuration);
-}
+    Console.WriteLine("================================");
+    Console.WriteLine("Database: " +
+        context.Database.GetDbConnection().Database);
+    Console.WriteLine("Server: " +
+        context.Database.GetDbConnection().DataSource);
+    Console.WriteLine("================================");
 
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Error");
-    app.UseHsts();
+    DbInitializer.Initialize(context, app.Environment.IsDevelopment());
+
+    if (app.Environment.IsDevelopment() &&
+        builder.Configuration.GetValue<bool>("DemoData:Enabled"))
+    {
+        await DevelopmentDataSeeder.Seed(context, builder.Configuration);
+    }
 }
 
 app.UseHttpsRedirection();

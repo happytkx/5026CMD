@@ -1,4 +1,4 @@
-// Customer-only sign-in. Staff and administrators use the separate internal login page.
+// Email and password sign-in for customers, staff and administrators, with a temporary lockout after repeated failures.
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -8,17 +8,23 @@ using Microsoft.AspNetCore.RateLimiting;
 
 namespace RROMS.Pages.Account;
 
-[EnableRateLimiting("accounts")]
-public class LoginModel(CustomerAccountService accounts) : PageModel
+[EnableRateLimiting("staff-accounts")]
+public class LoginModel(CustomerAccountService accounts, StaffAccountService staffAccounts, AdministratorAccountService administrators) : PageModel
 {
     [BindProperty, Required, EmailAddress, StringLength(100)]
     public string Email { get; set; } = "";
     [BindProperty, Required, DataType(DataType.Password)]
     public string Password { get; set; } = "";
     [BindProperty]
-    public bool RememberMe { get; set; }
+    public bool RememberMe
+    {
+        get; set;
+    }
     [BindProperty(SupportsGet = true)]
-    public string? ReturnUrl { get; set; }
+    public string? ReturnUrl
+    {
+        get; set;
+    }
 
     public IActionResult OnGet() => Page();
 
@@ -26,18 +32,34 @@ public class LoginModel(CustomerAccountService accounts) : PageModel
     {
         if (!ModelState.IsValid)
             return Page();
-
-        var customer = await accounts.Authenticate(Email, Password);
-        if (customer is null)
+        var administrator = await administrators.Authenticate(Email, Password);
+        if (administrator != null)
         {
-            ModelState.AddModelError("", "Invalid email or password.");
-            return Page();
+            Basket.Clear(HttpContext.Session);
+            await InternalAccountAuth.SignInAsync(HttpContext, administrator, RememberMe);
+            return LocalRedirect(Destination(Customer.AdminRole));
+        }
+        var customer = await accounts.Authenticate(Email, Password);
+        if (customer != null)
+        {
+            Basket.Clear(HttpContext.Session);
+            await CustomerAuth.SignInAsync(HttpContext, customer, RememberMe);
+            return LocalRedirect(Destination(customer.Role));
         }
 
-        Basket.Clear(HttpContext.Session); // Prevent an earlier account's basket following this sign-in.
-        await CustomerAuth.SignInAsync(HttpContext, customer, RememberMe);
-        return LocalRedirect(Url.IsLocalUrl(ReturnUrl)
-            ? ReturnUrl!
-            : Url.Page(CustomerAuth.LandingPage(Customer.CustomerRole))!);
+        var staff = await staffAccounts.Authenticate(Email, Password);
+        if (staff == null) return Fail();
+        Basket.Clear(HttpContext.Session);
+        await InternalAccountAuth.SignInAsync(HttpContext, staff, RememberMe);
+        return LocalRedirect(Destination(Customer.StaffRole));
     }
+
+    private IActionResult Fail()
+    {
+        ModelState.AddModelError("", "Invalid email or password.");
+        return Page();
+    }
+
+    private string Destination(string role) =>
+        Url.IsLocalUrl(ReturnUrl) ? ReturnUrl! : Url.Page(CustomerAuth.LandingPage(role))!;
 }

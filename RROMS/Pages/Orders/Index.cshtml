@@ -81,7 +81,7 @@
                                 {
                                     var cancelled = line.IsCancelled || o.Status == "Cancelled";
                                     <tr data-line-id="@line.OrderLineID" class="@(cancelled ? "cancelled-line" : "")">
-                                        <td>@line.ItemName</td>
+                                        <td>@(RROMS.Services.MenuDisplayNames.InEnglish(line.ItemName))</td>
                                         <td>@line.Quantity</td>
                                         <td>RM @line.UnitPrice.ToString("N2")</td>
                                         <td data-line-total>@(cancelled ? "Excluded" : $"RM {line.LineTotal:N2}")</td>
