@@ -1,0 +1,65 @@
+/* Public guest concierge. Kept separate from the staff dashboard UI. */
+.celeste-concierge { position: fixed; right: 22px; bottom: 22px; z-index: 1050; font-family: Inter, sans-serif; }
+.concierge-launch {
+    border: 1px solid #555d3e; border-radius: 999px; padding: 13px 19px;
+    background: #666d4d; color: #fff; font-size: 13px; font-weight: 600;
+    box-shadow: 0 7px 24px rgba(37, 34, 24, .16); cursor: pointer;
+}
+.concierge-launch span { margin-right: 6px; color: #efe5cb; }
+.concierge-launch:hover { background: #555c3f; }
+.concierge-panel {
+    position: absolute; right: 0; bottom: 61px; display: flex; flex-direction: column;
+    width: min(385px, calc(100vw - 28px)); height: min(555px, calc(100dvh - 106px));
+    overflow: hidden; border: 1px solid #d9d0bd; border-radius: 11px;
+    background: #fffdf9; box-shadow: 0 18px 60px rgba(41, 35, 25, .22);
+}
+.concierge-panel[hidden], .concierge-suggestions[hidden] { display: none; }
+.concierge-header {
+    display: flex; justify-content: space-between; align-items: center; gap: 14px;
+    padding: 16px 18px; color: #fff; background: #626b4a;
+}
+.concierge-header strong { display: block; font-family: "Cormorant Garamond", Georgia, serif; font-size: 23px; font-weight: 600; }
+.concierge-header small { display: block; font-size: 11px; color: #f1ede1; }
+.concierge-close { border: 0; background: transparent; color: #fff; font-size: 26px; line-height: 1; cursor: pointer; }
+.concierge-messages {
+    flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex;
+    flex-direction: column; gap: 12px; padding: 18px; background: #fbf9f4;
+}
+.concierge-bubble {
+    max-width: 94%; width: fit-content; margin: 0; padding: 11px 13px;
+    border-radius: 12px; font-size: 12px; line-height: 1.6; white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+.concierge-bubble-assistant { align-self: flex-start; background: #edeae1; color: #333028; border-bottom-left-radius: 3px; }
+.concierge-bubble-user { align-self: flex-end; background: #68714e; color: #fff; border-bottom-right-radius: 3px; }
+.concierge-bubble-assistant a { color: #4e5e38; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.concierge-bubble-assistant a:hover { color: #334323; }
+.concierge-suggestions {
+    display: flex; flex-wrap: nowrap; gap: 6px; padding: 10px 12px 4px;
+    overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+    scrollbar-width: thin; background: #fff;
+}
+.concierge-suggestions button {
+    border: 1px solid #d5cbb9; border-radius: 999px; background: #fff;
+    color: #655c42; padding: 5px 8px; font-size: 10px; white-space: nowrap;
+    flex: 0 0 auto; cursor: pointer;
+}
+.concierge-suggestions button:hover { background: #f5f1e8; }
+.concierge-form { display: flex; gap: 8px; padding: 12px 15px 6px; background: #fff; }
+.concierge-form input {
+    flex: 1; min-width: 0; border: 1px solid #d5cbb9; border-radius: 5px;
+    padding: 11px; background: #fff; font-size: 12px;
+}
+.concierge-form button {
+    margin: 0; border: 0; border-radius: 5px; padding: 10px 13px;
+    background: #666d4d; color: white; font-size: 12px; cursor: pointer;
+}
+.concierge-form button:disabled { opacity: .5; cursor: wait; }
+.concierge-disclaimer { padding: 0 15px 12px; margin: 0; color: #777066; background: #fff; font-size: 10px; line-height: 1.45; }
+.concierge-disclaimer a { color: #565f3f; text-decoration: underline; }
+.celeste-concierge :is(button, input):focus-visible { outline: 2px solid #a97c4b; outline-offset: 3px; }
+@media (max-width: 520px) {
+    .celeste-concierge { right: 12px; bottom: 12px; }
+    .concierge-panel { bottom: 57px; height: min(525px, calc(100dvh - 85px)); }
+}
+@media print { .celeste-concierge { display: none !important; } }

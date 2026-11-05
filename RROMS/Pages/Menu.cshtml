@@ -58,6 +58,11 @@
     {
         <article class="dish">
             <div class="dish-art">
+                @if (MenuPricing.IsPromotionActive(item, ReservationPolicy.Now) && item.PromotionEndDate.HasValue)
+                {
+                    var remaining = Math.Max(1, (item.PromotionEndDate.Value.Date - ReservationPolicy.Now.Date).Days + 1);
+                    <span class="expiry-badge">@(remaining == 1 ? "1 day left" : $"{remaining} days left")</span>
+                }
                 <img src="@MenuImages.Url(item)" alt="@MenuImages.Alt(item)" loading="lazy"
                              onerror="this.onerror=null; this.src='/images/celeste-indoor.png'; this.alt='Dining at Céleste';" />
             </div>
@@ -74,7 +79,16 @@
                 <small>Dietary: @(string.IsNullOrWhiteSpace(item.DietaryTags) ? "Not specified" : item.DietaryTags)</small>
                 <small>Allergens: @(string.IsNullOrWhiteSpace(item.Allergens) ? "Not specified" : item.Allergens)</small>
                 <div class="dish-bottom">
-                    <span class="price">RM @item.Price.ToString("0.00")</span>
+                    @if (MenuPricing.IsPromotionActive(item, ReservationPolicy.Now))
+                    {
+                        <span class="price">RM @MenuPricing.CurrentPrice(item, ReservationPolicy.Now).ToString("0.00")</span>
+                        <del class="muted">RM @item.Price.ToString("0.00")</del>
+                        <span class="badge">Save @(item.DiscountPercent?.ToString("0.##"))%</span>
+                    }
+                    else
+                    {
+                        <span class="price">RM @item.Price.ToString("0.00")</span>
+                    }
                     @if (Model.CanOrder)
                     {
                         <form method="post" asp-page-handler="Add">

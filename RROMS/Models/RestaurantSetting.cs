@@ -17,4 +17,6 @@ public class RestaurantSetting : IAdministratorManaged
     }
     public TimeSpan OpeningTime { get; set; } = TimeSpan.FromHours(12);
     public TimeSpan ClosingTime { get; set; } = TimeSpan.FromHours(22);
+    // Configurable spacing between arrival slots. Existing restaurants default to 30 minutes.
+    public int SlotIntervalMinutes { get; set; } = 30;
 }

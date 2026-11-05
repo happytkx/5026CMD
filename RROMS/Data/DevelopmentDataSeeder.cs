@@ -148,6 +148,41 @@ public static class DevelopmentDataSeeder
                 samples.Add(($"SEASON-{date:yyyyMMdd}-{slot + 1}", status, party.Size, party.Area, visit));
             }
         }
+        // Historical demonstration data: meaningful coverage for every day from
+        // October 2026 to today. References are fixed, so restarts never duplicate
+        // these fixtures; existing customer bookings always take priority.
+        var demoCalendarStart = new DateTime(2026, 10, 1);
+        if (now.Date >= demoCalendarStart)
+        {
+            var interval = settings.SlotIntervalMinutes is 15 or 30 or 60
+                ? settings.SlotIntervalMinutes : 30;
+            var waveMinutes = ((120 + interval - 1) / interval) * interval;
+            for (var date = demoCalendarStart; date <= now.Date; date = date.AddDays(1))
+            {
+                var dailyRandom = new Random(date.Year * 10000 + date.Month * 100 + date.Day);
+                var dailyVisits = date.DayOfWeek switch
+                {
+                    DayOfWeek.Friday => 8 + dailyRandom.Next(4),
+                    DayOfWeek.Saturday => 10 + dailyRandom.Next(5),
+                    DayOfWeek.Sunday => 8 + dailyRandom.Next(4),
+                    _ => 5 + dailyRandom.Next(4)
+                };
+                for (var visitNo = 0; visitNo < dailyVisits; visitNo++)
+                {
+                    var party = visitNo == 0 ? (Size: 2, Area: "Indoor")
+                        : parties[dailyRandom.Next(parties.Length)];
+                    var visitTime = date.Add(settings.OpeningTime)
+                        .AddMinutes((visitNo % 5) * waveMinutes);
+                    var visitEnd = ReservationPolicy.End(visitTime, party.Area, settings.ClosingTime);
+                    if (visitEnd > date.Add(settings.ClosingTime) || visitEnd <= visitTime)
+                        continue;
+                    var status = visitEnd <= now ? "Completed" : "Confirmed";
+                    samples.Add(($"SEASON-AUTUMN-{date:yyyyMMdd}-{visitNo + 1:D2}",
+                        status, party.Size, party.Area, visitTime));
+                }
+            }
+        }
+
         var inventory = await db.RestaurantTables.Include(t => t.DiningArea).OrderBy(t => t.Capacity).ThenBy(t => t.TableID).ToListAsync();
         var menuByCategory = (await db.MenuItems.AsNoTracking()
             .Where(m => m.IsAvailable && m.Price > 0m)
@@ -283,6 +318,91 @@ public static class DevelopmentDataSeeder
         // Rebalance only untouched, automatically generated reservations;
         // keep real accounts and manually worked-on records intact.
         await RebalanceSeasonalDemoCustomersAsync(db, config);
+        await SeedDemoReviewsAsync(db);
+    }
+
+    // Seed reviews for fictional completed orders only. This is development-only
+    // data, is never sent to customers, and preserves any genuine user reviews.
+    private static async Task SeedDemoReviewsAsync(ApplicationDbContext db)
+    {
+        var now = ReservationPolicy.Now;
+        var demoOrders = await db.Orders.AsNoTracking()
+            .Where(o => o.Status == "Completed" &&
+                o.Reference.StartsWith("DEMO") &&
+                o.Reservation.Customer.IsDemo &&
+                o.Reservation.ReservationDate >= new DateTime(2026, 10, 1) &&
+                o.Reservation.ReservationDate <= now.Date)
+            .Select(o => new { o.OrderID, o.CustomerID, o.Reference, o.CreatedAt })
+            .ToListAsync();
+
+        if (demoOrders.Count == 0) return;
+        var demoOrderIds = demoOrders.Select(o => o.OrderID).ToList();
+        var existing = (await db.Reviews.AsNoTracking()
+            .Where(r => demoOrderIds.Contains(r.OrderID))
+            .Select(r => r.OrderID).ToListAsync()).ToHashSet();
+
+        string[] excellent = [
+            "A lovely evening. The service was attentive and every course was beautifully presented.",
+            "The atmosphere was elegant without feeling formal. We especially enjoyed the main courses.",
+            "A memorable dinner with thoughtful service and delicious desserts.",
+            "The dining room was peaceful, and the food arrived beautifully prepared.",
+            "We had a wonderful celebration. The staff made the experience feel special.",
+            "Excellent flavours and a welcoming team. Looking forward to returning."
+        ];
+        string[] good = [
+            "Enjoyable food and a comfortable setting. We would happily visit again.",
+            "The menu had some lovely choices, and the team was friendly throughout.",
+            "A pleasant dinner with well-presented dishes. Dessert was a highlight.",
+            "The setting was beautiful and the service was courteous.",
+            "Good overall experience. A little wait between courses, but worth it."
+        ];
+        string[] fair = [
+            "The food was nice, though the pacing between courses could be improved.",
+            "Beautiful atmosphere, but we expected slightly more from the main dish.",
+            "A decent evening. The team was kind, although service was a little slow."
+        ];
+        string[] disappointing = [
+            "The setting was inviting, but several dishes took longer than expected.",
+            "Friendly team, though the food and timing did not quite meet our expectations."
+        ];
+
+        static uint StableHash(string value)
+        {
+            uint hash = 2166136261u;
+            foreach (var ch in value)
+                hash = unchecked((hash ^ ch) * 16777619u);
+            return hash;
+        }
+
+        foreach (var order in demoOrders)
+        {
+            if (existing.Contains(order.OrderID)) continue;
+            var hash = StableHash(order.Reference);
+            if (hash % 100u >= 65u) continue;
+            var score = (hash / 101u) % 100u;
+            var rating = score < 48u ? 5 : score < 83u ? 4 :
+                score < 94u ? 3 : score < 99u ? 2 : 1;
+            var remarks = rating switch
+            {
+                5 => excellent,
+                4 => good,
+                3 => fair,
+                _ => disappointing
+            };
+            var comment = remarks[(int)((hash / 719u) % (uint)remarks.Length)];
+            var reviewedAt = order.CreatedAt.AddHours(3 + (int)(hash % 22u));
+            if (reviewedAt > now) reviewedAt = now;
+            db.Reviews.Add(new Review
+            {
+                CustomerID = order.CustomerID,
+                OrderID = order.OrderID,
+                Rating = rating,
+                Comment = comment,
+                CreatedAt = reviewedAt
+            });
+        }
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
     }
 
     // Existing demo calendars reused a small pool so often that nearly every

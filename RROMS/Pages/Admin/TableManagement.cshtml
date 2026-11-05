@@ -16,6 +16,18 @@
     <p class="notice table-management-error" role="alert">@error</p>
 }
 
+<style>
+    .dining-zone-form { display: grid; grid-template-columns: 2fr 1fr auto; gap: .9rem; align-items: end; }
+    .dining-zone-form label, .dining-zone-row label { display: block; font-weight: 600; margin-bottom: .3rem; }
+    .dining-zone-form input, .dining-zone-form select, .dining-zone-row input { width: 100%; }
+    .dining-zone-row { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; padding: .9rem 0; border-bottom: 1px solid #e5ded2; }
+    .dining-zone-row:last-child { border-bottom: 0; }
+    .dining-zone-label { min-width: 13rem; flex: 1; }
+    .dining-zone-row form { display: flex; align-items: end; gap: .45rem; flex-wrap: wrap; }
+    .dining-zone-row button { padding: .55rem .8rem; }
+    @@media (max-width: 750px) { .dining-zone-form { grid-template-columns: 1fr; } }
+</style>
+
 <section class="table-management-summary" aria-label="Table inventory overview">
     <article class="card"><small>TOTAL TABLES &amp; ROOMS</small><strong>@Model.Tables.Count</strong></article>
     <article class="card"><small>AVAILABLE FOR BOOKING</small><strong>@Model.AvailableCount</strong></article>
@@ -30,6 +42,56 @@
         Existing records and reservations have been preserved; please review the extra rooms before changing them.
     </p>
 }
+
+<section class="card" id="dining-area-management" aria-labelledby="dining-zone-heading">
+    <p class="eyebrow">RESTAURANT CONFIGURATION</p>
+    <h2 id="dining-zone-heading">Manage dining areas</h2>
+    <p class="muted">Create named zones under the existing Indoor or Outdoor booking types, then assign tables below. Booking durations and capacities still follow each zone's type; Céleste's two VIP rooms remain unchanged.</p>
+    <form method="post" asp-page-handler="AddDiningArea" class="dining-zone-form">
+        <div>
+            <label for="new-zone-name">Dining area name</label>
+            <input id="new-zone-name" name="displayName" maxlength="80" placeholder="e.g. Garden Terrace" required />
+        </div>
+        <div>
+            <label for="new-zone-type">Booking type</label>
+            <select id="new-zone-type" name="areaType" required>
+                <option value="Indoor">Indoor</option>
+                <option value="Outdoor">Outdoor</option>
+            </select>
+        </div>
+        <button type="submit">ADD DINING AREA</button>
+    </form>
+    <h3>Current dining areas</h3>
+    @foreach (var area in Model.Areas)
+    {
+        var assignedTables = Model.Tables.Count(t => t.DiningAreaID == area.DiningAreaID);
+        <div class="dining-zone-row">
+            <div class="dining-zone-label">
+                <strong>@area.DisplayLabel</strong>
+                <small class="muted"> · @area.AreaType · @assignedTables assigned @(assignedTables == 1 ? "table" : "tables")</small>
+            </div>
+            @if (area.AreaType != "VIP Room")
+            {
+                <form method="post" asp-page-handler="RenameDiningArea">
+                    <input type="hidden" name="diningAreaId" value="@area.DiningAreaID" />
+                    <div>
+                        <label for="rename-zone-@area.DiningAreaID">Rename</label>
+                        <input id="rename-zone-@area.DiningAreaID" name="displayName" maxlength="80" value="@area.DisplayLabel" required />
+                    </div>
+                    <button type="submit" class="secondary">SAVE NAME</button>
+                </form>
+                @if (assignedTables == 0 && Model.Areas.Count(a => a.AreaType == area.AreaType) > 1)
+                {
+                    <form method="post" asp-page-handler="RemoveDiningArea"
+                          onsubmit="return confirm('Remove this empty dining zone?');">
+                        <input type="hidden" name="diningAreaId" value="@area.DiningAreaID" />
+                        <button type="submit" class="quiet danger">REMOVE</button>
+                    </form>
+                }
+            }
+        </div>
+    }
+</section>
 
 <section class="card table-availability-check" id="availability-check">
     <div class="table-management-header">
@@ -48,7 +110,7 @@
         </div>
         <div>
             <label for="check-time">Arrival time</label>
-            <input id="check-time" type="time" name="CheckTime" step="1800"
+            <input id="check-time" type="time" name="CheckTime" step="@(Model.SlotIntervalMinutes * 60)"
                    value="@(Model.CheckTime ?? "19:00")" required />
         </div>
         <button type="submit">CHECK AVAILABILITY</button>
@@ -72,11 +134,11 @@
             </div>
             @foreach (var area in Model.Areas)
             {
-                var spaces = Model.AvailabilityResults.Where(t => t.Area == area.AreaType)
+                var spaces = Model.AvailabilityResults.Where(t => t.AreaId == area.DiningAreaID)
                     .OrderByDescending(t => t.IsBookable).ThenBy(t => t.TableId).ToList();
                 <div class="table-availability-area">
                     <div class="table-availability-area-heading">
-                        <h3>@area.AreaType</h3>
+                        <h3>@area.DisplayLabel</h3>
                         <span>@spaces.Count(t => t.IsBookable) of @spaces.Count available</span>
                     </div>
                     @if (spaces.Count == 0)
@@ -127,7 +189,7 @@
             <select id="new-table-area" name="diningAreaId" required>
                 @foreach (var area in Model.Areas)
                 {
-                    <option value="@area.DiningAreaID">@area.AreaType</option>
+                    <option value="@area.DiningAreaID">@area.DisplayLabel (@area.AreaType)</option>
                 }
             </select>
         </div>
@@ -151,11 +213,11 @@
 @foreach (var area in Model.Areas)
 {
     var areaTables = Model.Tables.Where(t => t.DiningAreaID == area.DiningAreaID).ToList();
-    <section class="card table-management-area" aria-label="@area.AreaType tables">
+    <section class="card table-management-area" aria-label="@area.DisplayLabel tables">
         <div class="table-management-header">
             <div>
                 <p class="eyebrow">DINING AREA</p>
-                <h2>@area.AreaType</h2>
+                <h2>@area.DisplayLabel</h2>
                 <p class="muted">@areaTables.Count @(area.AreaType == "VIP Room" ? "private dining rooms" : "tables") configured</p>
             </div>
         </div>
@@ -174,7 +236,7 @@
                             <strong>@table.TableID</strong>
                             <span class="table-management-status @(table.Status == "Available" ? "is-available" : "is-unavailable")">@table.Status</span>
                         </div>
-                        <p>@table.Capacity guests · @table.DiningArea.AreaType</p>
+                        <p>@table.Capacity guests · @table.DiningArea.DisplayLabel</p>
                         <small>@upcoming active or upcoming @(upcoming == 1 ? "reservation" : "reservations")</small>
                         <form method="post" asp-page-handler="ToggleTable" class="table-management-toggle">
                             <input type="hidden" name="tableId" value="@table.TableID" />
@@ -205,7 +267,7 @@
                                     <select id="area-@table.TableID" name="diningAreaId">
                                         @foreach (var destination in Model.Areas)
                                         {
-                                            <option value="@destination.DiningAreaID" selected="@(destination.DiningAreaID == table.DiningAreaID)">@destination.AreaType</option>
+                                            <option value="@destination.DiningAreaID" selected="@(destination.DiningAreaID == table.DiningAreaID)">@destination.DisplayLabel (@destination.AreaType)</option>
                                         }
                                     </select>
                                 </div>

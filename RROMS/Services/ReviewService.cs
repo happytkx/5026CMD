@@ -35,7 +35,10 @@ public class ReviewService(ApplicationDbContext db)
     public static string FirstName(string? fullName)
     {
         var parts = (fullName ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        return parts.Length == 0 ? "Guest" : parts[0];
+        if (parts.Length == 0) return "Guest";
+        // Fictional development customers are named "Demo Amy Tan": display Amy, not Demo.
+        return parts.Length > 1 && parts[0].Equals("Demo", StringComparison.OrdinalIgnoreCase)
+            ? parts[1] : parts[0];
     }
 
     private IQueryable<Models.Review> Visible() =>

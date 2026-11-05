@@ -53,6 +53,10 @@
 
         <link rel="stylesheet" href="~/css/reservations.css" asp-append-version="true" />
         <link rel="stylesheet" href="~/css/ordering.css" asp-append-version="true" />
+        @if (!staff)
+        {
+            <link rel="stylesheet" href="~/css/customer-chat.css" asp-append-version="true" />
+        }
     </head>
     <body class="@(workspace ? "staff-workspace" : "guest-view")">
         <a class="skip-link" href="#main-content">
@@ -61,7 +65,7 @@
         @if (workspace)
         {
             <aside class="staff-sidebar">
-                <a class="brand" asp-page="/Staff/Index">
+                <a class="brand" asp-page="@(admin ? "/Admin/Index" : "/Staff/Index")">
                     <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M12 0C13.5 8.5 15.5 10.5 24 12C15.5 13.5 13.5 15.5 12 24C10.5 15.5 8.5 13.5 0 12C8.5 10.5 10.5 8.5 12 0Z"/>
                     </svg>
@@ -70,38 +74,14 @@
                 </a>
                 @if (admin)
                 {
-                    <p class="sidebar-label">ADMINISTRATOR MODULE</p>
-                    <nav aria-label="Administrator navigation">
-                        <a class="@(currentPage == "/Admin/Index" ? "active" : "")" asp-page="/Admin/Index">
-                            Admin Dashboard
-                        </a>
-                        <a class="@(currentPage == "/Admin/Reports" || currentPage == "/Admin/ReportReservations" ? "active" : "")" asp-page="/Admin/Reports">
-                            Reservation Reports
-                        </a>
-                        <a class="@(currentPage == "/Admin/PaymentCollections" ? "active" : "")" asp-page="/Admin/PaymentCollections">
-                            Payment Collections
-                        </a>
-                        <a class="@(currentPage == "/Admin/MenuManagement" || currentPage == "/Admin/MenuPerformance" ? "active" : "")" asp-page="/Admin/MenuManagement">
-                            Menu &amp; Performance
-                        </a>
-                        <a class="@(currentPage == "/Admin/CustomerReviews" ? "active" : "")" asp-page="/Admin/CustomerReviews">
-                            Customer Reviews
-                        </a>
-                        <a class="@(currentPage == "/Admin/TableManagement" ? "active" : "")" asp-page="/Admin/TableManagement">
-                            Table Management
-                        </a>
-                        <a class="@(currentPage == "/Admin/Occupancy" ? "active" : "")" asp-page="/Admin/Occupancy">
-                            Table Utilisation
-                        </a>
+                    <p class="sidebar-label">ADMINISTRATOR</p>
+                    <nav aria-label="Administrator overview">
+                        <a class="@(currentPage == "/Admin/Index" ? "active" : "")" asp-page="/Admin/Index">Admin Dashboard</a>
                     </nav>
-                    <p class="sidebar-label sidebar-group-divider">SHARED STAFF OPERATIONS</p>
-                    <p class="sidebar-group-description">Admin access to daily restaurant operations</p>
                 }
-                else
-                {
-                    <p class="sidebar-label">RESTAURANT STAFF MODULE</p>
-                }
-                <nav aria-label="Restaurant staff operations">
+
+                <p class="sidebar-label sidebar-group-divider">DAILY OPERATIONS</p>
+                <nav aria-label="Daily restaurant operations">
                     <a class="@(currentPage == "/Staff/Index" ? "active" : "")" asp-page="/Staff/Index">
                         Daily Reservations
                     </a>
@@ -114,9 +94,12 @@
                     <a class="@(currentPage == "/Staff/Billing" || currentPage == "/Staff/BillDetails" || currentPage == "/Staff/BillingHistory" || currentPage == "/Staff/PaymentReceipt" ? "active" : "")" asp-page="/Staff/Billing">
                         Billing &amp; Checkout
                     </a>
-                    <a class="@(currentPage == "/Staff/CustomerReviews" ? "active" : "")" asp-page="/Staff/CustomerReviews">
-                        Customer Reviews
-                    </a>
+                    @if (!admin)
+                    {
+                        <a class="@(currentPage == "/Staff/CustomerReviews" ? "active" : "")" asp-page="/Staff/CustomerReviews">
+                            Customer Reviews
+                        </a>
+                    }
                     <a class="@(currentPage == "/Staff/Notifications" ? "active" : "")" asp-page="/Staff/Notifications">
                         Notifications
                         @if (unreadStaffNotifications > 0)
@@ -125,6 +108,58 @@
                         }
                     </a>
                 </nav>
+
+                @if (admin)
+                {
+                    var managementOpen = currentPage is "/Admin/MenuManagement" or "/Admin/Promotions"
+                        or "/Admin/TableManagement" or "/Admin/RestaurantSettings" or "/Admin/StaffAccounts";
+                    var reportsOpen = currentPage is "/Admin/Reports" or "/Admin/ReportReservations"
+                        or "/Admin/PaymentCollections" or "/Admin/Occupancy"
+                        or "/Admin/MenuPerformance" or "/Admin/CustomerReviews";
+
+                    <details class="sidebar-section" open="@managementOpen">
+                        <summary class="sidebar-label">RESTAURANT MANAGEMENT</summary>
+                        <nav aria-label="Restaurant management">
+                            <a class="@(currentPage == "/Admin/MenuManagement" ? "active" : "")" asp-page="/Admin/MenuManagement">
+                                Menu Management
+                            </a>
+                            <a class="@(currentPage == "/Admin/Promotions" ? "active" : "")" asp-page="/Admin/Promotions">
+                                Promotional Offers
+                            </a>
+                            <a class="@(currentPage == "/Admin/TableManagement" ? "active" : "")" asp-page="/Admin/TableManagement">
+                                Tables &amp; Dining Areas
+                            </a>
+                            <a class="@(currentPage == "/Admin/RestaurantSettings" ? "active" : "")" asp-page="/Admin/RestaurantSettings">
+                                Restaurant Settings
+                            </a>
+                            <a class="@(currentPage == "/Admin/StaffAccounts" ? "active" : "")" asp-page="/Admin/StaffAccounts">
+                                Account Management
+                            </a>
+                        </nav>
+                    </details>
+
+                    <details class="sidebar-section" open="@reportsOpen">
+                        <summary class="sidebar-label">REPORTS &amp; FEEDBACK</summary>
+                        <nav aria-label="Reports and feedback">
+                            <a class="@(currentPage == "/Admin/Reports" || currentPage == "/Admin/ReportReservations" ? "active" : "")" asp-page="/Admin/Reports">
+                                Reservation Reports
+                            </a>
+                            <a class="@(currentPage == "/Admin/PaymentCollections" ? "active" : "")" asp-page="/Admin/PaymentCollections">
+                                Payment Collections
+                            </a>
+                            <a class="@(currentPage == "/Admin/Occupancy" ? "active" : "")" asp-page="/Admin/Occupancy">
+                                Table Utilisation
+                            </a>
+                            <a class="@(currentPage == "/Admin/MenuPerformance" ? "active" : "")" asp-page="/Admin/MenuPerformance">
+                                Menu Performance
+                            </a>
+                            <a class="@(currentPage == "/Admin/CustomerReviews" ? "active" : "")" asp-page="/Admin/CustomerReviews">
+                                Customer Reviews
+                            </a>
+                        </nav>
+                    </details>
+                }
+
                 <p class="sidebar-label sidebar-group-divider">QUICK LINKS</p>
                 <nav aria-label="Other pages">
                     <a asp-page="/Index">View Customer Website</a>
@@ -151,6 +186,7 @@
                 </span>
             </div>
         }
+        <div class="site-chrome">
         <div class="welcome-bar">
             CONTEMPORARY FINE DINING
             <span aria-hidden="true">·</span>
@@ -269,6 +305,7 @@
                 }
             </nav>
         </header>
+        </div>
         <main id="main-content">
             @RenderBody()
         </main>
@@ -299,7 +336,12 @@
                 <small>All reservation times are Malaysia time · UTC+8</small>
             </p>
         </footer>
-        
+        @if (!staff)
+        {
+            <partial name="_CustomerChat" />
+            <script src="~/js/customer-chat.js" asp-append-version="true"></script>
+        }
+
         @if (workspace)
         {
             <script src="https://cdn.jsdelivr.net/npm/tom-select@@2.6.2/dist/js/tom-select.complete.min.js"></script>

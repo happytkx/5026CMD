@@ -1,0 +1,45 @@
+@* Public chat widget: no staff/admin navigation or private customer data. *@
+<aside class="celeste-concierge" aria-label="Céleste guest concierge">
+    <button type="button" class="concierge-launch" id="concierge-toggle"
+            aria-controls="concierge-panel" aria-expanded="false">
+        <span aria-hidden="true">✦</span> Ask Céleste
+    </button>
+    <section class="concierge-panel" id="concierge-panel" aria-label="Chat with the Céleste concierge" hidden>
+        <header class="concierge-header">
+            <div>
+                <strong>Céleste Concierge</strong>
+                <small>Dining, bookings &amp; guest support</small>
+            </div>
+            <button type="button" class="concierge-close" id="concierge-close"
+                    aria-label="Close concierge chat">×</button>
+        </header>
+        <div class="concierge-messages" id="concierge-messages" role="log"
+             aria-live="polite" aria-relevant="additions text">
+            <p class="concierge-bubble concierge-bubble-assistant">
+                Welcome to Céleste! Ask about dining, bookings, offers, reviews, order status or payments.
+            </p>
+        </div>
+        <div class="concierge-suggestions" id="concierge-suggestions" aria-label="Suggested questions">
+            <button type="button" data-question="What are your opening hours?">Hours</button>
+            <button type="button" data-question="Are there any current promotions?">Offers</button>
+            <button type="button" data-question="Where can I see guest reviews?">Reviews</button>
+            <button type="button" data-question="How do I book a table?">Book</button>
+            <button type="button" data-question="Tell me about VIP rooms">VIP rooms</button>
+            <button type="button" data-question="How can I see my bill?">My bill</button>
+            <button type="button" data-question="How busy is Saturday around 7pm?">Busy times</button>
+        </div>
+        <form method="post" id="concierge-form" class="concierge-form"
+              data-endpoint="@Url.Page("/CustomerChat", "Ask")">
+            @Html.AntiForgeryToken()
+            <label class="visually-hidden" for="concierge-question">Your question</label>
+            <input id="concierge-question" name="question" type="text"
+                   maxlength="500" autocomplete="off"
+                   placeholder="Ask a question..." required />
+            <button type="submit" aria-label="Send question">Send</button>
+        </form>
+        <p class="concierge-disclaimer">
+            Questions may be processed by AI. For exact availability, <a asp-page="/Reservations/Create">book a table</a>.
+            Please don't share personal or payment details.
+        </p>
+    </section>
+</aside>

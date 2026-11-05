@@ -297,18 +297,6 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
         return Success($"Category renamed to {name}. Its dishes were moved automatically.");
     }
 
-    public async Task<IActionResult> OnPostDeleteCategoryAsync(int categoryId)
-    {
-        var category = await db.MenuCategories.FindAsync(categoryId);
-        if (category is null) return NotFound();
-        if (await db.MenuItems.AnyAsync(i => i.MenuCategoryID == categoryId))
-            return Error("Move or remove the dishes in this category before deleting it.");
-
-        db.MenuCategories.Remove(category);
-        await db.SaveChangesAsync();
-        return Success("Empty category deleted.");
-    }
-
     private static bool ValidOptionName(string? kind, string? name) =>
         (kind is "Protein" or "Dietary" or "Allergen") &&
         !string.IsNullOrWhiteSpace(name) &&
@@ -378,27 +366,6 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
         option.Name = name!;
         await db.SaveChangesAsync();
         return Success($"{oldName} renamed to {name}. Any dishes using it were updated.");
-    }
-
-    public async Task<IActionResult> OnPostDeleteOptionAsync(int optionId)
-    {
-        var option = await db.MenuOptions.FindAsync(optionId);
-        if (option is null) return NotFound();
-        var items = await db.MenuItems.AsNoTracking().ToListAsync();
-        bool inUse = option.Kind switch
-        {
-            "Protein" => items.Any(i => string.Equals(i.ProteinType, option.Name, StringComparison.OrdinalIgnoreCase)),
-            "Dietary" => items.Any(i => SplitTags(i.DietaryTags)
-                .Any(tag => string.Equals(tag, option.Name, StringComparison.OrdinalIgnoreCase))),
-            "Allergen" => items.Any(i => SplitTags(i.Allergens)
-                .Any(tag => string.Equals(tag, option.Name, StringComparison.OrdinalIgnoreCase))),
-            _ => true
-        };
-        if (inUse) return Error("This option is used by a dish. Change those dishes before deleting it.");
-
-        db.MenuOptions.Remove(option);
-        await db.SaveChangesAsync();
-        return Success($"{option.Name} removed from the list of choices.");
     }
 
     public async Task<IActionResult> OnPostSaveItemAsync()
@@ -534,26 +501,6 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
         item.IsAvailable = !item.IsAvailable;
         await db.SaveChangesAsync();
         return Success($"{item.Name} is now {(item.IsAvailable ? "available" : "unavailable")}.", item.MenuItemID);
-    }
-
-    public async Task<IActionResult> OnPostDeleteItemAsync(int itemId)
-    {
-        var item = await db.MenuItems.FindAsync(itemId);
-        if (item is null) return NotFound();
-        if (await db.OrderLines.AnyAsync(line => line.MenuItemID == itemId))
-            return Error("This dish is linked to orders and cannot be deleted. Use Disable to stop customers ordering it while preserving order history.");
-
-        db.MenuItems.Remove(item);
-        try
-        {
-            await db.SaveChangesAsync();
-        }
-        catch (DbUpdateException ex) when (ex.InnerException is Microsoft.Data.SqlClient.SqlException { Number: 547 })
-        {
-            // An order may have referenced the dish after the initial check.
-            return Error("This dish is now linked to another record and cannot be deleted. Use Disable instead.");
-        }
-        return Success($"Dish {item.Name} deleted.");
     }
 
     private static bool ValidCategoryName(string? name) =>
