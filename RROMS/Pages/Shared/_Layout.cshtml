@@ -53,6 +53,10 @@
 
         <link rel="stylesheet" href="~/css/reservations.css" asp-append-version="true" />
         <link rel="stylesheet" href="~/css/ordering.css" asp-append-version="true" />
+        @if (!staff)
+        {
+            <link rel="stylesheet" href="~/css/customer-chat.css" asp-append-version="true" />
+        }
     </head>
     <body class="@(workspace ? "staff-workspace" : "guest-view")">
         <a class="skip-link" href="#main-content">
@@ -330,7 +334,12 @@
                 <small>All reservation times are Malaysia time · UTC+8</small>
             </p>
         </footer>
-        
+        @if (!staff)
+        {
+            <partial name="_CustomerChat" />
+            <script src="~/js/customer-chat.js" asp-append-version="true"></script>
+        }
+
         @if (workspace)
         {
             <script src="https://cdn.jsdelivr.net/npm/tom-select@@2.6.2/dist/js/tom-select.complete.min.js"></script>
