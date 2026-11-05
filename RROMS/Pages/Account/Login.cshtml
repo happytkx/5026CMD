@@ -1,13 +1,13 @@
 @page
-@* Shared sign-in for customers, restaurant staff and administrators. *@
+@* Customer-only sign-in; restaurant personnel use the separate StaffLogin page. *@
 @model RROMS.Pages.Account.LoginModel
 @{
-    ViewData["Title"] = "Sign in";
+    ViewData["Title"] = "Customer sign in";
 }
 <section class="account-heading">
     <p class="eyebrow">YOUR CÉLESTE ACCOUNT</p>
-    <h1>Sign In</h1>
-    <p>Welcome back to Céleste. Sign in with your customer, staff or administrator account.</p>
+    <h1>Customer Sign In</h1>
+    <p>Welcome back to Céleste. Sign in to manage your reservations and dining experience.</p>
     <p><a asp-page="ForgotPassword">Forgot your password?</a></p>
 </section>
 <section class="card auth-card">
@@ -23,5 +23,6 @@
     </form>
     <div class="auth-login-footer">
         <p class="muted">New to Céleste? <a asp-page="Register" asp-route-ReturnUrl="@Model.ReturnUrl">Create a customer account</a></p>
+        <p class="muted auth-switch-link"><a asp-page="StaffLogin">Staff / Admin Login &rarr;</a></p>
     </div>
 </section>
