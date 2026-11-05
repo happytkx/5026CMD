@@ -70,7 +70,7 @@ public class DetailsModel(ApplicationDbContext db, ReservationService service, T
     }
     public async Task<IActionResult> OnPostActionAsync(int id, string action, string? tableId, string? dummyReference,
         bool paymentSuccess = true, bool allowLargerTable = false, string? reassignmentReason = null,
-        string paymentMethod = "", string? phone = null, string? cardholder = null, string? cardNumber = null, string? expiry = null, string? cvv = null)
+        string paymentMethod = "", string? tngAccountName = null, string? cardholder = null, string? cardNumber = null, string? expiry = null, string? cvv = null)
     {
         if (!await Load(id))
             return NotFound();
@@ -85,9 +85,9 @@ public class DetailsModel(ApplicationDbContext db, ReservationService service, T
             }
             if (action == "Pay")
             {
-                // Never redisplay payment inputs through ModelState, or persist card/phone fields.
+                // Never redisplay payment inputs through ModelState or persist card/eWallet account details.
                 ModelState.Clear();
-                SimulatedDeposit.Validate(paymentMethod, phone, cardholder, cardNumber, expiry, cvv, dummyReference);
+                SimulatedDeposit.Validate(paymentMethod, tngAccountName, cardholder, cardNumber, expiry, cvv, dummyReference);
                 if (paymentMethod != "Bank Transfer") dummyReference = "SIM-" + Guid.NewGuid().ToString("N");
             }
             await service.Change(id, ReservationIdentity.CustomerId(User), IsStaff, action, newStart, tableId, paymentSuccess, dummyReference,

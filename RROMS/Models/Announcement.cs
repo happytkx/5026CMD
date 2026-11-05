@@ -28,6 +28,8 @@ namespace RROMS.Models
         // Optional scheduled start and display controls for a selected homepage feature.
         public DateTime? StartsAt { get; set; }
         public bool IsFeatured { get; set; }
+        // Pinned announcements appear before newer unpinned homepage announcements.
+        public bool IsPinned { get; set; }
         public bool ShowInPopup { get; set; } = true;
         public bool IsPromotional { get; set; }
 

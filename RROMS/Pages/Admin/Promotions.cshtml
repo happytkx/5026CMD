@@ -4,7 +4,11 @@
     ViewData["Title"] = "Promotional Offers";
 }
 <style>
-    .promotion-bulk-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: .55rem; margin: 1rem 0; max-height: 18rem; overflow-y: auto; }
+    .promotion-bulk-groups { max-height: 26rem; overflow-y: auto; padding: .5rem; margin: 1rem 0; border: 1px solid #e6ddd0; border-radius: .3rem; }
+    .promotion-bulk-category { margin: .25rem 0 1.3rem; }
+    .promotion-bulk-category:last-child { margin-bottom: .25rem; }
+    .promotion-bulk-category h3 { font: 600 1.05rem var(--body); color: #6c7154; margin: .55rem 0; padding-bottom: .4rem; border-bottom: 1px solid #e6ddd0; }
+    .promotion-bulk-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: .55rem; }
     .promotion-bulk-list label { display: flex; gap: .5rem; align-items: center; padding: .55rem .7rem; border: 1px solid #ded6c9; border-radius: .3rem; cursor: pointer; }
     .promotion-bulk-list label:has(input:checked) { background: #eeece3; border-color: #9a966f; }
     .promotion-bulk-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; margin: 1rem 0; }
@@ -54,19 +58,27 @@
 </div>
 
 <section class="card" aria-labelledby="bulk-promotion-heading">
-    <p class="eyebrow">CAMPAIGN BUILDER</p>
-    <h2 id="bulk-promotion-heading">Promote several dishes at once</h2>
-    <p class="muted">Choose the dishes, set one discount and date range, and optionally publish a customer-facing promotion. This will replace existing offers on the selected dishes.</p>
+    <p class="eyebrow">BULK PROMOTION · MULTIPLE DISHES</p>
+    <h2 id="bulk-promotion-heading">Create a group offer</h2>
+    <p class="muted"><strong>One offer for several dishes.</strong> Select any dishes, choose a shared discount and date range, and optionally publish a customer announcement. This replaces existing offers on the selected dishes.</p>
     <form method="post" asp-page-handler="ApplyBulk">
         <fieldset>
             <legend>Select menu dishes</legend>
-            <div class="promotion-bulk-list">
-                @foreach (var dish in Model.Dishes)
+            <div class="promotion-bulk-groups">
+                @foreach (var categoryGroup in Model.Dishes.GroupBy(d => d.Category).OrderBy(g => g.Key))
                 {
-                    <label>
-                        <input type="checkbox" name="menuItemIds" value="@dish.MenuItemID" />
-                        <span>@dish.Name</span>
-                    </label>
+                    <section class="promotion-bulk-category" aria-label="@categoryGroup.Key">
+                        <h3>@categoryGroup.Key</h3>
+                        <div class="promotion-bulk-list">
+                            @foreach (var dish in categoryGroup.OrderBy(d => d.Name))
+                            {
+                                <label>
+                                    <input type="checkbox" name="menuItemIds" value="@dish.MenuItemID" />
+                                    <span>@dish.Name</span>
+                                </label>
+                            }
+                        </div>
+                    </section>
                 }
             </div>
         </fieldset>
@@ -112,8 +124,9 @@
 </section>
 
 <section class="card" aria-labelledby="promotion-management-heading">
-    <h2 id="promotion-management-heading">Manage dish promotions</h2>
-    <p class="muted">Discounts can be up to 50% and have inclusive start/end dates in Malaysia time. Only one promotion applies to a dish at a time. An unavailable dish stays hidden until it is made available in Menu Management.</p>
+    <p class="eyebrow">INDIVIDUAL PROMOTION · ONE DISH</p>
+    <h2 id="promotion-management-heading">Edit an individual offer</h2>
+    <p class="muted"><strong>Fine-tune one dish at a time.</strong> Create, change, or remove its promotion without affecting other dishes. Discounts can be up to 50%, with inclusive dates in Malaysia time. An unavailable dish remains hidden until enabled in Menu Management.</p>
 
     @if (!Model.Dishes.Any())
     {

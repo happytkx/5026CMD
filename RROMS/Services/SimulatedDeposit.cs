@@ -3,13 +3,15 @@ namespace RROMS.Services;
 
 public static class SimulatedDeposit
 {
-    public static void Validate(string method, string? phone, string? name, string? number, string? expiry, string? cvv, string? reference)
+    public static void Validate(string method, string? tngAccountName, string? name, string? number, string? expiry, string? cvv, string? reference)
     {
         switch (method)
         {
             case "TNG":
-                if (!Regex.IsMatch(phone ?? "", @"^(?:\+?60|0)1[0-9]{8,9}$"))
-                    throw new InvalidOperationException("Enter a valid Malaysian eWallet phone number.");
+                var accountName = tngAccountName?.Trim();
+                if (string.IsNullOrWhiteSpace(accountName) || accountName.Length < 2 || accountName.Length > 100 ||
+                    !Regex.IsMatch(accountName, @"\p{L}"))
+                    throw new InvalidOperationException("Enter the full name on your Touch 'n Go account (2 to 100 characters).");
                 break;
             case "Card":
                 if (string.IsNullOrWhiteSpace(name) || name.Trim().Length > 100)

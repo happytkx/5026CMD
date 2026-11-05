@@ -34,7 +34,18 @@
     .account-role-note { display: block; margin-top: .3rem; font-size: .8rem; color: #766f62; }
     .account-edit-grid textarea { width: 100%; min-height: 5rem; }
 
+
+    .account-directory-search { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin: 1.2rem 0 .8rem; }
+    .account-directory-search input { flex: 1 1 280px; min-height: 48px; }
+    .account-profile-link { color: #526343; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+    .account-profile-link:hover { color: #303d28; }
+    .account-table td:first-child, .account-table th:first-child { width: 40px; text-align: center; }
+    .account-bulk-actions { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; padding: 1rem 0 0; }
+    .account-bulk-danger { background: #ab3333 !important; border: 1px solid #ab3333 !important; color: #fff !important; }
+    .account-bulk-danger:hover { background: #872525 !important; }
+    .account-directory-pager { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1.2rem; }
     @@media (max-width: 800px) { .account-form-grid { grid-template-columns: 1fr; } }
+
 </style>
 
 <p class="eyebrow">ADMINISTRATOR / ACCOUNT MANAGEMENT</p>
@@ -90,69 +101,58 @@
     <p class="eyebrow">ACCOUNT DIRECTORY</p>
     <h2 id="staff-directory-heading">Staff directory</h2>
     <p class="muted">@Model.ActiveCount active · @Model.InactiveCount deactivated</p>
+    <form method="get" class="account-directory-search">
+        <input type="hidden" name="tab" value="staff" />
+        <input type="search" name="Search" value="@Model.Search" placeholder="Search staff name or email..." aria-label="Search staff accounts" />
+        <button type="submit">SEARCH</button>
+        <a class="button secondary" asp-page="/Admin/StaffAccounts" asp-route-tab="staff">CLEAR</a>
+    </form>
+    <p class="muted">@Model.FilteredCount matching @(Model.FilteredCount == 1 ? "account" : "accounts") · Page @Model.PageNumber of @Model.TotalPages</p>
     @if (Model.Staff.Count == 0)
     {
-        <p>No staff accounts have been created yet.</p>
+        <p>No staff accounts match your search.</p>
     }
     else
     {
-        <div class="account-table-wrapper">
-            <table class="account-table">
-                <thead>
-                    <tr><th>Staff member</th><th>Email</th><th>Role</th><th>Status</th><th>Manage</th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var account in Model.Staff)
-                    {
-                        <tr>
-                            <td>@account.StaffName</td>
-                            <td>@account.Email</td>
-                            <td>Restaurant Staff</td>
-                            <td>
-                                <span class="account-status @(account.IsActive ? "" : "inactive")">
-                                    @(account.IsActive ? "Active" : "Deactivated")
-                                </span>
-                            </td>
-                            <td>
-                                <div class="account-actions">
-                                    <details>
-                                        <summary>Edit details / password</summary>
-                                        <form method="post" asp-page-handler="Update" class="account-edit-grid">
-                                            <input type="hidden" name="staffAccountId" value="@account.StaffAccountID" />
-                                            <div>
-                                                <label for="staff-name-@account.StaffAccountID">Name</label>
-                                                <input id="staff-name-@account.StaffAccountID" name="staffName"
-                                                       value="@account.StaffName" maxlength="100" required />
-                                            </div>
-                                            <div>
-                                                <label for="staff-email-@account.StaffAccountID">Email</label>
-                                                <input id="staff-email-@account.StaffAccountID" type="email" name="email"
-                                                       value="@account.Email" maxlength="100" required />
-                                            </div>
-                                            <div>
-                                                <label for="staff-new-password-@account.StaffAccountID">New password (optional)</label>
-                                                <input id="staff-new-password-@account.StaffAccountID" type="password"
-                                                       name="newPassword" minlength="10" maxlength="128"
-                                                       autocomplete="new-password" placeholder="Leave blank to keep current" />
-                                            </div>
-                                            <button type="submit">SAVE CHANGES</button>
-                                        </form>
-                                    </details>
-                                    <form method="post" asp-page-handler="SetActive"
-                                          onsubmit="return confirm('@(account.IsActive ? "Deactivate this staff account? All signed-in sessions will end." : "Reactivate this staff account?")')">
-                                        <input type="hidden" name="staffAccountId" value="@account.StaffAccountID" />
-                                        <input type="hidden" name="isActive" value="@(account.IsActive ? "false" : "true")" />
-                                        <button class="@(account.IsActive ? "account-danger account-deactivate-button" : "")" type="submit">
-                                            @(account.IsActive ? "DEACTIVATE" : "REACTIVATE")
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+        <form method="post" asp-page-handler="BulkDeactivateStaff" onsubmit="return confirm('Deactivate the selected staff accounts? Their active sessions will end.');">
+            <input type="hidden" name="search" value="@Model.Search" />
+            <input type="hidden" name="p" value="@Model.PageNumber" />
+            <div class="account-table-wrapper">
+                <table class="account-table">
+                    <thead><tr>
+                        <th><input type="checkbox" data-select-all aria-label="Select all active staff on this page" /></th>
+                        <th>Staff member</th><th>Email</th><th>Role</th><th>Status</th><th>Profile</th>
+                    </tr></thead>
+                    <tbody>
+                        @foreach (var account in Model.Staff)
+                        {
+                            <tr>
+                                <td><input type="checkbox" name="selectedIds" value="@account.StaffAccountID" disabled="@(!account.IsActive)" aria-label="Select @account.StaffName" /></td>
+                                <td><a class="account-profile-link" asp-page="/Admin/AccountDetails" asp-route-type="staff" asp-route-id="@account.StaffAccountID">@account.StaffName</a></td>
+                                <td>@account.Email</td>
+                                <td>Restaurant Staff</td>
+                                <td><span class="account-status @(account.IsActive ? "" : "inactive")">@(account.IsActive ? "Active" : "Deactivated")</span></td>
+                                <td><a class="account-profile-link" asp-page="/Admin/AccountDetails" asp-route-type="staff" asp-route-id="@account.StaffAccountID">View profile</a></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="account-bulk-actions">
+                <span class="muted">Select active accounts on this page.</span>
+                <button class="account-bulk-danger" type="submit">DEACTIVATE SELECTED</button>
+            </div>
+        </form>
+    }
+    @if (Model.TotalPages > 1)
+    {
+        <nav class="account-directory-pager" aria-label="Staff directory pages">
+            @if (Model.PageNumber > 1)
+            { <a class="button secondary" asp-route-tab="staff" asp-route-Search="@Model.Search" asp-route-p="@(Model.PageNumber - 1)">Previous</a> }
+            <span>Page @Model.PageNumber of @Model.TotalPages</span>
+            @if (Model.PageNumber < Model.TotalPages)
+            { <a class="button secondary" asp-route-tab="staff" asp-route-Search="@Model.Search" asp-route-p="@(Model.PageNumber + 1)">Next</a> }
+        </nav>
     }
 </section>
 
@@ -192,85 +192,71 @@ else
     <p class="eyebrow">ACCOUNT DIRECTORY</p>
     <h2 id="customer-directory-heading">Customer directory</h2>
     <p class="muted">@Model.ActiveCustomerCount active · @Model.InactiveCustomerCount deactivated</p>
+    <form method="get" class="account-directory-search">
+        <input type="hidden" name="tab" value="customers" />
+        <input type="search" name="Search" value="@Model.Search" placeholder="Search customer name or email..." aria-label="Search customer accounts" />
+        <button type="submit">SEARCH</button>
+        <a class="button secondary" asp-page="/Admin/StaffAccounts" asp-route-tab="customers">CLEAR</a>
+    </form>
+    <p class="muted">@Model.FilteredCount matching @(Model.FilteredCount == 1 ? "account" : "accounts") · Page @Model.PageNumber of @Model.TotalPages</p>
     @if (Model.Customers.Count == 0)
     {
-        <p>No customer accounts have been created yet.</p>
+        <p>No customers match your search.</p>
     }
     else
     {
-        <div class="account-table-wrapper">
-            <table class="account-table">
-                <thead>
-                    <tr><th>Customer</th><th>Email</th><th>Role</th><th>Status</th><th>Manage</th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var account in Model.Customers)
-                    {
-                        <tr>
-                            <td>@account.CustomerName</td>
-                            <td>
-                                @account.Email
-                                @if (account.PasswordHash is null)
-                                {
-                                    <span class="account-role-note">Reservation-only record (no login)</span>
-                                }
-                            </td>
-                            <td>Customer</td>
-                            <td>
-                                <span class="account-status @(account.IsActive ? "" : "inactive")">
-                                    @(account.IsActive ? "Active" : "Deactivated")
-                                </span>
-                            </td>
-                            <td>
-                                <div class="account-actions">
-                                    <details>
-                                        <summary>Edit details / password</summary>
-                                        <form method="post" asp-page-handler="UpdateCustomer" class="account-edit-grid">
-                                            <input type="hidden" name="customerId" value="@account.CustomerID" />
-                                            <div>
-                                                <label for="customer-name-@account.CustomerID">Name</label>
-                                                <input id="customer-name-@account.CustomerID" name="customerName"
-                                                       value="@account.CustomerName" maxlength="100" required />
-                                            </div>
-                                            <div>
-                                                <label for="customer-email-@account.CustomerID">Email</label>
-                                                <input id="customer-email-@account.CustomerID" type="email" name="email"
-                                                       value="@account.Email" maxlength="100" required />
-                                            </div>
-                                            <div>
-                                                <label for="customer-phone-@account.CustomerID">Phone number</label>
-                                                <input id="customer-phone-@account.CustomerID" name="phoneNo"
-                                                       value="@account.PhoneNo" maxlength="20" />
-                                            </div>
-                                            <div>
-                                                <label for="customer-address-@account.CustomerID">Address (optional)</label>
-                                                <textarea id="customer-address-@account.CustomerID" name="address"
-                                                          maxlength="250">@account.Address</textarea>
-                                            </div>
-                                            <div>
-                                                <label for="customer-password-@account.CustomerID">New password (optional)</label>
-                                                <input id="customer-password-@account.CustomerID" type="password"
-                                                       name="newPassword" minlength="10" maxlength="128"
-                                                       autocomplete="new-password" placeholder="Leave blank to keep current" />
-                                            </div>
-                                            <button type="submit">SAVE CHANGES</button>
-                                        </form>
-                                    </details>
-                                    <form method="post" asp-page-handler="SetCustomerActive"
-                                          onsubmit="return confirm('@(account.IsActive ? "Deactivate this customer account? Sign-in will be blocked and existing sessions will end." : "Reactivate this customer account?")')">
-                                        <input type="hidden" name="customerId" value="@account.CustomerID" />
-                                        <input type="hidden" name="isActive" value="@(account.IsActive ? "false" : "true")" />
-                                        <button class="@(account.IsActive ? "account-danger account-deactivate-button" : "")" type="submit">
-                                            @(account.IsActive ? "DEACTIVATE" : "REACTIVATE")
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+        <form method="post" asp-page-handler="BulkDeactivateCustomers" onsubmit="return confirm('Deactivate the selected customers? Sign-in will be blocked and sessions revoked.');">
+            <input type="hidden" name="search" value="@Model.Search" />
+            <input type="hidden" name="p" value="@Model.PageNumber" />
+            <div class="account-table-wrapper">
+                <table class="account-table">
+                    <thead><tr>
+                        <th><input type="checkbox" data-select-all aria-label="Select all active customers on this page" /></th>
+                        <th>Customer</th><th>Email</th><th>Role</th><th>Status</th><th>Profile</th>
+                    </tr></thead>
+                    <tbody>
+                        @foreach (var account in Model.Customers)
+                        {
+                            <tr>
+                                <td><input type="checkbox" name="selectedIds" value="@account.CustomerID" disabled="@(!account.IsActive)" aria-label="Select @account.CustomerName" /></td>
+                                <td><a class="account-profile-link" asp-page="/Admin/AccountDetails" asp-route-type="customer" asp-route-id="@account.CustomerID">@account.CustomerName</a></td>
+                                <td>@account.Email
+                                    @if (account.PasswordHash is null)
+                                    { <small class="account-role-note">Reservation-only record</small> }
+                                </td>
+                                <td>Customer</td>
+                                <td><span class="account-status @(account.IsActive ? "" : "inactive")">@(account.IsActive ? "Active" : "Deactivated")</span></td>
+                                <td><a class="account-profile-link" asp-page="/Admin/AccountDetails" asp-route-type="customer" asp-route-id="@account.CustomerID">View profile</a></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="account-bulk-actions">
+                <span class="muted">Select active accounts on this page.</span>
+                <button class="account-bulk-danger" type="submit">DEACTIVATE SELECTED</button>
+            </div>
+        </form>
+    }
+    @if (Model.TotalPages > 1)
+    {
+        <nav class="account-directory-pager" aria-label="Customer directory pages">
+            @if (Model.PageNumber > 1)
+            { <a class="button secondary" asp-route-tab="customers" asp-route-Search="@Model.Search" asp-route-p="@(Model.PageNumber - 1)">Previous</a> }
+            <span>Page @Model.PageNumber of @Model.TotalPages</span>
+            @if (Model.PageNumber < Model.TotalPages)
+            { <a class="button secondary" asp-route-tab="customers" asp-route-Search="@Model.Search" asp-route-p="@(Model.PageNumber + 1)">Next</a> }
+        </nav>
     }
 </section>
+}
+@section Scripts {
+<script>
+    document.querySelectorAll('[data-select-all]').forEach(toggle => {
+        toggle.addEventListener('change', () => {
+            toggle.closest('form').querySelectorAll('input[name="selectedIds"]:not(:disabled)')
+                .forEach(box => { box.checked = toggle.checked; });
+        });
+    });
+</script>
 }

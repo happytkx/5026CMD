@@ -1,4 +1,4 @@
-// Read-only review queries shared by the admin, staff and public guest-review pages. Only reviews of Completed orders are ever listed.
+// Read-only review queries shared by the admin, staff and public pages. General feedback and reviews of completed orders are shown.
 using Microsoft.EntityFrameworkCore;
 using RROMS.Data;
 
@@ -17,7 +17,9 @@ public record ReviewEntry(
     string Comment,
     DateTime CreatedAt,
     string CustomerName,
-    string OrderReference)
+    int CustomerID,
+    string? OrderReference,
+    bool VerifiedDining)
 {
     // Public pages show first names only to protect customer privacy.
     public string FirstName => ReviewService.FirstName(CustomerName);
@@ -42,7 +44,7 @@ public class ReviewService(ApplicationDbContext db)
     }
 
     private IQueryable<Models.Review> Visible() =>
-        db.Reviews.AsNoTracking().Where(r => r.Order.Status == "Completed");
+        db.Reviews.AsNoTracking().Where(r => r.OrderID == null || r.Order!.Status == "Completed");
 
     public async Task<ReviewSummary> GetSummaryAsync(CancellationToken cancellationToken = default)
     {
@@ -65,7 +67,8 @@ public class ReviewService(ApplicationDbContext db)
         pageNumber = Math.Clamp(pageNumber, 1, pages);
         var rows = await query.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.ReviewID)
             .Skip((pageNumber - 1) * PageSize).Take(PageSize)
-            .Select(r => new ReviewEntry(r.ReviewID, r.Rating, r.Comment, r.CreatedAt, r.Customer.CustomerName, r.Order.Reference))
+            .Select(r => new ReviewEntry(r.ReviewID, r.Rating, r.Comment, r.CreatedAt, r.Customer.CustomerName,
+                r.CustomerID, r.OrderID.HasValue ? r.Order!.Reference : null, r.OrderID.HasValue))
             .ToListAsync(cancellationToken);
         return new ReviewPage(rows, total, pageNumber, PageSize);
     }

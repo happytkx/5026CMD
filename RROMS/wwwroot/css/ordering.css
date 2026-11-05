@@ -1813,136 +1813,142 @@ form.card.mybill-selector {
 .menu-option-group > .menu-category-list { padding: 0 14px 14px; }
 .staff-workspace > .ts-dropdown { z-index: 20000; box-shadow: 0 12px 30px rgba(28, 28, 22, .17); }
 .staff-workspace > .ts-dropdown .ts-dropdown-content { max-height: 230px; overflow-y: auto; }
-.announcement-admin-row { display: flex; justify-content: space-between; gap: 20px; padding: 18px 0; border-bottom: 1px solid var(--line); }
-.announcement-admin-copy { flex: 1 1 42%; min-width: 0; }
-.announcement-admin-copy strong { display: block; margin-bottom: 5px; }
-.announcement-admin-copy p { margin: 0 0 8px; color: var(--muted); white-space: pre-line; }
-.announcement-admin-copy small { display: block; }
-.announcement-expired { color: #a34a3c; }
-.announcement-admin-actions { flex: 1 1 48%; display: flex; align-items: flex-end; gap: 12px; }
-.announcement-admin-actions > form { margin: 0; padding: 0; border: 0; }
-.announcement-duration-form { flex: 1; display: flex; align-items: flex-end; flex-wrap: wrap; gap: 10px; }
-.announcement-duration-form > label:first-of-type { flex-basis: 100%; font-size: 12px; margin: 0; }
-.announcement-duration-form select { flex: 1; min-width: 150px; }
-.announcement-duration-form button, .announcement-admin-actions .quiet { white-space: nowrap; margin: 0; }
-.announcement-duration-fields { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 16px; margin: 10px 0; }
-.announcement-duration-fields > div { flex: 1; min-width: 220px; }
-.announcement-duration-fields select, .announcement-duration-fields input { width: 100%; }
-.announcement-expiry-picker { display: flex; flex-direction: column; gap: 5px; min-width: 160px; }
-.announcement-expiry-picker[hidden] { display: none !important; }
-@media (max-width: 960px) {
-    .announcement-admin-row { flex-direction: column; }
-    .announcement-admin-actions { flex-wrap: wrap; align-items: flex-start; }
-}
-
-
-/* Announcement controls: a full-size, clearly recognisable destructive action. */
-.announcement-admin-actions { min-width: 0; flex-wrap: wrap; }
-.announcement-duration-form { flex: 1 1 390px; min-width: 0; }
-.announcement-duration-form > button.secondary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 152px;
-    min-height: 52px;
-    padding: 0 16px;
-}
-.announcement-admin-actions > form:last-child { flex: 0 0 126px; }
-.announcement-admin-actions > form:last-child button.quiet.danger {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    width: 100%;
-    min-width: 126px;
-    min-height: 52px;
-    margin: 0;
-    padding: 0 16px;
-    border: 1px solid #A04B4B;
-    border-radius: 4px;
-    background: transparent;
-    color: #A04B4B;
-    font-size: 11px;
-    font-weight: 600;
-    line-height: 1.2;
-    letter-spacing: .8px;
-    text-transform: uppercase;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: background .16s ease, color .16s ease;
-}
-.announcement-admin-actions > form:last-child button.quiet.danger:hover {
-    background: #FCF2F0;
-    color: #8A3434;
-}
-.announcement-admin-actions > form:last-child button.quiet.danger:focus-visible {
-    outline: 2px solid var(--gold);
-    outline-offset: 3px;
-}
-
-/* Announcement duration controls: fixed grid tracks prevent date fields from wrapping
-   buttons and keep all announcement rows aligned when custom dates are toggled. */
+/* Compact announcement editor: keep each announcement's settings together. */
+.announcement-admin-panel > h2 { margin-bottom: 8px; }
+.announcement-admin-panel > p.muted { margin-bottom: 12px; line-height: 1.5; }
 .announcement-admin-row {
     display: grid;
-    grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+    grid-template-columns: minmax(230px, .85fr) minmax(0, 2.15fr);
     align-items: start;
+    gap: 22px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line);
 }
+.announcement-admin-row:last-of-type { border-bottom: 0; }
+.announcement-admin-copy { min-width: 0; }
+.announcement-admin-copy strong { display: block; margin-bottom: 4px; }
+.announcement-admin-copy p { margin: 0 0 7px; color: var(--muted); white-space: pre-line; }
+.announcement-admin-copy small { display: block; }
+.announcement-expired { color: #a34a3c; }
+
 .announcement-admin-actions {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 156px;
-    align-items: end;
-    gap: 12px;
+    grid-template-columns: minmax(190px, .95fr) minmax(300px, 1.35fr) auto;
+    gap: 16px;
+    align-items: start;
+    min-width: 0;
 }
+.announcement-admin-actions > form { min-width: 0; margin: 0; padding: 0; border: 0; }
+.announcement-display-form {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 9px;
+}
+.announcement-display-form > label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.45;
+    cursor: pointer;
+}
+.announcement-display-form input[type="checkbox"] {
+    width: auto;
+    flex: 0 0 auto;
+    margin: 0;
+    accent-color: var(--olive-deep);
+}
+.announcement-admin-actions button.secondary {
+    min-width: 0;
+    min-height: 40px;
+    margin: 0;
+    padding: 9px 13px;
+    white-space: nowrap;
+    font-size: 11px;
+}
+.announcement-display-form > button { margin-top: 3px !important; }
 .announcement-duration-form {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 170px;
+    grid-template-columns: minmax(170px, 1fr) auto;
     grid-template-rows: auto auto auto;
     align-items: end;
-    gap: 10px 12px;
+    gap: 8px 10px;
+    min-width: 0;
 }
 .announcement-duration-form > label:first-of-type {
     grid-column: 1 / -1;
     grid-row: 1;
+    margin: 0;
+    font-size: 12px;
 }
 .announcement-duration-form > select {
     grid-column: 1;
     grid-row: 2;
     width: 100%;
     min-width: 0;
-}
-.announcement-duration-form > .announcement-expiry-picker {
-    grid-column: 2;
-    grid-row: 2;
-    min-width: 0;
-}
-.announcement-duration-form > .announcement-expiry-picker[hidden] {
-    display: flex !important;
-    visibility: hidden;
-    pointer-events: none;
+    height: 40px;
 }
 .announcement-duration-form > button.secondary {
-    grid-column: 1;
-    grid-row: 3;
-    justify-self: start;
-}
-.announcement-admin-actions > form:last-child {
     grid-column: 2;
-    grid-row: 1;
-    align-self: end;
+    grid-row: 2;
 }
-@media (max-width: 1240px) {
-    .announcement-admin-row { grid-template-columns: 1fr; }
-    .announcement-admin-actions { width: 100%; }
+.announcement-duration-form > .announcement-expiry-picker {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    width: min(100%, 260px);
 }
-@media (max-width: 640px) {
-    .announcement-admin-actions { grid-template-columns: 1fr; }
-    .announcement-duration-form { grid-template-columns: 1fr; }
-    .announcement-duration-form > label:first-of-type,
-    .announcement-duration-form > select,
-    .announcement-duration-form > .announcement-expiry-picker,
-    .announcement-duration-form > button.secondary { grid-column: 1; grid-row: auto; }
-    .announcement-duration-form > .announcement-expiry-picker[hidden] { display: none !important; }
-    .announcement-admin-actions > form:last-child { grid-column: 1; grid-row: 2; justify-self: start; }
+.announcement-duration-form > .announcement-expiry-picker[hidden],
+.announcement-expiry-picker[hidden] { display: none !important; }
+.announcement-duration-fields { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 16px; margin: 10px 0; }
+.announcement-duration-fields > div { flex: 1; min-width: 220px; }
+.announcement-duration-fields select, .announcement-duration-fields input { width: 100%; }
+.announcement-expiry-picker { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+
+.announcement-admin-actions > form:last-child {
+    justify-self: end;
+    align-self: start;
+}
+.announcement-admin-actions > form:last-child button.quiet.danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: auto;
+    min-width: 110px;
+    min-height: 40px;
+    margin: 0;
+    padding: 8px 14px;
+    border: 1px solid #a04b4b;
+    border-radius: 4px;
+    background: transparent;
+    color: #a04b4b;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+.announcement-admin-actions > form:last-child button.quiet.danger:hover {
+    background: #fcf2f0;
+    color: #8a3434;
+}
+.announcement-admin-actions > form:last-child button.quiet.danger:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
+}
+@media (max-width: 1260px) {
+    .announcement-admin-row { grid-template-columns: 1fr; gap: 12px; }
+}
+@media (max-width: 800px) {
+    .announcement-admin-actions { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .announcement-admin-actions > form:last-child { grid-column: 1 / -1; justify-self: start; }
+}
+@media (max-width: 600px) {
+    .announcement-admin-actions { grid-template-columns: minmax(0, 1fr); }
+    .announcement-admin-actions > form:last-child { grid-column: 1; }
+    .announcement-duration-form { grid-template-columns: minmax(0, 1fr) auto; }
 }
 
 /* Reserve breathing room for genuine filter errors and hide empty validation summaries. */
@@ -2934,4 +2940,36 @@ button.reservation-cancel-button:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
     .staff-sidebar .sidebar-section > summary.sidebar-label::after { transition: none; }
+}
+
+/* Menu discovery: five filters with a two-choice multi-select. */
+.menu-toolbar .menu-filters {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) max-content max-content;
+}
+.menu-toolbar .menu-filters .ts-wrapper { width: 100%; min-width: 0; }
+.menu-toolbar .menu-filters .ts-control { min-height: 48px; }
+.menu-toolbar .menu-filters .ts-wrapper.multi .ts-control { gap: 4px; flex-wrap: wrap; }
+.menu-toolbar .menu-filters .ts-wrapper.multi .item {
+    background: #e9ecdd;
+    color: #4d5939;
+    border-radius: 3px;
+    padding: 3px 7px;
+    font-size: 12px;
+}
+.dish-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin: 3px 0 12px; }
+.dish-tags .badge { margin: 0; white-space: nowrap; }
+.dish-tags .offer-badge { background: #f4e9d4; color: #735323; }
+.dish-pricing { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.dish-pricing .price { white-space: nowrap; }
+.dish-pricing del { white-space: nowrap; font-size: 12px; }
+.dish-bottom { gap: 12px; }
+.dish-bottom > .muted { max-width: 45%; text-align: right; font-size: 12px; }
+@media (max-width: 1250px) {
+    .menu-toolbar .menu-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 800px) {
+    .menu-toolbar .menu-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+    .menu-toolbar .menu-filters { grid-template-columns: 1fr; }
 }

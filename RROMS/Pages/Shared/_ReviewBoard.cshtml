@@ -50,7 +50,7 @@
         }
         else
         {
-            <text>No reviews have been submitted yet. They appear here once guests rate a completed order.</text>
+            <text>No reviews have been submitted yet. They appear here when customers share general feedback or review a completed order.</text>
         }
     </section>
 }
@@ -66,14 +66,36 @@ else
                 </header>
                 <p class="review-comment">@review.Comment</p>
                 <footer>
-                    <strong>@(Model.FullNames ? review.CustomerName : review.FirstName)</strong>
-                    @if (Model.Public)
+                    @if (Model.PagePath == "/Admin/CustomerReviews")
+                    {
+                        <a class="review-profile-link" asp-page="/Admin/AccountDetails" asp-route-type="customer" asp-route-id="@review.CustomerID">@review.CustomerName</a>
+                    }
+                    else
+                    {
+                        <strong>@(Model.FullNames ? review.CustomerName : review.FirstName)</strong>
+                    }
+                    @if (Model.Public && review.VerifiedDining)
                     {
                         <span class="badge review-verified">Verified dining</span>
                     }
                     @if (Model.ShowOrder)
                     {
-                        <small>Order <span class="reference">@review.OrderReference</span></small>
+                        @if (review.VerifiedDining)
+                        {
+                            <small>Order <span class="reference">@review.OrderReference</span></small>
+                        }
+                        else
+                        {
+                            <small>General feedback</small>
+                        }
+                    }
+                    @if (Model.PagePath == "/Admin/CustomerReviews")
+                    {
+                        <form method="post" asp-page="/Admin/CustomerReviews" asp-page-handler="Remove"
+                              class="review-remove-form" onsubmit="return confirm('Remove this review? This cannot be undone.');">
+                            <input type="hidden" name="reviewId" value="@review.ReviewID" />
+                            <button type="submit" class="review-remove-button">REMOVE REVIEW</button>
+                        </form>
                     }
                 </footer>
             </article>

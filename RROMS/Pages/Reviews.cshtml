@@ -1,5 +1,5 @@
 @page
-@* Public guest reviews: verified ratings and comments from completed orders, first names only. *@
+@* Public guest reviews: general feedback and verified completed-order reviews, first names only. *@
 @model RROMS.Pages.ReviewsModel
 @{
     ViewData["Title"] = "Guest Reviews";
@@ -21,7 +21,7 @@
 <section class="account-heading">
     <p class="eyebrow">FROM OUR GUESTS</p>
     <h1>Guest reviews</h1>
-    <p>Honest words from guests who have dined with us. Only completed orders can be reviewed.</p>
+    <p>Share your experience at Céleste. Signed-in customers may write general feedback, and completed orders can receive a verified dining review.</p>
 </section>
 
 <section class="card guest-review-form" aria-labelledby="write-review-heading">
@@ -37,26 +37,38 @@
     }
     @if (!Model.IsSignedInCustomer)
     {
-        <p>Have you dined with us? Sign in to rate and review a completed order.</p>
+        <p>Sign in to share your experience at Céleste. You can write general feedback, or review a completed dining order.</p>
         <a class="button" asp-page="/Account/Login" asp-route-returnUrl="/Reviews">SIGN IN TO REVIEW</a>
     }
-    else if (Model.ReviewableOrders.Count == 0)
+    else if (!Model.CanSubmitGeneralReview && Model.ReviewableOrders.Count == 0)
     {
-        <p class="muted">You don't have an unreviewed completed order yet. Once an order is completed, you can share your experience here.</p>
+        <p class="muted">Thank you! You have already submitted general feedback and reviewed all eligible completed orders.</p>
     }
     else
     {
         <form method="post" asp-page-handler="Review" class="guest-review-fields">
-            <div>
-                <label for="review-order">Your completed order</label>
-                <select id="review-order" name="orderId" required>
-                    <option value="">Select an order</option>
-                    @foreach (var order in Model.ReviewableOrders)
-                    {
-                        <option value="@order.OrderID">Order @order.Reference · @order.CreatedAt.ToString("dd MMM yyyy")</option>
-                    }
-                </select>
-            </div>
+            @if (Model.ReviewableOrders.Count > 0)
+            {
+                <div>
+                    <label for="review-order">What would you like to review?</label>
+                    <select id="review-order" name="orderId" required>
+                        <option value="">Select review type</option>
+                        @if (Model.CanSubmitGeneralReview)
+                        {
+                            <option value="0">General feedback about Céleste</option>
+                        }
+                        @foreach (var order in Model.ReviewableOrders)
+                        {
+                            <option value="@order.OrderID">Completed order @order.Reference · @order.CreatedAt.ToString("dd MMM yyyy")</option>
+                        }
+                    </select>
+                </div>
+            }
+            else
+            {
+                <input type="hidden" name="orderId" value="0" />
+                <p class="guest-review-hint">General feedback (one general review per customer account).</p>
+            }
             <fieldset>
                 <legend>Your experience <span class="guest-review-hint">(1 to 5 stars)</span></legend>
                 <div class="guest-rating-options" role="radiogroup" aria-label="Rate your experience">
@@ -70,7 +82,7 @@
                 <label for="review-message">Your review</label>
                 <textarea id="review-message" name="comment" maxlength="800" rows="5"
                     placeholder="Tell us about your dining experience..." required></textarea>
-                <p class="guest-review-hint">Maximum 800 characters. Your first name and review will be shown publicly.</p>
+                <p class="guest-review-hint">Maximum 800 characters. Your first name and review will be shown publicly. Only reviews linked to completed orders carry a Verified dining badge.</p>
             </div>
             <div><button type="submit">SUBMIT REVIEW</button></div>
         </form>
