@@ -134,12 +134,12 @@ public class OrdersModel(ApplicationDbContext db, ILogger<OrdersModel> logger) :
         }
     }
 
-    // Bulk kitchen updates span every ordering round within one seated reservation.
-    // Every selected dish must advance exactly one status step; nothing is partially saved.
+    // Staff can select dishes from any round. Each selected dish advances exactly
+    // one step according to its own current status, within a single transaction.
     public async Task<IActionResult> OnPostUpdateSessionDishesAsync(
-        int reservationId, string status, int[]? lineIds)
+        int reservationId, int[]? lineIds)
     {
-        if (reservationId <= 0 || status is not ("Preparing" or "Ready to Serve" or "Served"))
+        if (reservationId <= 0)
             return BadRequest();
 
         var selectedIds = (lineIds ?? []).Distinct().ToArray();
@@ -166,25 +166,25 @@ public class OrdersModel(ApplicationDbContext db, ILogger<OrdersModel> logger) :
             .Where(l => selectedIds.Contains(l.OrderLineID)).ToList();
 
         if (selected.Count != selectedIds.Length ||
-            selected.Any(l => l.IsCancelled || NextDishStatus(l.KitchenStatus) != status))
+            selected.Any(l => l.IsCancelled || NextDishStatus(l.KitchenStatus) is null))
         {
-            TempData["Error"] = "One or more selected dishes can no longer move to that status. Refresh and try again.";
+            TempData["Error"] = "One or more selected dishes cannot advance. Refresh and try again.";
             return RedirectToPage(new { expanded = reservationId, search = Search });
         }
 
         foreach (var line in selected)
-            line.KitchenStatus = status;
+            line.KitchenStatus = NextDishStatus(line.KitchenStatus)!;
 
         foreach (var order in orders.Where(o => selected.Any(l => l.OrderID == o.OrderID)))
         {
             order.Status = DeriveRoundStatus(order.Lines);
-            var names = string.Join(", ", selected.Where(l => l.OrderID == order.OrderID)
-                .Select(l => l.ItemName).Distinct());
+            var updates = string.Join("; ", selected.Where(l => l.OrderID == order.OrderID)
+                .Select(l => $"{l.ItemName}: {l.KitchenStatus}"));
             db.CustomerNotifications.Add(new CustomerNotification
             {
                 CustomerID = order.CustomerID,
                 Title = "Dish status updated",
-                Message = $"Kitchen update: {names[..Math.Min(names.Length, 320)]} now {status}.",
+                Message = $"Kitchen update: {updates[..Math.Min(updates.Length, 320)]}.",
                 Type = "Order",
                 RelatedOrderID = order.OrderID,
                 CreatedAt = ReservationPolicy.Now
@@ -202,7 +202,7 @@ public class OrdersModel(ApplicationDbContext db, ILogger<OrdersModel> logger) :
             return RedirectToPage(new { expanded = reservationId, search = Search });
         }
 
-        TempData["Success"] = $"{selected.Count} dish(es) updated to {status}. The customer was notified.";
+        TempData["Success"] = $"{selected.Count} dish(es) advanced to their next status. The customer was notified.";
         return RedirectToPage(new { expanded = reservationId, search = Search });
     }
 
