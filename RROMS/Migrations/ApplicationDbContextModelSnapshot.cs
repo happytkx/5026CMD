@@ -479,6 +479,12 @@ namespace RROMS.Migrations
                     b.Property<decimal?>("DiscountPercent")
                         .HasColumnType("decimal(5,2)");
 
+                    b.Property<DateTime?>("PromotionStartDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("PromotionEndDate")
+                        .HasColumnType("date");
+
                     b.Property<string>("ImageUrl")
                         .HasMaxLength(400)
                         .HasColumnType("nvarchar(400)");

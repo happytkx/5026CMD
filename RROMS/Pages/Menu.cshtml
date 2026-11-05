@@ -74,7 +74,16 @@
                 <small>Dietary: @(string.IsNullOrWhiteSpace(item.DietaryTags) ? "Not specified" : item.DietaryTags)</small>
                 <small>Allergens: @(string.IsNullOrWhiteSpace(item.Allergens) ? "Not specified" : item.Allergens)</small>
                 <div class="dish-bottom">
-                    <span class="price">RM @item.Price.ToString("0.00")</span>
+                    @if (MenuPricing.IsPromotionActive(item, ReservationPolicy.Now))
+                    {
+                        <span class="price">RM @MenuPricing.CurrentPrice(item, ReservationPolicy.Now).ToString("0.00")</span>
+                        <del class="muted">RM @item.Price.ToString("0.00")</del>
+                        <span class="badge">Save @(item.DiscountPercent?.ToString("0.##"))%</span>
+                    }
+                    else
+                    {
+                        <span class="price">RM @item.Price.ToString("0.00")</span>
+                    }
                     @if (Model.CanOrder)
                     {
                         <form method="post" asp-page-handler="Add">

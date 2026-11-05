@@ -55,6 +55,14 @@ namespace RROMS.Models
             get; set;
         }
 
+        // Inclusive calendar dates in Malaysia time. A promotion only applies
+        // when both dates and a valid discount percentage are configured.
+        [Column(TypeName = "date")]
+        public DateTime? PromotionStartDate { get; set; }
+
+        [Column(TypeName = "date")]
+        public DateTime? PromotionEndDate { get; set; }
+
         [StringLength(250)]
         public string DietaryTags { get; set; } = string.Empty;
 
