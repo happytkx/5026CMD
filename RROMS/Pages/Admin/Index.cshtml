@@ -168,7 +168,7 @@
 }
 <section class="card announcement-admin-panel">
     <h2>Announcements</h2>
-    <p class="muted">Publish announcements, choose which one to feature above the dining spaces, and choose which appear in the welcome pop-up. Expired announcements are hidden automatically. Only one announcement can be featured at a time.</p>
+    <p class="muted">Choose where announcements appear and how long they stay visible. Expired announcements are hidden automatically; only one can be featured at a time.</p>
     @foreach (var a in Model.Announcements)
     {
         var expired = a.ExpiresAt.HasValue && a.ExpiresAt.Value <= Model.CurrentTime;
@@ -188,7 +188,7 @@
                 </small>
             </div>
             <div class="announcement-admin-actions">
-                <form method="post" asp-page-handler="SetAnnouncementDisplay" class="announcement-duration-form">
+                <form method="post" asp-page-handler="SetAnnouncementDisplay" class="announcement-display-form">
                     <input type="hidden" name="id" value="@a.AnnouncementID" />
                     <label><input type="checkbox" name="isFeatured" value="true" checked="@a.IsFeatured" /> Feature above dining spaces</label>
                     <label><input type="checkbox" name="showInPopup" value="true" checked="@a.ShowInPopup" /> Welcome pop-up</label>
