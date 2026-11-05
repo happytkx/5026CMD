@@ -31,6 +31,25 @@
         return entry;
     }
 
+    // Link only recognised restaurant pages. Never parse chatbot or AI text as HTML.
+    function renderAssistant(entry, message) {
+        const label = "Guest Reviews page";
+        const start = message.toLowerCase().indexOf(label.toLowerCase());
+        if (start === -1) {
+            entry.textContent = message;
+            return;
+        }
+
+        const link = document.createElement("a");
+        link.href = "/Reviews";
+        link.textContent = message.slice(start, start + label.length);
+        entry.replaceChildren(
+            document.createTextNode(message.slice(0, start)),
+            link,
+            document.createTextNode(message.slice(start + label.length))
+        );
+    }
+
     async function ask(text) {
         const message = String(text || "").trim();
         if (!message || pending || message.length > 500) return;
@@ -64,7 +83,7 @@
                     ? "You've reached the chat limit for now. Please try again shortly."
                     : "The concierge is temporarily unavailable. Please try again."));
             }
-            thinking.textContent = data.reply;
+            renderAssistant(thinking, data.reply);
             history.push({ role: "user", content: message },
                          { role: "assistant", content: data.reply });
             if (history.length > 12) history.splice(0, history.length - 12);

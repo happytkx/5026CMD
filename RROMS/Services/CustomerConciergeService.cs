@@ -56,6 +56,11 @@ public sealed class CustomerConciergeService(
             logger.LogWarning(ex, "Céleste busy-time summary is unavailable.");
         }
 
+        // Navigation questions need a dependable route, even without paid AI access.
+        if (Regex.IsMatch(question, @"\b(reviews?|ratings?|testimonials?|feedback)\b", RegexOptions.IgnoreCase))
+            return new ConciergeReply(
+                "You can read our guests' experiences on the Guest Reviews page. After dining, signed-in customers can also rate and review their completed orders there.", false);
+
         var localReply = OfflineReply(question, opening, closing, interval, dishes, announcements, busyReport, now);
         var apiKey = configuration["OpenAI:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))

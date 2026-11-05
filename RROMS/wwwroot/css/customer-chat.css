@@ -32,6 +32,8 @@
 }
 .concierge-bubble-assistant { align-self: flex-start; background: #edeae1; color: #333028; border-bottom-left-radius: 3px; }
 .concierge-bubble-user { align-self: flex-end; background: #68714e; color: #fff; border-bottom-right-radius: 3px; }
+.concierge-bubble-assistant a { color: #4e5e38; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.concierge-bubble-assistant a:hover { color: #334323; }
 .concierge-suggestions { display: flex; flex-wrap: wrap; gap: 7px; padding: 12px 15px 0; background: #fff; }
 .concierge-suggestions button {
     border: 1px solid #d5cbb9; border-radius: 999px; background: #fff;
