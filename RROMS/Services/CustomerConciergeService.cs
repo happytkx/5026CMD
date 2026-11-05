@@ -84,6 +84,8 @@ public sealed class CustomerConciergeService(
             For exact availability and bookings direct guests to the Book a Table page.
             Never request personal details, passwords or payment information. Do not claim to book,
             cancel, refund or change a reservation. For allergies advise guests to verify with staff.
+            For page navigation, use the exact public page title (e.g. "Guest Reviews page"
+            or "Book a Table") so the widget can make it clickable.
             If facts are missing, explain the limitation. Keep replies under 110 words.
             """;
 
@@ -164,6 +166,9 @@ public sealed class CustomerConciergeService(
         sb.AppendLine("Le Menu Céleste is a four-course dining experience: soup, appetizer, main course and dessert, plus one beverage. Menu dishes can also be purchased à la carte.");
         sb.AppendLine("No dedicated vegan-only menu is offered. For any food allergy, confirm details with restaurant staff.");
         sb.AppendLine("For table availability, guests must use /Reservations/Create. No ability to view private reservations or place bookings here.");
+        sb.AppendLine("Public site links: Home page /; Menu page /Menu; Guest Reviews page /Reviews; Book a Table /Reservations/Create; My Reservations page /Reservations/Index; My Orders page /Orders/Index; My Bill page /MyBill; Sign In page /Account/Login; Register page /Account/Register; Profile page /Account/Profile; Notifications page /Notifications; Announcements section /#announcements.");
+        sb.AppendLine("Customers can place dine-in orders only after staff mark them Seated; final dining payment is handled onsite using Cash, Card or E-Wallet.");
+        sb.AppendLine("Do not invent restaurant address, contact number, food certifications, parking or dress-code policies.");
         sb.AppendLine("CURRENT MENU (listed prices in MYR, before any service charges):");
         foreach (var dish in dishes)
         {
@@ -235,6 +240,119 @@ public sealed class CustomerConciergeService(
                 $"Our latest offer is '{news.Title}'. {news.Message}";
         }
 
+        // Common guest questions remain available without any paid AI API.
+        // Only verified public information is used; page titles become safe links in the widget.
+        if (q.Contains("help") && (q.Contains("what") || q.Contains("can you") || q.Contains("topics")))
+            return "I can help with opening hours, the Menu page, offers, the Guest Reviews page, Book a Table, VIP dining, order progress, payments and account navigation.";
+        if (q.Contains("announcement") || q.Contains("restaurant news") || q.Contains("latest news"))
+            return "See our latest updates in the Announcements section on the Home page. Current dish promotions are also shown on the Menu page.";
+
+        // Dine-in orders and billing.
+        if (q.Contains("delivery") || q.Contains("deliver ") || q.Contains("takeaway") ||
+            q.Contains("take away") || q.Contains("take-out") || q.Contains("pickup"))
+            return "Céleste currently offers dine-in service only, not delivery or takeaway. You can reserve through Book a Table.";
+        if ((q.Contains("cancel") || q.Contains("remove")) &&
+            (q.Contains("dish") || q.Contains("food order") || q.Contains("ordered item") || q.Contains("order item")))
+            return "Please ask restaurant staff about cancelling a dish. Staff handle one dish cancellation at a time with confirmation. Check the My Orders page for its status.";
+        if (q.Contains("order status") || q.Contains("food status") || q.Contains("kitchen status") ||
+            q.Contains("where is my food") || q.Contains("track my order") ||
+            q.Contains("ready to serve") || q.Contains("preparing"))
+            return "The My Orders page shows dishes progressing from Preparing to Ready to Serve, then Served. For delays, please speak with staff.";
+        if (q.Contains("how do i order") || q.Contains("how to order") || q.Contains("order food") ||
+            q.Contains("order dishes") || q.Contains("place an order") || q.Contains("add more dishes") ||
+            q.Contains("can't order") || q.Contains("cannot order"))
+            return "Choose dishes on the Menu page. You can place a dine-in order after staff check you in and mark your reservation Seated. You may add more dishes during your meal.";
+        if (q.Contains("my order") || q.Contains("order history") || q.Contains("previous orders") ||
+            q.Contains("what did i order") || q.Contains("view orders"))
+            return "Sign in and open the My Orders page for your dining sessions, dishes and preparation status. This chat cannot access personal orders.";
+        if (q.Contains("receipt") || q.Contains("invoice") || q.Contains("proof of payment"))
+            return "Visit the My Bill page, then Payments & Receipts. You can view or print a receipt after a successful payment is recorded.";
+        if (q.Contains("outstanding") || q.Contains("balance") || q.Contains("running bill") ||
+            q.Contains("total bill") || q.Contains("final bill") || q.Contains("bill summary") ||
+            q.Contains("how much do i owe") || q.Contains("view my bill"))
+            return "The My Bill page lists ordered dishes, recorded tax, your deposit deduction and any outstanding balance. Staff prepare the final bill and take payment onsite.";
+        if (q.Contains("pay at") || q.Contains("payment method") || q.Contains("cash") ||
+            q.Contains("e-wallet") || q.Contains("ewallet") || q.Contains("credit card") ||
+            q.Contains("debit card") || q.Contains("pay online") || q.Contains("checkout"))
+            return "Pay the reservation deposit during booking. Staff handle final dining payments onsite using Cash, Card or E-Wallet. Details appear on the My Bill page.";
+        if (q.Contains("tax") || q.Contains("service charge") || q.Contains("extra charge"))
+            return "The My Bill page itemises dishes, recorded taxes, your paid deposit and final balance. I cannot quote a total before dishes are ordered.";
+        if (q.Contains("minimum spend") || q.Contains("minimum spending") || q.Contains("minimum charge"))
+            return "Indoor and Outdoor dining have a minimum spend of RM50 per guest. VIP dining requires RM2,400 for 6–8 guests or RM3,600 for 9–12, before tax. The reservation deposit is deducted from the final bill.";
+
+        // Accounts and personal information.
+        if (q.Contains("forgot password") || q.Contains("reset password") || q.Contains("lost password") ||
+            q.Contains("can't log in") || q.Contains("cannot log in") || q.Contains("can't sign in"))
+            return "Use the Sign In page and choose Forgot Password. Never share passwords or verification codes in chat.";
+        if (q.Contains("create an account") || q.Contains("sign up") || q.Contains("register") || q.Contains("new account"))
+            return "Create a customer account on the Register page. You can then reserve tables, view orders and review completed dining orders.";
+        if (q.Contains("sign in") || q.Contains("log in") || q.Contains("login"))
+            return "Use the Sign In page to access your reservations, orders and bills.";
+        if (q.Contains("profile") || q.Contains("account details") || q.Contains("change my name") ||
+            q.Contains("update my phone") || q.Contains("change my email"))
+            return "Use the Profile page to edit supported customer details. The sign-in email cannot be changed there.";
+        if (q.Contains("notification") || q.Contains("message inbox"))
+            return "Sign in and visit the Notifications page for messages about your dining activity.";
+
+        // Reservations, seating and dining areas.
+        if (q.Contains("where is my booking") || q.Contains("find my reservation") ||
+            q.Contains("my reservations") || q.Contains("booking reference") ||
+            q.Contains("reservation status") || q.Contains("booking status") || q.Contains("booking history"))
+            return "Sign in and check the My Reservations page for booking references, dates and status. I cannot retrieve personal bookings in chat.";
+        if (q.Contains("walk in") || q.Contains("walk-in") || q.Contains("without a reservation"))
+            return "I cannot confirm walk-in availability. Please ask restaurant staff, or check live booking times through Book a Table.";
+        if (q.Contains("availability") || q.Contains("available tables") || q.Contains("available seats") ||
+            q.Contains("any tables left") || q.Contains("is there a table") || q.Contains("fully booked"))
+            return "Live availability depends on date, guest count, area and existing bookings. Use Book a Table to see actual arrival slots; I cannot hold a table in chat.";
+        if (q.Contains("how early") || q.Contains("how far in advance") || q.Contains("last minute") ||
+            q.Contains("same day booking") || q.Contains("when should i book") || q.Contains("booking deadline"))
+            return "Book and pay at least 2 hours before Indoor or Outdoor dining, or 24 hours before VIP dining. Book a Table shows eligible slots.";
+        if (q.Contains("choose a table") || q.Contains("select a table") || q.Contains("specific table") ||
+            q.Contains("table number"))
+            return "Choose your dining area and party size through Book a Table. The system automatically allocates a suitable table; guests cannot select a specific table number.";
+        if (q.Contains("how many guests") || q.Contains("maximum guests") || q.Contains("party size") ||
+            q.Contains("group of") || q.Contains("large group") || q.Contains("how many people"))
+            return "Indoor and Outdoor dining accommodate 1–8 guests. VIP rooms accommodate 6–8 guests (8-seat room) or 9–12 guests (12-seat room). Select your party size on Book a Table.";
+        if (q.Contains("indoor") || q.Contains("outdoor") || q.Contains("terrace") ||
+            q.Contains("dining area") || q.Contains("dining space"))
+            return "Choose Indoor Dining, Outdoor Dining or a private VIP room. Standard bookings last two hours; VIP rooms remain reserved until closing. See the Home page or Book a Table.";
+        if (q.Contains("how long") || q.Contains("time limit") || q.Contains("dining duration") || q.Contains("stay until"))
+            return "Indoor and Outdoor bookings last two hours. VIP rooms are reserved from arrival until closing.";
+        if (q.Contains("special request") || q.Contains("birthday") || q.Contains("anniversary") ||
+            q.Contains("celebration") || q.Contains("wheelchair") || q.Contains("accessibility") || q.Contains("high chair"))
+            return "Add special occasion or accessibility notes when booking through Book a Table. Essential arrangements should be confirmed with staff.";
+
+        // Menus, dietary needs and questions with no verified public answer.
+        if (q.Contains("where is the menu") || q.Contains("see the menu") || q.Contains("view the menu") ||
+            q.Contains("browse the menu") || q.Contains("menu link"))
+            return "Browse all available dishes, prices, descriptions and offers on the Menu page.";
+        if (q.Contains("allerg") || q.Contains("peanut") || q.Contains("gluten free") ||
+            q.Contains("gluten-free") || q.Contains("lactose") || q.Contains("dairy free") || q.Contains("dairy-free"))
+            return "Check listed ingredients and allergens on the Menu page. For serious allergies, please confirm directly with staff before ordering; chatbot information cannot guarantee food safety.";
+        if (q.Contains("halal") || q.Contains("kosher") || q.Contains("certified"))
+            return "I don't have verified food certification details. Please confirm directly with the restaurant team before dining.";
+        if (q.Contains("kids menu") || q.Contains("children's menu") || q.Contains("child menu"))
+            return "I don't have a confirmed separate children's menu. Browse the Menu page and ask staff about suitable dishes.";
+        if (q.Contains("alcohol") || q.Contains("wine") || q.Contains("beer"))
+            return "Please check the Menu page or ask staff about available drinks; I can't verify unlisted beverages.";
+        if (q.Contains("gift card") || q.Contains("voucher") || q.Contains("loyalty") || q.Contains("membership"))
+            return "I don't have verified information about vouchers, gift cards or membership benefits. Please confirm with restaurant staff.";
+        if (q.Contains("address") || q.Contains("location") || q.Contains("located") ||
+            q.Contains("directions") || q.Contains("where are you"))
+            return "I don't have a verified street address in Céleste's settings. Please confirm the location through the restaurant's official information.";
+        if (q.Contains("phone number") || q.Contains("telephone") || q.Contains("whatsapp") ||
+            q.Contains("contact you") || q.Contains("customer service"))
+            return "I don't have a verified public contact number. Please use the restaurant's official channels or speak with staff onsite.";
+        if (q.Contains("parking") || q.Contains("dress code") || q.Contains("pet friendly") ||
+            q.Contains("pets allowed") || q.Contains("wifi") || q.Contains("wi-fi"))
+            return "That facility or policy isn't confirmed in Céleste's public settings. Please ask the restaurant team directly.";
+        if (q.Contains("are you human") || q.Contains("real person") || q.Contains("chatbot") || q.Contains("are you ai"))
+            return "I'm Céleste's automated concierge. I can guide you through public restaurant information but cannot access accounts, book tables or change orders for you.";
+        if (Regex.IsMatch(q, @"\b(thanks|thank you|thankyou)\b"))
+            return "You're very welcome! I hope you have a wonderful time at Céleste.";
+        if (Regex.IsMatch(q, @"\b(hello|hi|hey|good morning|good afternoon|good evening)\b"))
+            return "Welcome to Céleste! Ask about the Menu page, Guest Reviews page, Book a Table, dining areas, hours, bills or offers.";
+
         if (q.Contains("hour") || q.Contains("open") || q.Contains("clos") || q.Contains("slot"))
             return $"Céleste is currently open daily from {Hour(opening)} to {Hour(closing)} (Malaysia time). Reservation arrival slots are every {interval} minutes. Check Book a Table for an available time.";
         if (q.Contains("cancel") || q.Contains("refund") || q.Contains("deposit"))
@@ -272,9 +390,7 @@ public sealed class CustomerConciergeService(
         }
         if (q.Contains("book") || q.Contains("reserv") || q.Contains("table"))
             return "You can book an indoor, outdoor or VIP table through Book a Table. A RM50 deposit per guest is required, and the system shows actual available arrival times.";
-        if (q.Contains("hello") || q.Contains("hi") || q.Contains("hey"))
-            return "Welcome to Céleste! I can help with our menu, promotions, dining spaces, reservation policies, opening hours and typical busy times. What would you like to know?";
-        return "I can help with Céleste's menu, current promotions, opening hours, reservation policies and typical busy times. For a specific table or booking, please use Book a Table.";
+        return "I can help with the Menu page, Guest Reviews page, Book a Table, promotions, opening hours, dining spaces, orders and My Bill page. Try asking about one of those topics!";
     }
 
     private static string Hour(TimeSpan value) =>

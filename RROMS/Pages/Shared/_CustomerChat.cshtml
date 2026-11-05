@@ -8,7 +8,7 @@
         <header class="concierge-header">
             <div>
                 <strong>Céleste Concierge</strong>
-                <small>Menu, reservations &amp; busy times</small>
+                <small>Dining, bookings &amp; guest support</small>
             </div>
             <button type="button" class="concierge-close" id="concierge-close"
                     aria-label="Close concierge chat">×</button>
@@ -16,14 +16,17 @@
         <div class="concierge-messages" id="concierge-messages" role="log"
              aria-live="polite" aria-relevant="additions text">
             <p class="concierge-bubble concierge-bubble-assistant">
-                Welcome to Céleste! Ask about our menu, current offers, opening hours or typical busy times.
+                Welcome to Céleste! Ask about dining, bookings, offers, reviews, order status or payments.
             </p>
         </div>
         <div class="concierge-suggestions" id="concierge-suggestions" aria-label="Suggested questions">
-            <button type="button" data-question="What are your opening hours?">Opening hours</button>
-            <button type="button" data-question="Are there any current promotions?">Current offers</button>
-            <button type="button" data-question="Where can I see guest reviews?">Guest reviews</button>
-            <button type="button" data-question="How busy is Saturday around 7pm?">Saturday at 7pm</button>
+            <button type="button" data-question="What are your opening hours?">Hours</button>
+            <button type="button" data-question="Are there any current promotions?">Offers</button>
+            <button type="button" data-question="Where can I see guest reviews?">Reviews</button>
+            <button type="button" data-question="How do I book a table?">Book</button>
+            <button type="button" data-question="Tell me about VIP rooms">VIP rooms</button>
+            <button type="button" data-question="How can I see my bill?">My bill</button>
+            <button type="button" data-question="How busy is Saturday around 7pm?">Busy times</button>
         </div>
         <form method="post" id="concierge-form" class="concierge-form"
               data-endpoint="@Url.Page("/CustomerChat", "Ask")">

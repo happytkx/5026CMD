@@ -34,10 +34,15 @@
 .concierge-bubble-user { align-self: flex-end; background: #68714e; color: #fff; border-bottom-right-radius: 3px; }
 .concierge-bubble-assistant a { color: #4e5e38; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
 .concierge-bubble-assistant a:hover { color: #334323; }
-.concierge-suggestions { display: flex; flex-wrap: wrap; gap: 7px; padding: 12px 15px 0; background: #fff; }
+.concierge-suggestions {
+    display: flex; flex-wrap: nowrap; gap: 6px; padding: 10px 12px 4px;
+    overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+    scrollbar-width: thin; background: #fff;
+}
 .concierge-suggestions button {
     border: 1px solid #d5cbb9; border-radius: 999px; background: #fff;
-    color: #655c42; padding: 7px 10px; font-size: 11px; cursor: pointer;
+    color: #655c42; padding: 5px 8px; font-size: 10px; white-space: nowrap;
+    flex: 0 0 auto; cursor: pointer;
 }
 .concierge-suggestions button:hover { background: #f5f1e8; }
 .concierge-form { display: flex; gap: 8px; padding: 12px 15px 6px; background: #fff; }

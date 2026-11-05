@@ -3535,3 +3535,27 @@ td small
 @media (max-width: 650px) {
     .homepage-featured { flex-direction: column-reverse; align-items: flex-start; gap: 12px; }
 }
+
+
+/* Keep guest navigation and the staff/admin top bar visible while scrolling. */
+@media screen {
+    .guest-view .site-chrome {
+        position: sticky;
+        top: 0;
+        z-index: 1040;
+        background: #fff;
+    }
+    .staff-workspace .site-chrome { display: none; }
+    .staff-workspace .workspace-bar {
+        position: sticky;
+        top: 0;
+        z-index: 1040;
+        background: #f8f6f1;
+    }
+    .guest-view main [id] { scroll-margin-top: 156px; }
+    .staff-workspace .report-section-nav { top: 82px; }
+}
+@media screen and (max-width: 800px) {
+    .guest-view main [id] { scroll-margin-top: 88px; }
+    .staff-workspace .report-section-nav { top: 60px; }
+}

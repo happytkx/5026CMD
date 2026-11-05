@@ -31,23 +31,35 @@
         return entry;
     }
 
-    // Link only recognised restaurant pages. Never parse chatbot or AI text as HTML.
-    function renderAssistant(entry, message) {
-        const label = "Guest Reviews page";
-        const start = message.toLowerCase().indexOf(label.toLowerCase());
-        if (start === -1) {
-            entry.textContent = message;
-            return;
-        }
+    // Only these known site page titles are clickable; model text is never HTML.
+    const destinations = Object.freeze({
+        "guest reviews page": "/Reviews",
+        "book a table": "/Reservations/Create",
+        "menu page": "/Menu",
+        "home page": "/",
+        "announcements section": "/#announcements",
+        "my reservations page": "/Reservations/Index",
+        "my orders page": "/Orders/Index",
+        "my bill page": "/MyBill",
+        "sign in page": "/Account/Login",
+        "register page": "/Account/Register",
+        "profile page": "/Account/Profile",
+        "notifications page": "/Notifications"
+    });
+    const linkTitles = Object.keys(destinations).sort((a, b) => b.length - a.length);
+    const linkMatcher = new RegExp("(" + linkTitles.join("|") + ")", "gi");
 
-        const link = document.createElement("a");
-        link.href = "/Reviews";
-        link.textContent = message.slice(start, start + label.length);
-        entry.replaceChildren(
-            document.createTextNode(message.slice(0, start)),
-            link,
-            document.createTextNode(message.slice(start + label.length))
-        );
+    function renderAssistant(entry, message) {
+        const fragments = message.split(linkMatcher);
+        const nodes = fragments.map(fragment => {
+            const route = destinations[fragment.toLowerCase()];
+            if (!route) return document.createTextNode(fragment);
+            const link = document.createElement("a");
+            link.href = route;
+            link.textContent = fragment;
+            return link;
+        });
+        entry.replaceChildren(...nodes);
     }
 
     async function ask(text) {
