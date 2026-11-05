@@ -93,7 +93,7 @@
 <details class="menu-category-tools">
     <summary>Manage categories <span class="badge">@Model.Categories.Count categories</span></summary>
     <div class="menu-category-tools-body">
-        <p class="muted">Add or rename categories, and delete categories that contain no dishes.</p>
+        <p class="muted">Add or rename categories. Existing categories are preserved to protect menu history.</p>
     <form method="post" asp-page-handler="CreateCategory" class="menu-category-create">
                     <input type="hidden" name="Search" value="@Model.Search" />
                     <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
@@ -126,19 +126,8 @@
                         <button type="submit" class="secondary">Rename</button>
                     </div>
                 </form>
-                <form method="post" asp-page-handler="DeleteCategory"
-                      onsubmit="return confirm('Delete this empty category?');">
-                    <input type="hidden" name="Search" value="@Model.Search" />
-                    <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
-                    <input type="hidden" name="FilterAvailability" value="@Model.FilterAvailability" />
-                    <input type="hidden" name="SortBy" value="@Model.SortBy" />
-                    <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
-                    <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
-                    <input type="hidden" name="categoryId" value="@category.MenuCategoryID" />
-                    <button type="submit" class="quiet danger" disabled="@(dishCount > 0)"
-                            title="@(dishCount > 0 ? "Move its dishes before deleting" : "Delete empty category")">Delete</button>
-                </form>
-            </article>
+
+</article>
         }
     </div>
     </div>
@@ -146,7 +135,7 @@
 <details class="menu-category-tools menu-option-tools">
     <summary>Manage protein types, dietary tags &amp; allergens <span class="badge">@Model.MenuOptions.Count options</span></summary>
     <div class="menu-category-tools-body">
-        <p class="muted">These options appear in the dish editor dropdowns. Add new choices, rename them across existing dishes, or remove choices that no dish uses.</p>
+        <p class="muted">These options appear in the dish editor dropdowns. Add new choices or rename them across existing dishes.</p>
         @foreach (var kind in new[] { "Protein", "Dietary", "Allergen" })
         {
             var label = kind switch { "Protein" => "Protein types", "Dietary" => "Dietary tags", _ => "Allergens" };
@@ -188,19 +177,8 @@
                                     <button type="submit" class="secondary">Rename</button>
                                 </div>
                             </form>
-                            <form method="post" asp-page-handler="DeleteOption"
-                                  onsubmit="return confirm('Delete this unused option?');">
-                    <input type="hidden" name="Search" value="@Model.Search" />
-                    <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
-                    <input type="hidden" name="FilterAvailability" value="@Model.FilterAvailability" />
-                    <input type="hidden" name="SortBy" value="@Model.SortBy" />
-                    <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
-                    <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
-                                <input type="hidden" name="optionId" value="@option.MenuOptionID" />
-                                <button type="submit" class="quiet danger" disabled="@(useCount > 0)"
-                                        title="@(useCount > 0 ? "Change the dishes using this option before deleting" : "Delete unused option")">Delete</button>
-                            </form>
-                        </article>
+
+</article>
                     }
                 </div>
             </details>
@@ -275,13 +253,8 @@
                             @(item.IsAvailable ? "Disable" : "Enable")
                         </button>
                     </form>
-                    <form method="post" asp-page-handler="DeleteItem"
-                          data-dish-name="@item.Name"
-                          onsubmit="return confirm('Delete ' + this.dataset.dishName + '? This cannot be undone. Dishes linked to orders cannot be deleted.');">
-                        <input type="hidden" name="itemId" value="@item.MenuItemID" />
-                        <button type="submit" class="quiet danger" aria-label="Delete @item.Name">Delete</button>
-                    </form>
-                </div>
+
+</div>
                 <div class="menu-unified-details">
                     <details class="menu-editor-panel">
                         <summary>Edit details <span>⌄</span></summary>

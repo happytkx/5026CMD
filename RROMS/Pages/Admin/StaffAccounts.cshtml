@@ -28,6 +28,9 @@
     .account-tabs a:focus-visible { outline: 2px solid #a0804c; outline-offset: 3px; }
     .account-actions button.account-danger { background-color: #a33932 !important; border-color: #a33932 !important; color: #fff !important; }
     .account-actions button.account-danger:hover { background-color: #862820 !important; }
+    .account-actions form button.account-deactivate-button { background: #ab3333 !important; border: 1px solid #ab3333 !important; color: #fff !important; }
+    .account-actions form button.account-deactivate-button:hover { background: #8d2929 !important; border-color: #8d2929 !important; }
+    .account-actions form button.account-deactivate-button:focus-visible { outline: 2px solid #ab3333; outline-offset: 3px; }
     .account-role-note { display: block; margin-top: .3rem; font-size: .8rem; color: #766f62; }
     .account-edit-grid textarea { width: 100%; min-height: 5rem; }
 
@@ -139,7 +142,7 @@
                                           onsubmit="return confirm('@(account.IsActive ? "Deactivate this staff account? All signed-in sessions will end." : "Reactivate this staff account?")')">
                                         <input type="hidden" name="staffAccountId" value="@account.StaffAccountID" />
                                         <input type="hidden" name="isActive" value="@(account.IsActive ? "false" : "true")" />
-                                        <button class="@(account.IsActive ? "account-danger" : "")" type="submit">
+                                        <button class="@(account.IsActive ? "account-danger account-deactivate-button" : "")" type="submit">
                                             @(account.IsActive ? "DEACTIVATE" : "REACTIVATE")
                                         </button>
                                     </form>
@@ -257,7 +260,7 @@ else
                                           onsubmit="return confirm('@(account.IsActive ? "Deactivate this customer account? Sign-in will be blocked and existing sessions will end." : "Reactivate this customer account?")')">
                                         <input type="hidden" name="customerId" value="@account.CustomerID" />
                                         <input type="hidden" name="isActive" value="@(account.IsActive ? "false" : "true")" />
-                                        <button class="@(account.IsActive ? "account-danger" : "")" type="submit">
+                                        <button class="@(account.IsActive ? "account-danger account-deactivate-button" : "")" type="submit">
                                             @(account.IsActive ? "DEACTIVATE" : "REACTIVATE")
                                         </button>
                                     </form>
