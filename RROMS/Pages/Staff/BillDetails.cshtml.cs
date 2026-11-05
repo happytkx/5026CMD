@@ -32,6 +32,11 @@ public class BillDetailsModel : PageModel
 
     public List<Payment> Payments { get; set; } = new();
 
+    // Sum recorded final payments separately from the reservation deposit.
+    public decimal PaidDiningPayments => Payments
+        .Where(p => p.PaymentType == "DiningBill" && p.PaymentStatus == "Paid")
+        .Sum(p => p.Amount);
+
     // Actual non-cancelled order lines, shown on the itemised final bill.
     public List<CustomerOrder> DiningOrders { get; set; } = new();
 
