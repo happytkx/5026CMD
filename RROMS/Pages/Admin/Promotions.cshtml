@@ -35,6 +35,13 @@
     .promotion-status.scheduled { background: #f3e7d5; color: #725325; }
     .promotion-price-note { color: #6c5b45; }
     @@media (max-width: 900px) { .promotion-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .promotion-category-list { display: grid; gap: 1rem; }
+    .promotion-category-panel { border: 1px solid #ded6c9; border-radius: .4rem; background: #fff; padding: 0 1.15rem; }
+    .promotion-category-panel[hidden] { display: none !important; }
+    .promotion-category-heading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: .6rem; margin: 0 -1.15rem .15rem; padding: 1rem 1.15rem; background: #f5f3ed; border-bottom: 1px solid #e6ddd0; }
+    .promotion-category-heading h3 { margin: 0; color: #606d4c; font-size: 1.45rem; }
+    .promotion-category-heading span { font-size: .8rem; color: #777167; }
+    .promotion-category-tabs { margin: 1.4rem 0 1.2rem; }
     @@media (max-width: 520px) { .promotion-fields { grid-template-columns: 1fr; } }
 </style>
 
@@ -133,63 +140,119 @@
         <p>No dishes exist yet. Add dishes in Menu Management before creating a promotion.</p>
     }
 
-    @foreach (var item in Model.Dishes)
-    {
-        var status = MenuPricing.CampaignStatus(item, Model.Today);
-        <article class="promotion-item">
-            <div class="promotion-heading">
-                <div>
-                    <h3>@item.Name</h3>
-                    <p class="muted">@item.Category · Original price RM @item.Price.ToString("0.00")</p>
-                    @if (item.DiscountPercent is > 0m && item.PromotionStartDate.HasValue && item.PromotionEndDate.HasValue)
-                    {
-                        <p class="promotion-price-note">
-                            Offer price: <strong>RM @MenuPricing.DiscountedPrice(item).ToString("0.00")</strong>
-                            (@item.DiscountPercent.Value.ToString("0.##")% off)
-                        </p>
-                    }
-                </div>
-                <div>
-                    <span class="promotion-status @(status == "Active" ? "active" : status == "Scheduled" ? "scheduled" : "")">@status</span>
-                    @if (!item.IsAvailable)
-                    {
-                        <span class="badge">Dish unavailable</span>
-                    }
-                </div>
-            </div>
-
-            <form method="post" asp-page-handler="Save">
-                <input type="hidden" name="menuItemId" value="@item.MenuItemID" />
-                <div class="promotion-fields">
-                    <div>
-                        <label for="discount-@item.MenuItemID">Discount (%)</label>
-                        <input id="discount-@item.MenuItemID" name="discountPercent" type="number"
-                               min="0.01" max="50" step="0.01" required
-                               value="@(item.DiscountPercent?.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) ?? "10")" />
-                    </div>
-                    <div>
-                        <label for="promo-start-@item.MenuItemID">Start date</label>
-                        <input id="promo-start-@item.MenuItemID" name="promotionStartDate" type="date" required
-                               value="@(item.PromotionStartDate?.ToString("yyyy-MM-dd") ?? Model.Today.ToString("yyyy-MM-dd"))" />
-                    </div>
-                    <div>
-                        <label for="promo-end-@item.MenuItemID">End date</label>
-                        <input id="promo-end-@item.MenuItemID" name="promotionEndDate" type="date" required
-                               value="@(item.PromotionEndDate?.ToString("yyyy-MM-dd") ?? Model.Today.AddDays(6).ToString("yyyy-MM-dd"))" />
-                    </div>
-                    <button type="submit">SAVE OFFER</button>
-                </div>
-            </form>
-            @if (item.DiscountPercent.HasValue)
-            {
-                <div class="promotion-tools">
-                    <form method="post" asp-page-handler="Stop"
-                          onsubmit="return confirm('Remove the promotional offer for this dish?');">
-                        <input type="hidden" name="menuItemId" value="@item.MenuItemID" />
-                        <button type="submit" class="secondary">REMOVE OFFER</button>
-                    </form>
-                </div>
-            }
-        </article>
+    @{
+        var preferredCategoryOrder = new[] { "Soups", "Appetizers", "Main Course", "Desserts", "Beverages" };
+        var promotionGroups = Model.Dishes.GroupBy(item => item.Category)
+            .OrderBy(group => {
+                var position = Array.IndexOf(preferredCategoryOrder, group.Key);
+                return position < 0 ? int.MaxValue : position;
+            })
+            .ThenBy(group => group.Key)
+            .ToList();
     }
+    @if (promotionGroups.Count > 0)
+    {
+        <nav class="menu-category-tabs promotion-category-tabs" aria-label="Filter individual offers by category">
+            <button type="button" class="menu-category-tab is-active" data-promotion-category-tab="all" aria-pressed="true">
+                All dishes <span>@Model.Dishes.Count</span>
+            </button>
+            @foreach (var categoryGroup in promotionGroups)
+            {
+                <button type="button" class="menu-category-tab" data-promotion-category-tab="@categoryGroup.Key" aria-pressed="false">
+                    @categoryGroup.Key <span>@categoryGroup.Count()</span>
+                </button>
+            }
+        </nav>
+    }
+    <div class="promotion-category-list">
+        @foreach (var categoryGroup in promotionGroups)
+        {
+            <section class="promotion-category-panel" data-promotion-category-panel="@categoryGroup.Key">
+                <header class="promotion-category-heading">
+                    <h3>@categoryGroup.Key</h3>
+                    <span>@categoryGroup.Count() dish@(categoryGroup.Count() == 1 ? "" : "es")</span>
+                </header>
+                @foreach (var item in categoryGroup)
+                {
+                    var status = MenuPricing.CampaignStatus(item, Model.Today);
+                    <article class="promotion-item">
+                        <div class="promotion-heading">
+                            <div>
+                                <h3>@item.Name</h3>
+                                <p class="muted">@item.Category · Original price RM @item.Price.ToString("0.00")</p>
+                                @if (item.DiscountPercent is > 0m && item.PromotionStartDate.HasValue && item.PromotionEndDate.HasValue)
+                                {
+                                    <p class="promotion-price-note">
+                                        Offer price: <strong>RM @MenuPricing.DiscountedPrice(item).ToString("0.00")</strong>
+                                        (@item.DiscountPercent.Value.ToString("0.##")% off)
+                                    </p>
+                                }
+                            </div>
+                            <div>
+                                <span class="promotion-status @(status == "Active" ? "active" : status == "Scheduled" ? "scheduled" : "")">@status</span>
+                                @if (!item.IsAvailable)
+                                {
+                                    <span class="badge">Dish unavailable</span>
+                                }
+                            </div>
+                        </div>
+
+                        <form method="post" asp-page-handler="Save">
+                            <input type="hidden" name="menuItemId" value="@item.MenuItemID" />
+                            <div class="promotion-fields">
+                                <div>
+                                    <label for="discount-@item.MenuItemID">Discount (%)</label>
+                                    <input id="discount-@item.MenuItemID" name="discountPercent" type="number"
+                                           min="0.01" max="50" step="0.01" required
+                                           value="@(item.DiscountPercent?.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) ?? "10")" />
+                                </div>
+                                <div>
+                                    <label for="promo-start-@item.MenuItemID">Start date</label>
+                                    <input id="promo-start-@item.MenuItemID" name="promotionStartDate" type="date" required
+                                           value="@(item.PromotionStartDate?.ToString("yyyy-MM-dd") ?? Model.Today.ToString("yyyy-MM-dd"))" />
+                                </div>
+                                <div>
+                                    <label for="promo-end-@item.MenuItemID">End date</label>
+                                    <input id="promo-end-@item.MenuItemID" name="promotionEndDate" type="date" required
+                                           value="@(item.PromotionEndDate?.ToString("yyyy-MM-dd") ?? Model.Today.AddDays(6).ToString("yyyy-MM-dd"))" />
+                                </div>
+                                <button type="submit">SAVE OFFER</button>
+                            </div>
+                        </form>
+                        @if (item.DiscountPercent.HasValue)
+                        {
+                            <div class="promotion-tools">
+                                <form method="post" asp-page-handler="Stop"
+                                      onsubmit="return confirm('Remove the promotional offer for this dish?');">
+                                    <input type="hidden" name="menuItemId" value="@item.MenuItemID" />
+                                    <button type="submit" class="secondary">REMOVE OFFER</button>
+                                </form>
+                            </div>
+                        }
+                    </article>
+                }
+
+            </section>
+        }
+    </div>
 </section>
+
+@section Scripts {
+    <script>
+        const promotionTabs = Array.from(document.querySelectorAll('[data-promotion-category-tab]'));
+        const promotionPanels = Array.from(document.querySelectorAll('[data-promotion-category-panel]'));
+        promotionTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const selected = tab.dataset.promotionCategoryTab;
+                promotionPanels.forEach(panel => {
+                    panel.hidden = selected !== 'all' && panel.dataset.promotionCategoryPanel !== selected;
+                });
+                promotionTabs.forEach(choice => {
+                    const active = choice === tab;
+                    choice.classList.toggle('is-active', active);
+                    choice.setAttribute('aria-pressed', String(active));
+                });
+            });
+        });
+    </script>
+}
