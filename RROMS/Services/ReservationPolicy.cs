@@ -42,6 +42,12 @@ public static class ReservationPolicy
     public static DateTime End(DateTime start, string area, TimeSpan closing, RestaurantSetting? settings = null) =>
         area == "VIP Room" ? start.Date.Add(closing) : start.AddMinutes(settings?.StandardDiningMinutes ?? 120);
 
+    // Every area shares the Indoor/Outdoor arrival cutoff, while VIP occupancy still ends at closing.
+    // Existing reschedules use their originally agreed dining duration when supplied.
+    public static bool FitsSharedArrivalWindow(DateTime start, RestaurantSetting hours, RestaurantSetting? bookingTerms = null) =>
+        start.TimeOfDay >= hours.OpeningTime &&
+        start.AddMinutes(bookingTerms?.StandardDiningMinutes ?? hours.StandardDiningMinutes) <= start.Date.Add(hours.ClosingTime);
+
     public static bool Overlaps(DateTime start, DateTime end, DateTime otherStart, DateTime otherEnd) =>
         start < otherEnd && end > otherStart;
 

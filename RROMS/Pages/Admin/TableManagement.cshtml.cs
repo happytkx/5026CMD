@@ -126,6 +126,11 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
             AvailabilityError = $"Choose an arrival time between {settings.OpeningTime.ToString(@"hh\:mm")} and {settings.ClosingTime.ToString(@"hh\:mm")}.";
             return;
         }
+        if (!ReservationPolicy.FitsSharedArrivalWindow(start, settings))
+        {
+            AvailabilityError = $"All dining areas use the same arrival slots, ending at least {settings.StandardDiningMinutes} minutes before closing.";
+            return;
+        }
 
         var reservations = await db.Reservations.AsNoTracking()
             .Where(r => r.ReservationDate == date &&

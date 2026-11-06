@@ -24,11 +24,12 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
         if (!ReservationPolicy.MeetsAdvance(area, start, ReservationPolicy.Now, terms))
             throw new InvalidOperationException($"Book Indoor/Outdoor at least {terms.StandardAdvanceHours} hours ahead, or VIP at least {terms.VipAdvanceHours} hours ahead (Malaysia time). Choose a later slot.");
         var end = ReservationPolicy.End(start, area, settings.ClosingTime, terms);
-        if (start <= ReservationPolicy.Now || start.TimeOfDay < settings.OpeningTime ||
+        if (start <= ReservationPolicy.Now ||
+            !ReservationPolicy.FitsSharedArrivalWindow(start, settings, terms) ||
             end.Date != start.Date || end.TimeOfDay > settings.ClosingTime || end <= start ||
             (enforceCurrentInterval &&
              (start.TimeOfDay - settings.OpeningTime).Ticks % TimeSpan.FromMinutes(settings.SlotIntervalMinutes).Ticks != 0))
-            throw new InvalidOperationException($"Choose a valid future arrival slot within opening hours. Indoor and Outdoor require {terms.StandardDiningMinutes} minutes before closing.");
+            throw new InvalidOperationException($"Choose a valid future arrival slot. All dining areas require {terms.StandardDiningMinutes} minutes before closing.");
         return end;
     }
 
@@ -55,7 +56,8 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
         var result = new List<DateTime>();
         for (var start = date.Date.Add(settings.OpeningTime); start < date.Date.Add(settings.ClosingTime); start = start.AddMinutes(settings.SlotIntervalMinutes))
         {
-            if (!ReservationPolicy.MeetsAdvance(area, start, ReservationPolicy.Now, terms))
+            if (!ReservationPolicy.FitsSharedArrivalWindow(start, settings, terms) ||
+                !ReservationPolicy.MeetsAdvance(area, start, ReservationPolicy.Now, terms))
                 continue;
             var end = ReservationPolicy.End(start, area, settings.ClosingTime, terms);
             if (end <= date.Date.Add(settings.ClosingTime) && end > start &&

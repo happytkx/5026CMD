@@ -8,7 +8,7 @@
         ? parsedClose : TimeSpan.FromHours(22);
     var configuredInterval = TimeSpan.FromMinutes(Model.IntervalMinutes is 15 or 30 or 60 ? Model.IntervalMinutes : 30);
     var allSlots = new List<TimeSpan>();
-    for (var arrival = openTime; arrival < closeTime; arrival += configuredInterval)
+    for (var arrival = openTime; arrival.Add(TimeSpan.FromMinutes(Model.StandardDiningMinutes)) <= closeTime; arrival += configuredInterval)
         allSlots.Add(arrival);
 }
 <style>
@@ -28,8 +28,6 @@
     .restaurant-slot-body p { font-size: .8rem; margin: .3rem 0 1rem; color: #787166; }
     .restaurant-slot-list { display: flex; flex-wrap: wrap; gap: .5rem; align-content: flex-start; }
     .restaurant-slot-time { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; padding: .55rem .7rem; border: 1px solid #d1dac8; border-radius: 4px; background: #f2f5ee; color: #435639; font-size: .82rem; font-weight: 600; font-variant-numeric: tabular-nums; }
-    .restaurant-slot-vip-only { background: #fbf3e6; border-color: #dec9a6; color: #715b39; }
-    .restaurant-slot-vip-only small { font-size: .68rem; font-weight: 600; white-space: nowrap; }
     .restaurant-slot-empty { color: #9b403a; font-size: .82rem; }
     @@media (max-width: 760px) { .restaurant-settings-grid { grid-template-columns: 1fr; } }
 </style>
@@ -75,24 +73,17 @@
                 <h3 id="restaurant-slot-preview-title">Available arrival times preview</h3>
                 <span>Assuming every slot is free</span>
             </div>
-            <p class="muted">All dining areas follow the same opening hours and arrival interval. Times marked <strong>VIP only</strong> are too close to closing for a standard @(Model.StandardDiningMinutes)-minute Indoor or Outdoor reservation. Actual availability depends on party size, suitable tables, existing reservations and minimum advance notice. This preview updates as you edit; save to apply changes.</p>
+            <p class="muted">Indoor, Outdoor and VIP Rooms share the same possible arrival times. The final slot must leave at least @Model.StandardDiningMinutes minutes before closing. Actual availability still depends on party size, suitable tables, existing reservations and advance notice. This preview updates as you edit; save to apply changes.</p>
             <div class="restaurant-slot-body">
                 <div class="restaurant-slot-group-heading">
                     <h4>Restaurant-wide arrival times</h4>
                     <span class="restaurant-slot-count" data-slot-count>@allSlots.Count possible times</span>
                 </div>
-                <p>Standard dining requires @Model.StandardDiningMinutes minutes before closing. VIP reservations end at closing time.</p>
+                <p>Indoor and Outdoor dining lasts @Model.StandardDiningMinutes minutes. VIP reservations still run until closing, but use the same arrival cutoff.</p>
                 <div class="restaurant-slot-list" data-slots>
                     @foreach (var slot in allSlots)
                     {
-                        var vipOnly = slot.Add(TimeSpan.FromMinutes(Model.StandardDiningMinutes)) > closeTime;
-                        <span class="restaurant-slot-time @(vipOnly ? "restaurant-slot-vip-only" : "")">
-                            @DateTime.Today.Add(slot).ToString("h:mm tt", System.Globalization.CultureInfo.InvariantCulture)
-                            @if (vipOnly)
-                            {
-                                <small>VIP only</small>
-                            }
-                        </span>
+                        <span class="restaurant-slot-time">@DateTime.Today.Add(slot).ToString("h:mm tt", System.Globalization.CultureInfo.InvariantCulture)</span>
                     }
                 </div>
             </div>
@@ -101,7 +92,7 @@
         <div class="restaurant-settings-note">
             <strong>How this affects reservations</strong>
             <ul>
-                <li>Arrival slots begin at opening time and repeat at your selected interval.</li>
+                <li>All dining areas share arrival slots beginning at opening time, repeating at your selected interval and ending at least @Model.StandardDiningMinutes minutes before closing.</li>
                 <li>Indoor and Outdoor reservations last @Model.StandardDiningMinutes minutes; VIP rooms remain booked until closing.</li>
                 <li>Opening or closing time changes are blocked when they would disrupt existing active reservations.</li>
                 <li>Changing the slot interval does not cancel or move any existing reservations.</li>
@@ -133,7 +124,7 @@
                     ' ' + (hours >= 12 ? 'PM' : 'AM');
             };
             const diningMinutes = @Model.StandardDiningMinutes;
-            const paint = (times, closingMinute) => {
+            const paint = times => {
                 const list = preview.querySelector('[data-slots]');
                 const count = preview.querySelector('[data-slot-count]');
                 count.textContent = times.length + (times.length === 1 ? ' possible time' : ' possible times');
@@ -146,15 +137,9 @@
                     return;
                 }
                 times.forEach(time => {
-                    const vipOnly = time + diningMinutes > closingMinute;
                     const chip = document.createElement('span');
-                    chip.className = 'restaurant-slot-time' + (vipOnly ? ' restaurant-slot-vip-only' : '');
-                    chip.append(document.createTextNode(formatTime(time)));
-                    if (vipOnly) {
-                        const label = document.createElement('small');
-                        label.textContent = 'VIP only';
-                        chip.append(label);
-                    }
+                    chip.className = 'restaurant-slot-time';
+                    chip.textContent = formatTime(time);
                     list.append(chip);
                 });
             };
@@ -165,10 +150,10 @@
                 const times = [];
                 if (Number.isFinite(start) && Number.isFinite(end) &&
                     end - start >= Math.max(120, diningMinutes) && [15, 30, 60].includes(step)) {
-                    for (let time = start; time < end; time += step)
+                    for (let time = start; time + diningMinutes <= end; time += step)
                         times.push(time);
                 }
-                paint(times, end);
+                paint(times);
             };
             [opening, closing, interval].forEach(field => field.addEventListener('change', update));
             [opening, closing].forEach(field => field.addEventListener('input', update));
