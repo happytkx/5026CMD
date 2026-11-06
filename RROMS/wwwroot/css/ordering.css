@@ -3262,3 +3262,37 @@ button.reservation-cancel-button:focus-visible {
     .menu-comparison-picker { grid-template-columns: 1fr; }
     .menu-unified-category-heading { padding: 14px; }
 }
+
+
+/* Customer and staff login: accessible password visibility control. */
+.auth-card .password-visibility-field {
+    position: relative;
+    width: 100%;
+}
+.auth-card .password-visibility-field > input {
+    box-sizing: border-box;
+    width: 100%;
+    padding-right: 58px;
+}
+.auth-card .password-visibility-toggle {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: #626b53;
+    cursor: pointer;
+}
+.auth-card .password-visibility-toggle:hover { background: #eff1e8; color: #3e5237; }
+.auth-card .password-visibility-toggle:focus-visible { outline: 2px solid #849373; outline-offset: 2px; }
+.auth-card .password-visibility-toggle svg[hidden] { display: none !important; }
