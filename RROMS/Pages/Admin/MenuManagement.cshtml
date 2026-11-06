@@ -258,10 +258,14 @@
                 @foreach (var item in categoryGroup)
                 {
                     var metrics = Model.MetricsFor(item);
-                    <article class="menu-unified-item" id="menu-item-@item.MenuItemID">
+                    <article class="menu-unified-item @(Model.FocusItemId == item.MenuItemID ? "is-recently-saved" : "")" id="menu-item-@item.MenuItemID">
                         <div class="menu-unified-grid">
                             <div class="menu-unified-dish">
                                 <strong>@item.Name</strong>
+                                @if (Model.FocusItemId == item.MenuItemID)
+                                {
+                                    <small class="menu-saved-marker">Just saved</small>
+                                }
                                 <small>@item.Category</small>
                             </div>
                             <div class="menu-unified-value" data-label="Current price">RM @item.Price.ToString("N2")</div>

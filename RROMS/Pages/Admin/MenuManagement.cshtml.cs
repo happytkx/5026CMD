@@ -444,7 +444,24 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
         }
 
         await db.SaveChangesAsync();
-        return Success($"Dish {item.Name} {(Dish.MenuItemID == 0 ? "created" : "updated")}. Changes appear on the customer menu.", item.MenuItemID);
+
+        if (Dish.MenuItemID == 0)
+        {
+            // Do not hide a newly created dish behind the filters used before opening the editor.
+            // FocusItemId will scroll to the saved item in the full management list.
+            Search = null;
+            FilterCategory = null;
+            FilterAvailability = null;
+            return Success(item.IsAvailable
+                ? $"Dish {item.Name} created and available on the customer menu."
+                : $"Dish {item.Name} created as unavailable. Enable it to show on the customer menu.",
+                item.MenuItemID);
+        }
+
+        return Success(item.IsAvailable
+            ? $"Dish {item.Name} updated and available on the customer menu."
+            : $"Dish {item.Name} updated and unavailable on the customer menu.",
+            item.MenuItemID);
     }
 
     private static async Task<bool> ValidImageAsync(IFormFile file)

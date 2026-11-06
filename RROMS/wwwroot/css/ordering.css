@@ -2179,6 +2179,16 @@ form.card.mybill-selector {
     text-transform: uppercase;
 }
 .menu-unified-item { border-bottom: 1px solid var(--line); min-width: 0; scroll-margin-top: 115px; }
+.menu-unified-item.is-recently-saved {
+    background: #f6f5ea;
+    box-shadow: inset 3px 0 #a79165;
+}
+.menu-saved-marker {
+    width: fit-content;
+    color: #566244 !important;
+    font-size: 11px;
+    font-weight: 700;
+}
 .menu-unified-item > .menu-unified-grid { padding: 15px 14px 11px; }
 .menu-unified-dish { display: flex; flex-direction: column; min-width: 0; gap: 4px; }
 .menu-unified-dish strong { font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
