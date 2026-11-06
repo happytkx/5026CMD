@@ -131,27 +131,6 @@ public class IndexModel(ApplicationDbContext db, BusinessAnalyticsService analyt
         return RedirectToPage();
     }
 
-    public async Task<IActionResult> OnPostSetAnnouncementDisplayAsync(int id, bool isFeatured)
-    {
-        await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
-        var announcement = await db.Announcements.FindAsync(id);
-        if (announcement is null) return NotFound();
-        if (!announcement.IsPromotional) return BadRequest("Only promotions may be featured above dining spaces.");
-
-        if (isFeatured)
-        {
-            var previouslyFeatured = await db.Announcements.Where(a => a.IsFeatured && a.AnnouncementID != id).ToListAsync();
-            foreach (var previous in previouslyFeatured) previous.IsFeatured = false;
-        }
-        announcement.IsFeatured = isFeatured;
-        announcement.ShowInPopup = true;
-        announcement.UpdatedByAdministratorID = AdministratorId;
-        await db.SaveChangesAsync();
-        await transaction.CommitAsync();
-        TempData["Success"] = $"Display settings saved for {announcement.Title}.";
-        return RedirectToPage();
-    }
-
     // Pinning changes order in the customer announcements list independently of the promotion banner.
     public async Task<IActionResult> OnPostSetAnnouncementPinAsync(int id, bool isPinned)
     {

@@ -11,7 +11,7 @@ public class IndexModel(ApplicationDbContext db) : PageModel
     public List<MenuItem> Popular { get; set; } = [];
     public List<Announcement> Announcements { get; set; } = [];
     public List<Announcement> PopupAnnouncements { get; set; } = [];
-    public Announcement? Featured { get; set; }
+    public List<Announcement> FeaturedPromotions { get; set; } = [];
     public DateTime Today => RROMS.Services.ReservationPolicy.Now.Date;
 
     public async Task OnGetAsync()
@@ -21,8 +21,9 @@ public class IndexModel(ApplicationDbContext db) : PageModel
         var visible = await db.Announcements.AsNoTracking()
             .Where(a => a.IsActive && (a.StartsAt == null || a.StartsAt <= now) && (a.ExpiresAt == null || a.ExpiresAt > now))
             .OrderByDescending(a => a.IsPinned).ThenByDescending(a => a.CreatedAt).ThenByDescending(a => a.AnnouncementID).ToListAsync();
-        // Promotions can use the featured banner and welcome pop-up, but not the regular news carousel.
-        Featured = visible.FirstOrDefault(a => a.IsPromotional && a.IsFeatured);
+        // Every published promotion appears above dining spaces; news stays below.
+        FeaturedPromotions = visible.Where(a => a.IsPromotional)
+            .OrderByDescending(a => a.CreatedAt).ThenByDescending(a => a.AnnouncementID).ToList();
         PopupAnnouncements = visible.ToList();
         Announcements = visible.Where(a => !a.IsPromotional).ToList();
     }

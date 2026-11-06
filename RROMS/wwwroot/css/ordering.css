@@ -3441,3 +3441,115 @@ button.reservation-cancel-button:focus-visible {
     .staff-mobile-menu-close,
     .staff-sidebar-backdrop { display: none !important; }
 }
+
+
+/* Admin promotional campaigns: clickable metrics and combined category/status filters. */
+.promotion-overview .promotion-summary-button {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+    transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
+}
+.promotion-overview .promotion-summary-button:hover {
+    border-color: #a5aa8f;
+    background: #f6f7f0;
+    box-shadow: 0 7px 20px rgba(44, 47, 30, .08);
+}
+.promotion-overview .promotion-summary-button:focus-visible { outline: 2px solid #697752; outline-offset: 3px; }
+.promotion-overview .promotion-summary-button small { margin-top: auto; padding-top: 12px; color: #606a4f; font-size: 12px; }
+.promotion-offer-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin: 1.4rem 0 1.2rem;
+}
+.promotion-offer-toolbar .promotion-category-tabs {
+    flex: 1 1 600px;
+    min-width: 0;
+    margin: 0;
+}
+.promotion-status-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 228px;
+    margin-left: auto;
+}
+.promotion-status-picker label { margin: 0; font: 600 12px var(--body); color: #565e48; }
+.promotion-status-picker select,
+.promotion-status-picker .ts-wrapper { width: 100%; margin: 0; }
+.promotion-status-picker .ts-control {
+    min-height: 46px;
+    border: 1px solid #cec8bb;
+    border-radius: 5px;
+    background: #fff;
+}
+.promotion-automatic-display {
+    margin: 4px 0 3px;
+    padding: 12px 14px;
+    border: 1px solid #d6ddcc;
+    border-radius: 5px;
+    background: #f1f4ea;
+    color: #505d42;
+    font-size: 13px;
+    line-height: 1.5;
+}
+.promotion-category-panel .promotion-item[hidden],
+.promotion-filter-empty[hidden] { display: none !important; }
+.promotion-filter-empty {
+    margin: 16px 0 0;
+    padding: 20px;
+    border: 1px solid #e1dbcf;
+    border-radius: 5px;
+    background: #f4f2ec;
+    color: #6b665d;
+    text-align: center;
+}
+@media (max-width: 720px) {
+    .promotion-offer-toolbar { align-items: stretch; }
+    .promotion-offer-toolbar .promotion-category-tabs { flex-basis: 100%; }
+    .promotion-status-picker { width: min(100%, 260px); }
+}
+
+/* Multiple promoted announcements can be swiped or navigated like the news carousel. */
+.homepage-featured-section { margin: 35px 0; }
+.homepage-featured-controls {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.homepage-featured-controls[hidden] { display: none !important; }
+.homepage-featured-controls .muted { margin-right: auto; font-size: 12px; }
+.homepage-featured-track {
+    display: flex;
+    gap: 18px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 1px;
+    scrollbar-width: thin;
+    padding-bottom: 7px;
+}
+.homepage-featured-track > .homepage-featured {
+    box-sizing: border-box;
+    flex: 0 0 100%;
+    min-width: 0;
+    margin: 0;
+    scroll-snap-align: start;
+}
+@media (max-width: 720px) {
+    .homepage-featured-track > .homepage-featured { flex-basis: min(92%, 640px); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .homepage-featured-track { scroll-behavior: auto; }
+}
+
+#promotion-management-heading { scroll-margin-top: 96px; }

@@ -169,7 +169,7 @@
 <section class="card announcement-admin-panel">
     <div class="announcement-panel-heading">
         <h2>Announcements</h2>
-        <p class="muted">All published announcements appear in the welcome pop-up automatically. Regular announcements also appear in the customer news section below the dining spaces. Only promotional announcements can use the featured banner above the dining spaces. Pinning changes their order.</p>
+        <p class="muted">All published announcements appear in the welcome pop-up automatically. Regular announcements also appear in the customer news section below the dining spaces. Every promotional announcement appears in the scrolling featured banner above dining spaces. Pinning controls the customer news order, not the promotional banner.</p>
     </div>
     <div class="announcement-entry-list">
         @foreach (var a in Model.Announcements)
@@ -222,11 +222,7 @@
                         <p class="announcement-entry-hint">Always shown in the welcome pop-up.</p>
                         @if (a.IsPromotional)
                         {
-                            <form method="post" asp-page-handler="SetAnnouncementDisplay" class="announcement-feature-control">
-                                <input type="hidden" name="id" value="@a.AnnouncementID" />
-                                <label><input type="checkbox" name="isFeatured" value="true" checked="@a.IsFeatured" /> Feature promotion above dining spaces</label>
-                                <button type="submit" class="secondary">SAVE FEATURE</button>
-                            </form>
+                            <p class="announcement-entry-hint">Automatically featured in the scrolling promotions banner above dining spaces.</p>
                         }
                         else
                         {
@@ -273,7 +269,7 @@
     }
     <div class="announcement-publish-heading">
         <h2>Publish announcement</h2>
-        <p class="muted">Published announcements always appear in the welcome pop-up and the customer Announcements section below dining spaces. Only promotions can be featured above dining spaces.</p>
+        <p class="muted">Published announcements always appear in the welcome pop-up and the customer Announcements section below dining spaces. Promotional announcements are automatically featured above dining spaces.</p>
     </div>
     <form method="post" asp-page-handler="Announcement" class="announcement-publish-form"
           data-announcement-duration-form>

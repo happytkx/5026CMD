@@ -47,7 +47,7 @@
 
 <p class="eyebrow">ADMINISTRATOR / MARKETING</p>
 <h1>Promotional Offers</h1>
-<p>Schedule offers for one dish or several at once. Customers see promotional prices on the menu and at checkout; completed orders keep their original recorded prices. An optional campaign announcement can appear on the homepage and welcome pop-up.</p>
+<p>Schedule offers for one dish or several at once. Customers see promotional prices on the menu and at checkout; completed orders keep their original recorded prices. When you publish a promotional announcement, it automatically appears in the welcome pop-up and scrolling featured promotions banner.</p>
 
 @if (TempData["PromotionSuccess"] is string success)
 {
@@ -59,8 +59,12 @@
 }
 
 <div class="promotion-overview" aria-label="Promotion summary">
-    <div class="card"><span>Active promotions</span><strong>@Model.ActiveCount</strong></div>
-    <div class="card"><span>Scheduled promotions</span><strong>@Model.ScheduledCount</strong></div>
+    <button type="button" class="card promotion-summary-button" data-promotion-summary-filter="active" aria-label="View @Model.ActiveCount active promotions">
+        <span>Active promotions</span><strong>@Model.ActiveCount</strong><small>View current offers ↗</small>
+    </button>
+    <button type="button" class="card promotion-summary-button" data-promotion-summary-filter="scheduled" aria-label="View @Model.ScheduledCount scheduled promotions">
+        <span>Scheduled promotions</span><strong>@Model.ScheduledCount</strong><small>View upcoming offers ↗</small>
+    </button>
     <div class="card"><span>Total menu dishes</span><strong>@Model.Dishes.Count</strong></div>
 </div>
 
@@ -116,12 +120,8 @@
                 <label for="bulk-message">Announcement message (optional)</label>
                 <textarea id="bulk-message" name="announcementMessage" rows="3" maxlength="1000" placeholder="Leave blank to generate a message using the selected dishes."></textarea>
             </div>
-            <p class="muted">Published promotional announcements always appear in the welcome pop-up.</p>
-            <label class="promotion-bulk-check">
-                <input type="checkbox" name="featureAnnouncement" value="true" checked />
-                Feature it above the dining spaces (replaces the current feature)
-            </label>
-            <p class="muted">Announcement options apply only if “Also publish” is selected. Scheduled promotional announcements appear when the offer begins and disappear after its last day.</p>
+            <p class="promotion-automatic-display">✓ Published promotional announcements automatically appear in the welcome pop-up and scrolling featured promotions banner above dining spaces. Several offers can be featured together.</p>
+            <p class="muted">The announcement is published only if “Also publish” is selected. Scheduled offers appear when their campaign begins and disappear after their last day.</p>
         </div>
         <button type="submit">APPLY TO SELECTED DISHES</button>
     </form>
@@ -149,6 +149,7 @@
     }
     @if (promotionGroups.Count > 0)
     {
+        <div class="promotion-offer-toolbar">
         <nav class="menu-category-tabs promotion-category-tabs" aria-label="Filter individual offers by category">
             <button type="button" class="menu-category-tab is-active" data-promotion-category-tab="all" aria-pressed="true">
                 All dishes <span>@Model.Dishes.Count</span>
@@ -160,6 +161,16 @@
                 </button>
             }
         </nav>
+        <div class="promotion-status-picker">
+            <label for="promotion-status-filter">Promotion status</label>
+            <select id="promotion-status-filter" aria-label="Filter dishes by promotion status">
+                <option value="all">All promotions</option>
+                <option value="active">Current promotions</option>
+                <option value="scheduled">Scheduled promotions</option>
+                <option value="none">No promotions</option>
+            </select>
+        </div>
+        </div>
     }
     <div class="promotion-category-list">
         @foreach (var categoryGroup in promotionGroups)
@@ -172,7 +183,7 @@
                 @foreach (var item in categoryGroup)
                 {
                     var status = MenuPricing.CampaignStatus(item, Model.Today);
-                    <article class="promotion-item">
+                    <article class="promotion-item" data-promotion-status="@status">
                         <div class="promotion-heading">
                             <div>
                                 <h3>@item.Name</h3>
@@ -232,24 +243,70 @@
             </section>
         }
     </div>
+    <p class="promotion-filter-empty" id="promotion-filter-empty" role="status" hidden>No dishes match the selected filters.</p>
 </section>
 
 @section Scripts {
     <script>
         const promotionTabs = Array.from(document.querySelectorAll('[data-promotion-category-tab]'));
         const promotionPanels = Array.from(document.querySelectorAll('[data-promotion-category-panel]'));
+        const promotionStatusSelect = document.getElementById('promotion-status-filter');
+        const promotionEmpty = document.getElementById('promotion-filter-empty');
+        const promotionHeading = document.getElementById('promotion-management-heading');
+        let selectedCategory = 'all';
+
+        function refreshPromotionFilters() {
+            const status = promotionStatusSelect?.value || 'all';
+            let visibleCount = 0;
+
+            promotionPanels.forEach(panel => {
+                const categoryMatches = selectedCategory === 'all' ||
+                    panel.dataset.promotionCategoryPanel === selectedCategory;
+                let matchingInPanel = 0;
+
+                panel.querySelectorAll('[data-promotion-status]').forEach(item => {
+                    const itemStatus = item.dataset.promotionStatus;
+                    const statusMatches = status === 'all' ||
+                        (status === 'active' && itemStatus === 'Active') ||
+                        (status === 'scheduled' && itemStatus === 'Scheduled') ||
+                        (status === 'none' && (itemStatus === 'No promotion' || itemStatus === 'Expired'));
+                    item.hidden = !categoryMatches || !statusMatches;
+                    if (categoryMatches && statusMatches) matchingInPanel++;
+                });
+
+                panel.hidden = !categoryMatches || matchingInPanel === 0;
+                visibleCount += matchingInPanel;
+            });
+
+            if (promotionEmpty) promotionEmpty.hidden = visibleCount > 0;
+            promotionTabs.forEach(tab => {
+                const active = tab.dataset.promotionCategoryTab === selectedCategory;
+                tab.classList.toggle('is-active', active);
+                tab.setAttribute('aria-pressed', String(active));
+            });
+        }
+
         promotionTabs.forEach(tab => {
             tab.addEventListener('click', () => {
-                const selected = tab.dataset.promotionCategoryTab;
-                promotionPanels.forEach(panel => {
-                    panel.hidden = selected !== 'all' && panel.dataset.promotionCategoryPanel !== selected;
-                });
-                promotionTabs.forEach(choice => {
-                    const active = choice === tab;
-                    choice.classList.toggle('is-active', active);
-                    choice.setAttribute('aria-pressed', String(active));
-                });
+                selectedCategory = tab.dataset.promotionCategoryTab;
+                refreshPromotionFilters();
             });
         });
+        promotionStatusSelect?.addEventListener('change', refreshPromotionFilters);
+
+        document.querySelectorAll('[data-promotion-summary-filter]').forEach(card => {
+            card.addEventListener('click', () => {
+                selectedCategory = 'all';
+                const status = card.dataset.promotionSummaryFilter;
+                if (promotionStatusSelect?.tomselect) {
+                    promotionStatusSelect.tomselect.setValue(status);
+                } else if (promotionStatusSelect) {
+                    promotionStatusSelect.value = status;
+                }
+                refreshPromotionFilters();
+                promotionHeading?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
+        refreshPromotionFilters();
     </script>
 }
