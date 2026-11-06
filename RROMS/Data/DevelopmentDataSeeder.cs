@@ -338,8 +338,8 @@ public static class DevelopmentDataSeeder
         if (demoOrders.Count == 0) return;
         var demoOrderIds = demoOrders.Select(o => o.OrderID).ToList();
         var existing = (await db.Reviews.AsNoTracking()
-            .Where(r => demoOrderIds.Contains(r.OrderID))
-            .Select(r => r.OrderID).ToListAsync()).ToHashSet();
+            .Where(r => r.OrderID.HasValue && demoOrderIds.Contains(r.OrderID.Value))
+            .Select(r => r.OrderID!.Value).ToListAsync()).ToHashSet();
 
         string[] excellent = [
             "A lovely evening. The service was attentive and every course was beautifully presented.",
@@ -454,8 +454,8 @@ public static class DevelopmentDataSeeder
                     (l.IsCancelled || l.KitchenStatus != "Served"))
                 .Select(l => l.OrderID).ToListAsync()).ToHashSet();
             editedOrderIds.UnionWith(await db.Reviews.AsNoTracking()
-                .Where(r => orderIds.Contains(r.OrderID))
-                .Select(r => r.OrderID).ToListAsync());
+                .Where(r => r.OrderID.HasValue && orderIds.Contains(r.OrderID.Value))
+                .Select(r => r.OrderID!.Value).ToListAsync());
             editedOrderIds.UnionWith(await db.CustomerNotifications.AsNoTracking()
                 .Where(n => n.RelatedOrderID.HasValue &&
                     orderIds.Contains(n.RelatedOrderID.Value))
