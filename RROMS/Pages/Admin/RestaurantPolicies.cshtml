@@ -14,7 +14,7 @@
     .policies-row:last-child { border-bottom:0; }
     .policies-row strong { text-align:right; color:#566244; font-weight:650; }
     .policies-editor { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem 1.2rem; }
-    .policies-field label { display:block; font-size:.88rem; font-weight:650; margin:0 0 .45rem; }
+    .policies-field label { display:block; font-size:.76rem; font-weight:600; letter-spacing:-.01em; white-space:nowrap; margin:0 0 .45rem; }
     .policies-field input,.policies-field textarea { width:100%; }
     .policies-field small { display:block; margin-top:.4rem; color:#766f63; }
     .policies-actions { display:flex; gap:.75rem; flex-wrap:wrap; align-items:center; margin:1.5rem 0; }
@@ -113,19 +113,19 @@ else
                         <input asp-for="Form.DepositPerGuest" type="number" step="0.01" min="1" max="10000" required/>
                     </div>
                     <div class="policies-field">
-                        <label asp-for="Form.StandardMinimumSpendPerGuest">Indoor / Outdoor minimum per guest (RM)</label>
+                        <label asp-for="Form.StandardMinimumSpendPerGuest">Indoor/Outdoor minimum (RM/guest)</label>
                         <input asp-for="Form.StandardMinimumSpendPerGuest" type="number" step="0.01" min="0" required/>
                     </div>
                     <div class="policies-field">
-                        <label asp-for="Form.VipEightSeatMinimumSpend">8-seat VIP room minimum (RM)</label>
+                        <label asp-for="Form.VipEightSeatMinimumSpend">8-seat VIP minimum (RM)</label>
                         <input asp-for="Form.VipEightSeatMinimumSpend" type="number" step="0.01" min="0" required/>
                     </div>
                     <div class="policies-field">
-                        <label asp-for="Form.VipTwelveSeatMinimumSpend">12-seat VIP room minimum (RM)</label>
+                        <label asp-for="Form.VipTwelveSeatMinimumSpend">12-seat VIP minimum (RM)</label>
                         <input asp-for="Form.VipTwelveSeatMinimumSpend" type="number" step="0.01" min="0" required/>
                     </div>
                     <div class="policies-field">
-                        <label asp-for="Form.PaymentHoldMinutes">Deposit payment hold (minutes)</label>
+                        <label asp-for="Form.PaymentHoldMinutes">Deposit hold (minutes)</label>
                         <input asp-for="Form.PaymentHoldMinutes" type="number" min="1" max="60" required/>
                         <small>The actual hold may end sooner at the advance-booking deadline.</small>
                     </div>
@@ -136,7 +136,7 @@ else
                 <h2>Reservations &amp; Rescheduling</h2>
                 <div class="policies-editor">
                     <div class="policies-field">
-                        <label asp-for="Form.StandardAdvanceHours">Indoor / Outdoor advance (hours)</label>
+                        <label asp-for="Form.StandardAdvanceHours">Indoor/Outdoor advance (hours)</label>
                         <input asp-for="Form.StandardAdvanceHours" type="number" min="1" max="72" required/>
                     </div>
                     <div class="policies-field">
@@ -148,11 +148,11 @@ else
                         <input asp-for="Form.MaximumReschedules" type="number" min="1" max="4" required/>
                     </div>
                     <div class="policies-field">
-                        <label asp-for="Form.RescheduleCutoffHours">Reschedule deadline (hours before original visit)</label>
+                        <label asp-for="Form.RescheduleCutoffHours">Reschedule cutoff (hours)</label>
                         <input asp-for="Form.RescheduleCutoffHours" type="number" min="1" max="720" required/>
                     </div>
                     <div class="policies-field">
-                        <label asp-for="Form.StandardDiningMinutes">Standard dining duration (minutes)</label>
+                        <label asp-for="Form.StandardDiningMinutes">Dining duration (minutes)</label>
                         <input asp-for="Form.StandardDiningMinutes" type="number" min="30" max="600" step="15" required/>
                     </div>
                 </div>

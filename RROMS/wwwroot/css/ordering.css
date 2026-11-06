@@ -3197,7 +3197,16 @@ button.reservation-cancel-button:focus-visible {
     font-size: 11px;
     font-variant-numeric: tabular-nums;
 }
-.menu-category-tab:hover { background: #f1f2e8; border-color: #a7b095; }
+.menu-category-tab:hover:not(.is-active) {
+    background: #f5f3eb;
+    border-color: #aaa58e;
+    color: #404936;
+}
+.menu-category-tab.is-active:hover {
+    background: #50583d;
+    border-color: #50583d;
+    color: #fff;
+}
 .menu-category-tab.is-active { color: #fff; background: var(--olive); border-color: var(--olive); }
 .menu-category-tab.is-active span { color: #3f4b37; background: #e9ecdf; }
 .menu-category-tab:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
