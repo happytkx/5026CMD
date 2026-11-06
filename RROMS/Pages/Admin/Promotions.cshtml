@@ -20,6 +20,7 @@
     @@media (max-width: 750px) { .promotion-bulk-fields { grid-template-columns: 1fr; } }
     .promotion-overview { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1.25rem 0; }
     .promotion-overview .card { min-width: 12rem; flex: 1; }
+    .promotion-overview a.promotion-summary-button { text-decoration: none; }
     .promotion-overview strong { display: block; font-size: 1.8rem; }
     .promotion-item { padding: 1.5rem 0; border-bottom: 1px solid #e6ddd0; }
     .promotion-item:last-child { border-bottom: 0; }
@@ -65,7 +66,9 @@
     <button type="button" class="card promotion-summary-button" data-promotion-summary-filter="scheduled" aria-label="View @Model.ScheduledCount scheduled promotions">
         <span>Scheduled promotions</span><strong>@Model.ScheduledCount</strong><small>View upcoming offers ↗</small>
     </button>
-    <div class="card"><span>Total menu dishes</span><strong>@Model.Dishes.Count</strong></div>
+    <a class="card promotion-summary-button" asp-page="/Admin/MenuManagement" aria-label="Manage @Model.Dishes.Count menu dishes">
+        <span>Total menu dishes</span><strong>@Model.Dishes.Count</strong><small>Manage menu dishes ↗</small>
+    </a>
 </div>
 
 <section class="card" aria-labelledby="bulk-promotion-heading">
