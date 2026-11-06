@@ -3162,3 +3162,103 @@ button.reservation-cancel-button:focus-visible {
     .announcement-entry-duration-controls { grid-template-columns: minmax(0, 1fr); }
     .announcement-entry-settings button.secondary { width: 100%; }
 }
+
+
+/* Category navigation and comparison picker for the unified menu workspace. */
+.menu-category-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin: 18px 0 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+}
+.menu-category-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    margin: 0;
+    padding: 10px 14px;
+    min-height: 42px;
+    border: 1px solid #d8d3c7;
+    border-radius: 5px;
+    background: #fff;
+    color: #5a604b;
+    font: 600 12px var(--body);
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.menu-category-tab span {
+    border-radius: 999px;
+    padding: 3px 7px;
+    background: #eff0e8;
+    color: #5d684e;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+}
+.menu-category-tab:hover { background: #f1f2e8; border-color: #a7b095; }
+.menu-category-tab.is-active { color: #fff; background: var(--olive); border-color: var(--olive); }
+.menu-category-tab.is-active span { color: #3f4b37; background: #e9ecdf; }
+.menu-category-tab:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.menu-unified-list { gap: 18px; }
+.menu-unified-category {
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+    background: #fff;
+}
+.menu-unified-category[hidden],
+.menu-comparison-panel[hidden] { display: none !important; }
+.menu-unified-category-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 17px 17px 14px;
+    background: #f5f3ed;
+    border-bottom: 1px solid var(--line);
+}
+.menu-unified-category-heading h3 { margin: 0; color: var(--olive-deep); font-size: 23px; }
+.menu-unified-category-heading span { color: var(--muted); font-size: 12px; }
+.menu-unified-category .menu-unified-head { padding-left: 17px; padding-right: 17px; }
+.menu-unified-category .menu-unified-item:last-child { border-bottom: 0; }
+.menu-comparison-picker {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+    align-items: end;
+    gap: 18px;
+    padding: 18px;
+    margin: 14px 0;
+    border-radius: 6px;
+    background: #f5f3ed;
+    border: 1px solid var(--line);
+}
+.menu-comparison-picker label { display: block; margin: 0 0 5px; font-weight: 600; color: #3c3e32; }
+.menu-comparison-picker p { margin: 0; font-size: 12px; }
+.menu-comparison-picker select {
+    width: 100%;
+    min-height: 46px;
+    margin: 0;
+    padding: 9px 35px 9px 13px;
+    border: 1px solid #cfc8bc;
+    border-radius: 5px;
+    background-color: #fff;
+    color: #3f4037;
+    cursor: pointer;
+    font: 14px var(--body);
+}
+.menu-comparison-picker select:focus-visible {
+    outline: 2px solid #85946f;
+    outline-offset: 2px;
+}
+.menu-comparison-caption { margin: 18px 0 5px; color: #5a604b; }
+.menu-comparison-panel .reservation-chart-interactive { margin-top: 15px; }
+@media (max-width: 720px) {
+    .menu-category-tabs { gap: 7px; }
+    .menu-category-tab { padding: 9px 11px; }
+    .menu-comparison-picker { grid-template-columns: 1fr; }
+    .menu-unified-category-heading { padding: 14px; }
+}
