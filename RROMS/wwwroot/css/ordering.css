@@ -3427,9 +3427,17 @@ button.reservation-cancel-button:focus-visible {
     }
     .staff-mobile-menu-toggle svg { width: 20px; height: 20px; }
     .staff-mobile-menu-toggle:hover,
-    .staff-mobile-menu-close:hover { background: #e7eadf; }
+    .staff-mobile-menu-close:hover {
+        background: #f4f3ee;
+        border-color: #b8beae;
+        color: #46533e;
+        box-shadow: 0 2px 7px rgba(49, 55, 38, .08);
+    }
     .staff-mobile-menu-toggle:focus-visible,
-    .staff-mobile-menu-close:focus-visible { outline: 2px solid #677451; outline-offset: 3px; }
+    .staff-mobile-menu-close:focus-visible {
+        outline: 2px solid #a38d64;
+        outline-offset: 2px;
+    }
     .workspace-bar-main > span { font-size: 10px; line-height: 1.3; }
     .workspace-bar-right { display: inline-flex; align-items: center; gap: 10px; min-width: 0; margin-left: auto; text-align: right; }
     .staff-workspace main { padding: 24px 18px 60px; }
