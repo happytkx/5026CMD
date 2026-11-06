@@ -3056,9 +3056,9 @@ button.reservation-cancel-button:focus-visible {
     border-color: #737957;
     box-shadow: 0 0 0 2px rgba(115, 121, 87, .14);
 }
-/* Only current promotional prices are green; normal menu prices stay gold. */
+/* Active promotional prices use Céleste's sage/olive palette; regular prices stay gold. */
 .dish-pricing .price.price-discounted {
-    color: #287046;
+    color: var(--olive-deep, #626748);
     font-weight: 600;
 }
 

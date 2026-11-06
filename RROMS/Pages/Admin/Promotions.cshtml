@@ -47,7 +47,7 @@
 
 <p class="eyebrow">ADMINISTRATOR / MARKETING</p>
 <h1>Promotional Offers</h1>
-<p>Schedule offers for one dish or several at once. Customers see promotional prices on the menu and at checkout; completed orders keep their original recorded prices. When you publish a promotional announcement, it automatically appears in the welcome pop-up and scrolling featured promotions banner.</p>
+<p>Schedule offers for one dish or several at once. Customers see promotional prices on the menu and at checkout; completed orders keep their original recorded prices. Active discounts also appear automatically in the welcome pop-up and featured promotions banner. You can optionally publish a custom announcement for a grouped offer.</p>
 
 @if (TempData["PromotionSuccess"] is string success)
 {
@@ -110,7 +110,7 @@
         <div class="promotion-bulk-message">
             <label class="promotion-bulk-check">
                 <input type="checkbox" name="publishAnnouncement" value="true" />
-                Also publish a promotional announcement
+                Publish a custom promotional announcement (optional)
             </label>
             <div>
                 <label for="bulk-title">Announcement title (optional)</label>
@@ -120,8 +120,8 @@
                 <label for="bulk-message">Announcement message (optional)</label>
                 <textarea id="bulk-message" name="announcementMessage" rows="3" maxlength="1000" placeholder="Leave blank to generate a message using the selected dishes."></textarea>
             </div>
-            <p class="promotion-automatic-display">✓ Published promotional announcements automatically appear in the welcome pop-up and scrolling featured promotions banner above dining spaces. Several offers can be featured together.</p>
-            <p class="muted">The announcement is published only if “Also publish” is selected. Scheduled offers appear when their campaign begins and disappear after their last day.</p>
+            <p class="promotion-automatic-display">✓ Active discounts appear automatically in the customer welcome pop-up and featured offers above dining spaces. Choose the checkbox to give a grouped offer your own title and message.</p>
+            <p class="muted">The custom announcement is optional. Scheduled offers appear automatically when their campaign begins and disappear after their last day.</p>
         </div>
         <button type="submit">APPLY TO SELECTED DISHES</button>
     </form>
