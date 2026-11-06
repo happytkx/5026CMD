@@ -20,24 +20,27 @@
             }
         </select>
         <select name="dietary" aria-label="Dietary preference" onchange="this.form.requestSubmit()">
-            <option value="">Any dietary preference</option>
+            <option value="">No dietary preference</option>
             @foreach (var d in new[] { "Vegetarian", "Vegan", "No pork", "No beef", "No chicken" })
             {
                 <option value="@d" selected="@(Model.Dietary == d)">@d</option>
             }
         </select>
         <select name="protein" aria-label="Protein" onchange="this.form.requestSubmit()">
-            <option value="">Any protein</option>
+            <option value="">All protein</option>
             @foreach (var p in new[] { "Chicken", "Beef", "Lamb", "Duck", "Seafood", "Molluscs", "Vegetarian" })
             {
                 <option value="@p" selected="@(Model.Protein == p)">@p</option>
             }
         </select>
-        <select name="Highlights" multiple aria-label="Filter by popular dishes and promotions"
-                placeholder="Popular or offers" data-placeholder="Popular or offers">
-            <option value="popular" selected="@(Model.Highlights.Contains("popular"))">Popular dishes</option>
-            <option value="promotion" selected="@(Model.Highlights.Contains("promotion"))">On promotion</option>
-        </select>
+        <div class="menu-highlights-field">
+            <label class="visually-hidden" for="menu-highlights">Menu highlights</label>
+            <select id="menu-highlights" class="menu-highlights-select" name="Highlights" multiple
+                    aria-label="Menu highlights" placeholder="All dishes" data-placeholder="All dishes">
+                <option value="popular" selected="@(Model.Highlights.Contains("popular"))">Popular dishes</option>
+                <option value="promotion" selected="@(Model.Highlights.Contains("promotion"))">On promotion</option>
+            </select>
+        </div>
         <button type="submit">Apply</button>
         <a class="button secondary" asp-page="Menu">Clear</a>
     </form>
@@ -96,7 +99,7 @@
                     <div class="dish-pricing">
                         @if (MenuPricing.IsPromotionActive(item, ReservationPolicy.Now))
                         {
-                            <span class="price">RM @MenuPricing.CurrentPrice(item, ReservationPolicy.Now).ToString("0.00")</span>
+                            <span class="price price-discounted">RM @MenuPricing.CurrentPrice(item, ReservationPolicy.Now).ToString("0.00")</span>
                             <del class="muted">RM @item.Price.ToString("0.00")</del>
                         }
                         else

@@ -347,15 +347,20 @@
                 document.querySelectorAll('select:not([data-native-select]):not(.menu-tag-select)')
                     .forEach(function (select) {
                         if (select.tomselect) return;
-                        new TomSelect(select, {
+                        const options = {
                             create: false,
                             maxItems: select.multiple ? null : 1,
                             plugins: select.multiple ? ['remove_button'] : [],
                             closeAfterSelect: !select.multiple,
                             placeholder: select.dataset.placeholder || select.getAttribute('placeholder') || undefined,
-                            allowEmptyOption: true,
-                            controlInput: null
-                        });
+                            allowEmptyOption: true
+                        };
+                        // Keep the usual non-searchable dropdowns, but give menu highlights
+                        // an input so "All dishes" remains visible when nothing is selected.
+                        if (!select.classList.contains('menu-highlights-select')) {
+                            options.controlInput = null;
+                        }
+                        new TomSelect(select, options);
                     });
             }
         </script>

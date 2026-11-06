@@ -7,6 +7,21 @@ namespace RROMS.Services;
 
 public class CustomerCookieEvents(ApplicationDbContext db, IWebHostEnvironment environment, IConfiguration config) : CookieAuthenticationEvents
 {
+    // Keep unauthenticated staff/admin visitors on their dedicated sign-in page.
+    public override Task RedirectToLogin(RedirectContext<CookieAuthenticationOptions> context)
+    {
+        var path = context.Request.Path.Value ?? string.Empty;
+        var internalArea = path.Equals("/Admin", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/Admin/", StringComparison.OrdinalIgnoreCase) ||
+            path.Equals("/Staff", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/Staff/", StringComparison.OrdinalIgnoreCase);
+        if (!internalArea) return base.RedirectToLogin(context);
+
+        var returnUrl = $"{context.Request.PathBase}{context.Request.Path}{context.Request.QueryString}";
+        context.Response.Redirect("/Account/StaffLogin?ReturnUrl=" + Uri.EscapeDataString(returnUrl));
+        return Task.CompletedTask;
+    }
+
     public override async Task ValidatePrincipal(CookieValidatePrincipalContext context)
     {
         var user = context.Principal;

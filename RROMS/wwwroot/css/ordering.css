@@ -2973,3 +2973,81 @@ button.reservation-cancel-button:focus-visible {
 @media (max-width: 520px) {
     .menu-toolbar .menu-filters { grid-template-columns: 1fr; }
 }
+
+/* Menu highlight multi-select: visible "All dishes" placeholder and refined olive tags. */
+.menu-toolbar .menu-filters .menu-highlights-field {
+    width: 100%;
+    min-width: 0;
+}
+.menu-toolbar .menu-filters .menu-highlights-field .ts-wrapper.multi .ts-control {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    min-height: 48px;
+    height: auto;
+    padding: 8px 34px 8px 10px;
+    border: 1px solid #d8d1c4;
+    border-radius: 5px;
+    background: #fff;
+    cursor: pointer;
+}
+.menu-toolbar .menu-filters .menu-highlights-field .ts-wrapper.multi .ts-control::after {
+    content: "";
+    position: absolute;
+    top: calc(50% - 3px);
+    right: 15px;
+    width: 7px;
+    height: 7px;
+    border-right: 2px solid #6b7359;
+    border-bottom: 2px solid #6b7359;
+    transform: rotate(45deg);
+    pointer-events: none;
+}
+.menu-toolbar .menu-filters .menu-highlights-field .ts-wrapper.multi .ts-control > .item {
+    display: inline-flex;
+    align-items: center;
+    background: #e9ecdd;
+    color: #455b3e;
+    border: 1px solid #cbd7bd;
+    border-radius: 999px;
+    padding: 4px 4px 4px 10px;
+    font: 600 12px var(--body);
+    box-shadow: none;
+}
+.menu-toolbar .menu-filters .menu-highlights-field .ts-wrapper.multi .ts-control > .item.active {
+    background: #dce7d3;
+    color: #2d5136;
+    border-color: #a7bea0;
+}
+.menu-toolbar .menu-filters .menu-highlights-field .ts-wrapper.multi .ts-control > .item .remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 8px;
+    padding: 0 7px;
+    min-height: 22px;
+    border-left: 1px solid #bcc9b0;
+    color: #425b3d;
+    font-weight: 700;
+    text-decoration: none;
+}
+.menu-toolbar .menu-filters .menu-highlights-field .ts-wrapper.multi .ts-control input {
+    min-width: 55px;
+    font: 13px var(--body);
+    color: #34372c;
+}
+.menu-toolbar .menu-filters .menu-highlights-field .ts-wrapper.multi .ts-control input::placeholder {
+    color: #635f55;
+    opacity: 1;
+}
+.menu-toolbar .menu-filters .menu-highlights-field .ts-wrapper.focus .ts-control {
+    border-color: #737957;
+    box-shadow: 0 0 0 2px rgba(115, 121, 87, .14);
+}
+/* Only current promotional prices are green; normal menu prices stay gold. */
+.dish-pricing .price.price-discounted {
+    color: #287046;
+    font-weight: 600;
+}
