@@ -9,6 +9,7 @@ namespace RROMS.Pages;
 public class IndexModel(ApplicationDbContext db) : PageModel
 {
     public List<MenuItem> Popular { get; set; } = [];
+    public RestaurantSetting Policy { get; private set; } = new();
     public List<Announcement> Announcements { get; set; } = [];
     public List<Announcement> PopupAnnouncements { get; set; } = [];
     public List<Announcement> FeaturedPromotions { get; set; } = [];
@@ -16,6 +17,7 @@ public class IndexModel(ApplicationDbContext db) : PageModel
 
     public async Task OnGetAsync()
     {
+        Policy = await db.RestaurantSettings.AsNoTracking().OrderBy(s => s.SettingID).FirstOrDefaultAsync() ?? new RestaurantSetting();
         Popular = await db.MenuItems.AsNoTracking().Where(i => i.IsAvailable && i.IsPopular).OrderBy(i => i.Name).Take(4).ToListAsync();
         var now = RROMS.Services.ReservationPolicy.Now;
         var visible = await db.Announcements.AsNoTracking()

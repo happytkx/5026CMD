@@ -115,7 +115,7 @@
                 @if (admin)
                 {
                     var managementOpen = currentPage is "/Admin/MenuManagement" or "/Admin/Promotions"
-                        or "/Admin/TableManagement" or "/Admin/RestaurantSettings" or "/Admin/StaffAccounts";
+                        or "/Admin/TableManagement" or "/Admin/RestaurantSettings" or "/Admin/RestaurantPolicies" or "/Admin/StaffAccounts";
                     var reportsOpen = currentPage is "/Admin/Reports" or "/Admin/ReportReservations"
                         or "/Admin/PaymentCollections" or "/Admin/Occupancy"
                         or "/Admin/MenuPerformance" or "/Admin/CustomerReviews";
@@ -134,6 +134,9 @@
                             </a>
                             <a class="@(currentPage == "/Admin/RestaurantSettings" ? "active" : "")" asp-page="/Admin/RestaurantSettings">
                                 Restaurant Settings
+                            </a>
+                            <a class="@(currentPage == "/Admin/RestaurantPolicies" ? "active" : "")" asp-page="/Admin/RestaurantPolicies">
+                                Restaurant Policies
                             </a>
                             <a class="@(currentPage == "/Admin/StaffAccounts" ? "active" : "")" asp-page="/Admin/StaffAccounts">
                                 Manage Accounts

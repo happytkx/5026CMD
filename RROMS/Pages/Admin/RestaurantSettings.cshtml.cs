@@ -16,6 +16,7 @@ public class RestaurantSettingsModel(ApplicationDbContext db) : PageModel
     [BindProperty] public string Opening { get; set; } = "12:00";
     [BindProperty] public string Closing { get; set; } = "22:00";
     [BindProperty] public int IntervalMinutes { get; set; } = 30;
+    public int StandardDiningMinutes { get; private set; } = 120;
 
     private int? AdministratorId =>
         int.TryParse(User.FindFirst("AdministratorID")?.Value, out var id) ? id : null;
@@ -28,16 +29,20 @@ public class RestaurantSettingsModel(ApplicationDbContext db) : PageModel
         Opening = setting.OpeningTime.ToString(@"hh\:mm", CultureInfo.InvariantCulture);
         Closing = setting.ClosingTime.ToString(@"hh\:mm", CultureInfo.InvariantCulture);
         IntervalMinutes = setting.SlotIntervalMinutes;
+        StandardDiningMinutes = setting.StandardDiningMinutes;
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
+        var requiredDiningMinutes = await db.RestaurantSettings.AsNoTracking()
+            .OrderBy(s => s.SettingID).Select(s => (int?)s.StandardDiningMinutes)
+            .FirstOrDefaultAsync() ?? 120;
         if (!TimeSpan.TryParseExact(Opening, @"hh\:mm", CultureInfo.InvariantCulture, out var opening) ||
             !TimeSpan.TryParseExact(Closing, @"hh\:mm", CultureInfo.InvariantCulture, out var closing) ||
             opening < TimeSpan.Zero || closing >= TimeSpan.FromDays(1) ||
-            closing - opening < TimeSpan.FromHours(2))
+            closing - opening < TimeSpan.FromMinutes(Math.Max(120, requiredDiningMinutes)))
         {
-            TempData["RestaurantSettingsError"] = "Set valid same-day opening and closing hours, with at least two hours between them.";
+            TempData["RestaurantSettingsError"] = $"Set valid same-day hours, with at least {Math.Max(120, requiredDiningMinutes)} minutes between opening and closing.";
             return RedirectToPage();
         }
         if (IntervalMinutes is not (15 or 30 or 60))
@@ -56,6 +61,12 @@ public class RestaurantSettingsModel(ApplicationDbContext db) : PageModel
         }
         else
         {
+            if (closing - opening < TimeSpan.FromMinutes(Math.Max(120, setting.StandardDiningMinutes)))
+            {
+                TempData["RestaurantSettingsError"] =
+                    $"The selected hours must accommodate the current {setting.StandardDiningMinutes}-minute standard dining policy.";
+                return RedirectToPage();
+            }
             // Do not invalidate customer commitments. Existing bookings retain their time
             // and VIP guests retain their promised access until the original closing time.
             var now = ReservationPolicy.Now;

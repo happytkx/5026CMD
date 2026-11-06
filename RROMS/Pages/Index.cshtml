@@ -82,7 +82,7 @@
                 <p>
                     A warm and intimate setting for 1–8 guests.
                     <br/>
-                    Enjoy a two-hour dining experience.
+                    Enjoy a @Model.Policy.StandardDiningMinutes-minute dining experience.
                 </p>
                 <a asp-page="/Reservations/Create" asp-route-Area="Indoor">
                     Reserve indoors
@@ -97,7 +97,7 @@
                 <p>
                     An open-air evening for 1–8 guests.
                     <br/>
-                    Enjoy a two-hour dining experience.
+                    Enjoy a @Model.Policy.StandardDiningMinutes-minute dining experience.
                 </p>
                 <a asp-page="/Reservations/Create" asp-route-Area="Outdoor">
                     Reserve outdoors
@@ -320,9 +320,9 @@
         </em>
     </h2>
     <p>
-        RM50 per guest secures your reservation and is deducted from your final bill.
+        RM @Model.Policy.DepositPerGuest.ToString("N2") per guest secures your reservation and is deducted from your final bill.
         <br/>
-        Private rooms have a minimum spend of RM2,400 for 6–8 guests or RM3,600 for 9–12 guests.
+        Private rooms have a minimum spend of RM @Model.Policy.VipEightSeatMinimumSpend.ToString("N2") for 6–8 guests or RM @Model.Policy.VipTwelveSeatMinimumSpend.ToString("N2") for 9–12 guests.
     </p>
     <a class="button" asp-page="/Reservations/Create">
         Reserve your table

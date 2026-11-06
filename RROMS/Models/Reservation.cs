@@ -61,6 +61,15 @@ namespace RROMS.Models
 
         public string ReservationStatus { get; set; } = string.Empty;
 
+        // Snapshot of the agreed terms for this booking. Admin changes apply to new bookings.
+        public int RescheduleCutoffHours { get; set; } = 168;
+        public int MaximumReschedules { get; set; } = 1;
+        public int ArrivalGraceMinutes { get; set; } = 10;
+        public int ExtendedArrivalGraceMinutes { get; set; } = 30;
+        public int StandardDiningMinutes { get; set; } = 120;
+        public int StandardAdvanceHours { get; set; } = 2;
+        public int VipAdvanceHours { get; set; } = 24;
+
         public int ModificationCount
         {
             get; set;

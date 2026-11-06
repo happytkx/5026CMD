@@ -23,10 +23,12 @@ public class IndexModel(ApplicationDbContext db, ReservationService service) : P
         get; set;
     }
     public List<Reservation> DailyBookings { get; set; } = [];
+    public RestaurantSetting CurrentPolicy { get; private set; } = new();
     public List<Reservation> Bookings { get; set; } = [];
     public async Task OnGetAsync()
     {
         await service.Expire();
+        CurrentPolicy = await db.RestaurantSettings.AsNoTracking().OrderBy(s => s.SettingID).FirstOrDefaultAsync() ?? new RestaurantSetting();
         DailyBookings = await db.Reservations.AsNoTracking().Include(r => r.Customer)
             .Where(r => r.ReservationDate == Date.Date)
             .OrderBy(r => r.StartTime).ToListAsync();

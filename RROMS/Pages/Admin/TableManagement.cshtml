@@ -131,7 +131,7 @@
                     <strong>@Model.BookableCount of @Model.AvailabilityResults.Count available</strong>
                     <p class="muted">
                         @(Model.CheckDate?.ToString("dd MMM yyyy")) at @Model.CheckTime (Malaysia time).
-                        Indoor and Outdoor tables are checked for two hours; VIP rooms are checked until closing.
+                        Indoor and Outdoor tables are checked for @Model.StandardDiningMinutes minutes; VIP rooms are checked until closing.
                     </p>
                 </div>
             </div>
@@ -166,8 +166,8 @@
                 </div>
             }
             <p class="muted table-availability-footnote">
-                Pending payment holds count as reserved. Booking lead times are at least two hours for regular tables
-                and 24 hours for VIP rooms. Party-size eligibility also applies. Results are a snapshot and do not hold a table.
+                Pending payment holds count as reserved. Booking lead times are at least @Model.StandardAdvanceHours hours for regular tables
+                and @Model.VipAdvanceHours hours for VIP rooms. Party-size eligibility also applies. Results are a snapshot and do not hold a table.
             </p>
         </div>
     }

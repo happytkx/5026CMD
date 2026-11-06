@@ -138,7 +138,7 @@ public static class DevelopmentDataSeeder
             {
                 var party = parties[calendarRandom.Next(parties.Length)];
                 var visit = date.Add(settings.OpeningTime).AddMinutes((slot % 4) * 150);
-                var visitEnd = ReservationPolicy.End(visit, party.Area, settings.ClosingTime);
+                var visitEnd = ReservationPolicy.End(visit, party.Area, settings.ClosingTime, settings);
                 if (visit < now && visitEnd > now) continue;
                 var outcome = calendarRandom.Next(100);
                 var status = visit >= now ? "Confirmed" :
@@ -156,7 +156,7 @@ public static class DevelopmentDataSeeder
         {
             var interval = settings.SlotIntervalMinutes is 15 or 30 or 60
                 ? settings.SlotIntervalMinutes : 30;
-            var waveMinutes = ((120 + interval - 1) / interval) * interval;
+            var waveMinutes = ((settings.StandardDiningMinutes + interval - 1) / interval) * interval;
             for (var date = demoCalendarStart; date <= now.Date; date = date.AddDays(1))
             {
                 var dailyRandom = new Random(date.Year * 10000 + date.Month * 100 + date.Day);
@@ -173,7 +173,7 @@ public static class DevelopmentDataSeeder
                         : parties[dailyRandom.Next(parties.Length)];
                     var visitTime = date.Add(settings.OpeningTime)
                         .AddMinutes((visitNo % 5) * waveMinutes);
-                    var visitEnd = ReservationPolicy.End(visitTime, party.Area, settings.ClosingTime);
+                    var visitEnd = ReservationPolicy.End(visitTime, party.Area, settings.ClosingTime, settings);
                     if (visitEnd > date.Add(settings.ClosingTime) || visitEnd <= visitTime)
                         continue;
                     var status = visitEnd <= now ? "Completed" : "Confirmed";
@@ -194,7 +194,7 @@ public static class DevelopmentDataSeeder
         {
             var reference = "DEMO-RES-" + item.Key;
             if (await db.Reservations.AnyAsync(r => r.BookingReference == reference)) continue;
-            var end = ReservationPolicy.End(item.Start, item.Area, settings.ClosingTime);
+            var end = ReservationPolicy.End(item.Start, item.Area, settings.ClosingTime, settings);
             if (item.Start.TimeOfDay < settings.OpeningTime || end.TimeOfDay > settings.ClosingTime || end <= item.Start) continue;
             var occupied = await db.Reservations.Where(r => r.ReservationDate == item.Start.Date &&
                 (r.ReservationStatus == "Confirmed" || r.ReservationStatus == "Seated" || r.ReservationStatus == "Completed" ||
@@ -214,13 +214,18 @@ public static class DevelopmentDataSeeder
                 BookingReference = reference, PartySize = item.Size, PreferredDiningOption = item.Area,
                 ReservationDate = item.Start.Date, StartTime = item.Start.TimeOfDay, EndTime = end.TimeOfDay,
                 OriginalStart = item.Start, CreatedDate = sampleCreated,
-                DepositAmount = item.Size * 50m,
-                MinimumSpend = ReservationPolicy.MinimumSpend(item.Size, item.Area), ReservationStatus = item.Status,
+                DepositAmount = item.Size * settings.DepositPerGuest,
+                MinimumSpend = ReservationPolicy.MinimumSpend(item.Size, item.Area, settings),
+                StandardDiningMinutes = settings.StandardDiningMinutes,
+                RescheduleCutoffHours = settings.RescheduleCutoffHours, MaximumReschedules = settings.MaximumReschedules,
+                ArrivalGraceMinutes = settings.ArrivalGraceMinutes, ExtendedArrivalGraceMinutes = settings.ExtendedArrivalGraceMinutes,
+                StandardAdvanceHours = settings.StandardAdvanceHours, VipAdvanceHours = settings.VipAdvanceHours,
+                ReservationStatus = item.Status,
                 DepositStatus = item.Status is "Cancelled" or "No-show" ? "Forfeited" : paid ? "Paid" : "Unpaid",
-                HoldExpiresAt = item.Status == "Pending" ? (now.AddMinutes(10) < item.Start ? now.AddMinutes(10) : item.Start) : null,
+                HoldExpiresAt = item.Status == "Pending" ? ReservationPolicy.PaymentDeadline(item.Area, item.Start, now, settings) : null,
                 CheckedInAt = item.Status == "Seated" ? now : item.Status == "Completed" ? item.Start : null,
                 CancellationDate = item.Status == "Cancelled" ? item.Start.AddDays(-2) : null,
-                LateArrivalNotified = item.Status == "Seated" && now >= item.Start.AddMinutes(10),
+                LateArrivalNotified = item.Status == "Seated" && now >= item.Start.AddMinutes(settings.ArrivalGraceMinutes),
                 DietaryRequest = index % 11 == 0 ? "Vegetarian meal requested." :
                     index % 17 == 0 ? "Please note a peanut allergy." :
                     index % 13 == 0 ? "Birthday dinner, if possible." : null };

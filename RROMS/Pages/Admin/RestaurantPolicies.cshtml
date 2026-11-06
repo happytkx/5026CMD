@@ -1,0 +1,223 @@
+@page
+@model RROMS.Pages.Admin.RestaurantPoliciesModel
+@{
+    ViewData["Title"] = "Restaurant Policies";
+}
+<style>
+    .policies-heading { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin:1.3rem 0 1.8rem; }
+    .policies-heading h1 { margin:.15rem 0; }
+    .policies-note { background:#f4f2e9; color:#555545; border:1px solid #e5dccb; border-radius:6px; padding:1rem 1.2rem; margin:1rem 0 1.5rem; line-height:1.6; }
+    .policies-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1.25rem; margin:1.3rem 0; }
+    .policies-panel { border:1px solid #e0d6c7; border-radius:6px; background:#fff; padding:1.4rem; min-width:0; }
+    .policies-panel h2 { font-size:1.55rem; margin:.2rem 0 1rem; }
+    .policies-row { display:flex; justify-content:space-between; align-items:baseline; gap:1rem; padding:.7rem 0; border-bottom:1px solid #eee9df; font-size:.92rem; }
+    .policies-row:last-child { border-bottom:0; }
+    .policies-row strong { text-align:right; color:#566244; font-weight:650; }
+    .policies-editor { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem 1.2rem; }
+    .policies-field label { display:block; font-size:.88rem; font-weight:650; margin:0 0 .45rem; }
+    .policies-field input,.policies-field textarea { width:100%; }
+    .policies-field small { display:block; margin-top:.4rem; color:#766f63; }
+    .policies-actions { display:flex; gap:.75rem; flex-wrap:wrap; align-items:center; margin:1.5rem 0; }
+    .policies-actions .button { text-decoration:none; }
+    .policies-preview { background:#f7f6f1; padding:1.2rem; border:1px solid #e3dece; border-radius:6px; margin:1.5rem 0; }
+    .policies-preview h3 { font-size:1.25rem; margin:0 0 .5rem; }
+    .policies-preview p { margin:.6rem 0; line-height:1.65; }
+    .policies-locked { background:#f5f1ea; }
+    .policies-editor .policies-field-full { grid-column:1 / -1; }
+    @@media(max-width:860px) { .policies-grid { grid-template-columns:1fr; } }
+    @@media(max-width:600px) { .policies-editor { grid-template-columns:1fr; } .policies-heading { align-items:flex-start; } }
+</style>
+
+<p class="eyebrow">ADMINISTRATOR / RESTAURANT MANAGEMENT</p>
+<div class="policies-heading">
+    <div>
+        <h1>Restaurant Policies</h1>
+        <p class="muted">Review Céleste's active reservation rules, or edit the values used for new reservations.</p>
+        <small class="muted">@(Model.Current.PoliciesUpdatedAt is DateTime updated
+            ? $"Last updated {updated:dd MMM yyyy, h:mm tt} (Malaysia time)" : "Original Céleste policies")</small>
+    </div>
+    @if (!Model.IsEditing)
+    {
+        <a class="button" asp-page="/Admin/RestaurantPolicies" asp-route-edit="true">EDIT POLICIES</a>
+    }
+</div>
+@if (TempData["PoliciesSuccess"] is string success)
+{
+    <p class="success" role="status">@success</p>
+}
+<div asp-validation-summary="All" class="error" role="alert"></div>
+
+@if (!Model.IsEditing)
+{
+    <div class="policies-note">
+        The values below are currently used when customers make new reservations. Existing bookings retain their original deposit, minimum spend and arrival terms.
+    </div>
+    <div class="policies-grid">
+        <section class="policies-panel">
+            <p class="eyebrow">PAYMENT</p>
+            <h2>Deposits &amp; Minimum Spending</h2>
+            <div class="policies-row"><span>Deposit per guest</span><strong>RM @Model.Current.DepositPerGuest.ToString("N2")</strong></div>
+            <div class="policies-row"><span>Indoor / Outdoor minimum per guest</span><strong>RM @Model.Current.StandardMinimumSpendPerGuest.ToString("N2")</strong></div>
+            <div class="policies-row"><span>8-seat VIP room, 6–8 guests</span><strong>RM @Model.Current.VipEightSeatMinimumSpend.ToString("N2")</strong></div>
+            <div class="policies-row"><span>12-seat VIP room, 9–12 guests</span><strong>RM @Model.Current.VipTwelveSeatMinimumSpend.ToString("N2")</strong></div>
+            <div class="policies-row"><span>Deposit payment hold</span><strong>Up to @Model.Current.PaymentHoldMinutes minutes</strong></div>
+        </section>
+        <section class="policies-panel">
+            <p class="eyebrow">BOOKING</p>
+            <h2>Reservations &amp; Rescheduling</h2>
+            <div class="policies-row"><span>Indoor / Outdoor advance booking</span><strong>@Model.Current.StandardAdvanceHours hours</strong></div>
+            <div class="policies-row"><span>VIP advance booking</span><strong>@Model.Current.VipAdvanceHours hours</strong></div>
+            <div class="policies-row"><span>Maximum date/time changes</span><strong>@Model.Current.MaximumReschedules</strong></div>
+            <div class="policies-row"><span>Rescheduling deadline before original arrival</span><strong>More than @Model.Current.RescheduleCutoffHours hours</strong></div>
+            <div class="policies-row"><span>Standard dining duration</span><strong>@Model.Current.StandardDiningMinutes minutes</strong></div>
+        </section>
+        <section class="policies-panel">
+            <p class="eyebrow">ARRIVAL</p>
+            <h2>Grace Periods</h2>
+            <div class="policies-row"><span>Standard arrival grace</span><strong>@Model.Current.ArrivalGraceMinutes minutes</strong></div>
+            <div class="policies-row"><span>After reporting a delay</span><strong>@Model.Current.ExtendedArrivalGraceMinutes minutes total</strong></div>
+            <p class="muted">Both periods start at the customer's original booked arrival time. Missed deadlines result in no-show and release of seating.</p>
+        </section>
+        <section class="policies-panel policies-locked">
+            <p class="eyebrow">CURRENT FIXED RULES</p>
+            <h2>Cancellation &amp; Dining Areas</h2>
+            <div class="policies-row"><span>Cancelled / no-show deposit</span><strong>Fully forfeited, no refund</strong></div>
+            <div class="policies-row"><span>VIP duration</span><strong>Until closing</strong></div>
+            <div class="policies-row"><span>VIP room sizes</span><strong>8 seats / 12 seats</strong></div>
+            <div class="policies-row"><span>Dining mode</span><strong>Dine-in only</strong></div>
+            <p class="muted">Refund processing, VIP capacities and table allocation are tied to system workflows and are not editable text fields.</p>
+        </section>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(Model.Current.GeneralGuidelines))
+    {
+        <section class="policies-panel">
+            <p class="eyebrow">ADDITIONAL GUIDELINES</p>
+            <h2>Guest Information</h2>
+            <p style="white-space:pre-line">@Model.Current.GeneralGuidelines</p>
+        </section>
+    }
+}
+else
+{
+    <div class="policies-note">
+        Adjust policy values below. The website, booking validation and customer concierge will use the saved values for new bookings. Existing reservations are not repriced or moved.
+    </div>
+    <form method="post" id="policy-form">
+        <div class="policies-grid">
+            <section class="policies-panel">
+                <p class="eyebrow">01 / PAYMENT</p>
+                <h2>Deposits &amp; Minimum Spending</h2>
+                <div class="policies-editor">
+                    <div class="policies-field">
+                        <label asp-for="Form.DepositPerGuest">Deposit per guest (RM)</label>
+                        <input asp-for="Form.DepositPerGuest" type="number" step="0.01" min="1" max="10000" required/>
+                    </div>
+                    <div class="policies-field">
+                        <label asp-for="Form.StandardMinimumSpendPerGuest">Indoor / Outdoor minimum per guest (RM)</label>
+                        <input asp-for="Form.StandardMinimumSpendPerGuest" type="number" step="0.01" min="0" required/>
+                    </div>
+                    <div class="policies-field">
+                        <label asp-for="Form.VipEightSeatMinimumSpend">8-seat VIP room minimum (RM)</label>
+                        <input asp-for="Form.VipEightSeatMinimumSpend" type="number" step="0.01" min="0" required/>
+                    </div>
+                    <div class="policies-field">
+                        <label asp-for="Form.VipTwelveSeatMinimumSpend">12-seat VIP room minimum (RM)</label>
+                        <input asp-for="Form.VipTwelveSeatMinimumSpend" type="number" step="0.01" min="0" required/>
+                    </div>
+                    <div class="policies-field">
+                        <label asp-for="Form.PaymentHoldMinutes">Deposit payment hold (minutes)</label>
+                        <input asp-for="Form.PaymentHoldMinutes" type="number" min="1" max="60" required/>
+                        <small>The actual hold may end sooner at the advance-booking deadline.</small>
+                    </div>
+                </div>
+            </section>
+            <section class="policies-panel">
+                <p class="eyebrow">02 / BOOKING</p>
+                <h2>Reservations &amp; Rescheduling</h2>
+                <div class="policies-editor">
+                    <div class="policies-field">
+                        <label asp-for="Form.StandardAdvanceHours">Indoor / Outdoor advance (hours)</label>
+                        <input asp-for="Form.StandardAdvanceHours" type="number" min="1" max="72" required/>
+                    </div>
+                    <div class="policies-field">
+                        <label asp-for="Form.VipAdvanceHours">VIP advance (hours)</label>
+                        <input asp-for="Form.VipAdvanceHours" type="number" min="1" max="240" required/>
+                    </div>
+                    <div class="policies-field">
+                        <label asp-for="Form.MaximumReschedules">Maximum reschedules</label>
+                        <input asp-for="Form.MaximumReschedules" type="number" min="1" max="4" required/>
+                    </div>
+                    <div class="policies-field">
+                        <label asp-for="Form.RescheduleCutoffHours">Reschedule deadline (hours before original visit)</label>
+                        <input asp-for="Form.RescheduleCutoffHours" type="number" min="1" max="720" required/>
+                    </div>
+                    <div class="policies-field">
+                        <label asp-for="Form.StandardDiningMinutes">Standard dining duration (minutes)</label>
+                        <input asp-for="Form.StandardDiningMinutes" type="number" min="30" max="600" step="15" required/>
+                    </div>
+                </div>
+            </section>
+            <section class="policies-panel">
+                <p class="eyebrow">03 / ARRIVAL</p>
+                <h2>Late Arrival</h2>
+                <div class="policies-editor">
+                    <div class="policies-field">
+                        <label asp-for="Form.ArrivalGraceMinutes">Normal grace (minutes)</label>
+                        <input asp-for="Form.ArrivalGraceMinutes" type="number" min="1" max="120" required/>
+                    </div>
+                    <div class="policies-field">
+                        <label asp-for="Form.ExtendedArrivalGraceMinutes">After Notify Restaurant (minutes total)</label>
+                        <input asp-for="Form.ExtendedArrivalGraceMinutes" type="number" min="2" max="240" required/>
+                        <small>Must be longer than the normal grace period.</small>
+                    </div>
+                </div>
+            </section>
+            <section class="policies-panel policies-locked">
+                <p class="eyebrow">04 / SYSTEM RULES</p>
+                <h2>Protected Policies</h2>
+                <p>Cancellation and no-show forfeit the full paid deposit. The system does not support refunds. VIP rooms are reserved until closing, and seating capacity follows physical tables.</p>
+                <p class="muted">These cannot be changed by editing wording. Refund processing would need a separate implementation before a refundable policy could be offered.</p>
+            </section>
+        </div>
+        <section class="policies-panel">
+            <p class="eyebrow">OPTIONAL</p>
+            <h2>Additional Guest Guidelines</h2>
+            <label asp-for="Form.GeneralGuidelines">General wording (shown below the reservation rules)</label>
+            <textarea asp-for="Form.GeneralGuidelines" rows="4" maxlength="1000" placeholder="Optional guidelines that do not override payment, booking, or cancellation rules."></textarea>
+            <p class="muted">Keep these notes informational. Deposits, deadlines and calculations are generated automatically from the fields above.</p>
+        </section>
+        <section class="policies-preview" aria-live="polite">
+            <h3>Customer Policy Preview</h3>
+            <p>A <strong>RM <span data-policy-preview="DepositPerGuest">@Model.Form.DepositPerGuest.ToString("N2")</span> deposit per guest</strong> is required. Indoor and outdoor minimum spend is RM <span data-policy-preview="StandardMinimumSpendPerGuest">@Model.Form.StandardMinimumSpendPerGuest.ToString("N2")</span> per guest.</p>
+            <p>Guests may reschedule up to <span data-policy-preview="MaximumReschedules">@Model.Form.MaximumReschedules</span> time(s), more than <span data-policy-preview="RescheduleCutoffHours">@Model.Form.RescheduleCutoffHours</span> hours before their original arrival.</p>
+            <p>Normal arrival grace is <span data-policy-preview="ArrivalGraceMinutes">@Model.Form.ArrivalGraceMinutes</span> minutes. Notified late arrivals are held up to <span data-policy-preview="ExtendedArrivalGraceMinutes">@Model.Form.ExtendedArrivalGraceMinutes</span> minutes from the booked start.</p>
+            <p>Indoor / Outdoor dining lasts <span data-policy-preview="StandardDiningMinutes">@Model.Form.StandardDiningMinutes</span> minutes. VIP rooms remain reserved until closing.</p>
+        </section>
+        <div class="policies-actions">
+            <button type="submit">SAVE CHANGES</button>
+            <a class="button secondary" asp-page="/Admin/RestaurantPolicies">CANCEL</a>
+        </div>
+    </form>
+}
+
+@section Scripts {
+    <script>
+        (() => {
+            const form = document.getElementById('policy-form');
+            if (!form) return;
+            form.querySelectorAll('[data-policy-preview]').forEach(preview => {
+                const field = form.elements['Form.' + preview.dataset.policyPreview];
+                if (!field) return;
+                const update = () => {
+                    const value = field.value;
+                    preview.textContent = field.step === '0.01' && value.trim() !== ''
+                        ? (Number.isFinite(Number(value)) ? Number(value).toFixed(2) : value)
+                        : value || '—';
+                };
+                field.addEventListener('input', update);
+                update();
+            });
+        })();
+    </script>
+
+}

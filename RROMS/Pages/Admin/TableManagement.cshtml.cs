@@ -26,6 +26,9 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
     public int VipRoomCount => Tables.Count(t => t.DiningArea.AreaType == "VIP Room");
     public int AvailableCount => Tables.Count(t => t.Status == "Available");
     public int SlotIntervalMinutes { get; private set; } = 30;
+    public int StandardDiningMinutes { get; private set; } = 120;
+    public int StandardAdvanceHours { get; private set; } = 2;
+    public int VipAdvanceHours { get; private set; } = 24;
 
     [BindProperty(SupportsGet = true)] public DateTime? CheckDate { get; set; }
     [BindProperty(SupportsGet = true)] public string? CheckTime { get; set; }
@@ -44,6 +47,10 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
         var configuredInterval = await db.RestaurantSettings.AsNoTracking()
             .OrderBy(s => s.SettingID).Select(s => (int?)s.SlotIntervalMinutes).FirstOrDefaultAsync();
         SlotIntervalMinutes = configuredInterval is 15 or 30 or 60 ? configuredInterval.Value : 30;
+        var policy = await db.RestaurantSettings.AsNoTracking().OrderBy(s => s.SettingID).FirstOrDefaultAsync();
+        StandardDiningMinutes = policy?.StandardDiningMinutes ?? 120;
+        StandardAdvanceHours = policy?.StandardAdvanceHours ?? 2;
+        VipAdvanceHours = policy?.VipAdvanceHours ?? 24;
         Areas = await db.DiningAreas.AsNoTracking()
             .Where(a => SupportedAreas.Contains(a.AreaType))
             .OrderBy(a => a.DiningAreaID).ToListAsync();
@@ -118,7 +125,7 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
         foreach (var table in Tables.Where(t => SupportedAreas.Contains(t.DiningArea.AreaType)))
         {
             var area = table.DiningArea.AreaType;
-            var end = ReservationPolicy.End(start, area, settings.ClosingTime);
+            var end = ReservationPolicy.End(start, area, settings.ClosingTime, settings);
             var inHours = end > start && end.Date == date && end.TimeOfDay <= settings.ClosingTime;
             var overlap = inHours ? reservations.FirstOrDefault(r => r.TableID == table.TableID &&
                 ReservationPolicy.Overlaps(start, end, date.Add(r.StartTime), date.Add(r.EndTime))) : null;
@@ -135,7 +142,7 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
                     "Seated" => "Occupied",
                     _ => "Reserved"
                 };
-            else if (!ReservationPolicy.MeetsAdvance(area, start, now))
+            else if (!ReservationPolicy.MeetsAdvance(area, start, now, settings))
                 state = "Advance notice required";
             else
                 state = "Available";

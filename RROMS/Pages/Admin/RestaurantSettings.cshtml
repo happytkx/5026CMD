@@ -12,7 +12,7 @@
     for (var arrival = openTime; arrival < closeTime; arrival += configuredInterval)
     {
         vipSlots.Add(arrival);
-        if (arrival.Add(TimeSpan.FromHours(2)) <= closeTime)
+        if (arrival.Add(TimeSpan.FromMinutes(Model.StandardDiningMinutes)) <= closeTime)
             standardSlots.Add(arrival);
     }
 }
@@ -87,7 +87,7 @@
                         <h4>Indoor &amp; Outdoor</h4>
                         <span class="restaurant-slot-count" data-standard-count>@standardSlots.Count slots</span>
                     </div>
-                    <p>Two-hour dining. Latest arrival must allow two hours before closing.</p>
+                    <p>@(Model.StandardDiningMinutes)-minute dining. Latest arrival must allow this time before closing.</p>
                     <div class="restaurant-slot-list" data-standard-slots>
                         @foreach (var slot in standardSlots)
                         {
@@ -115,7 +115,7 @@
             <strong>How this affects reservations</strong>
             <ul>
                 <li>Arrival slots begin at opening time and repeat at your selected interval.</li>
-                <li>Indoor and Outdoor reservations continue to last two hours; VIP rooms remain booked until closing.</li>
+                <li>Indoor and Outdoor reservations last @Model.StandardDiningMinutes minutes; VIP rooms remain booked until closing.</li>
                 <li>Opening or closing time changes are blocked when they would disrupt existing active reservations.</li>
                 <li>Changing the slot interval does not cancel or move any existing reservations.</li>
                 <li>Table Utilisation uses the currently configured opening hours even for past dates. Changing those hours may change historical percentages on the report.</li>
@@ -164,6 +164,7 @@
                     list.append(chip);
                 });
             };
+            const diningMinutes = @Model.StandardDiningMinutes;
             const update = () => {
                 const start = toMinutes(opening.value);
                 const end = toMinutes(closing.value);
@@ -171,10 +172,10 @@
                 const regular = [];
                 const vip = [];
                 if (Number.isFinite(start) && Number.isFinite(end) &&
-                    end - start >= 120 && [15, 30, 60].includes(step)) {
+                    end - start >= Math.max(120, diningMinutes) && [15, 30, 60].includes(step)) {
                     for (let time = start; time < end; time += step) {
                         vip.push(time);
-                        if (time + 120 <= end) regular.push(time);
+                        if (time + diningMinutes <= end) regular.push(time);
                     }
                 }
                 paint('standard', regular);

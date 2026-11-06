@@ -15,6 +15,7 @@ public class SeatingModel(ApplicationDbContext db, ReservationService service) :
     [BindProperty(SupportsGet = true)] public DateTime Date { get; set; } = ReservationPolicy.Now.Date;
     [BindProperty(SupportsGet = true)] public string Time { get; set; } = ReservationPolicy.Now.ToString("HH:mm");
     public List<RestaurantTable> Tables { get; set; } = [];
+    public RestaurantSetting CurrentPolicy { get; private set; } = new();
     public List<Reservation> Reservations { get; set; } = [];
     public DateTime At
     {
@@ -26,6 +27,7 @@ public class SeatingModel(ApplicationDbContext db, ReservationService service) :
             Area = "Indoor";
         At = Date.Date.Add(TimeSpan.TryParse(Time, out var time) && time >= TimeSpan.Zero && time < TimeSpan.FromDays(1) ? time : TimeSpan.Zero);
         await service.Expire();
+        CurrentPolicy = await db.RestaurantSettings.AsNoTracking().OrderBy(s => s.SettingID).FirstOrDefaultAsync() ?? new RestaurantSetting();
         Tables = await db.RestaurantTables.AsNoTracking().Include(t => t.DiningArea).Where(t => t.DiningArea.AreaType == Area).OrderBy(t => t.TableID).ToListAsync();
         Reservations = await db.Reservations.AsNoTracking().Where(r => r.ReservationDate == Date.Date && r.PreferredDiningOption == Area && (r.ReservationStatus == "Confirmed" || r.ReservationStatus == "Seated" || (r.ReservationStatus == "Pending" && r.HoldExpiresAt > ReservationPolicy.Now))).ToListAsync();
     }
