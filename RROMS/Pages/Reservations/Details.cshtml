@@ -458,11 +458,9 @@ else
             </p>
         }
     </section>
-    @{
         var guestUpdates = Model.Notifications.Where(n => n.NotificationType != "Audit").ToList();
         var auditUpdates = Model.Notifications.Where(n => n.NotificationType == "Audit").ToList();
         var paidDepositTotal = r.Payments.Where(p => p.PaymentType == "Deposit" && p.PaymentStatus == "Paid").Sum(p => p.Amount);
-    }
     <section class="card reservation-record-card" aria-labelledby="reservation-updates-heading">
         <div class="reservation-record-heading">
             <div>
