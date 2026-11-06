@@ -37,13 +37,13 @@
 </section>
 @if (Model.Featured is { } feature)
 {
-    <section class="homepage-featured" aria-label="Featured Céleste news">
+    <section class="homepage-featured" aria-label="Featured Céleste promotion">
         <div class="homepage-featured-content">
-            <p class="eyebrow">@(feature.IsPromotional ? "A CÉLESTE OFFER" : "FEATURED FROM CÉLESTE")</p>
+            <p class="eyebrow">A CÉLESTE OFFER</p>
             <h2>@feature.Title</h2>
             <p>@feature.Message</p>
-            <a class="text-link" href="@(feature.IsPromotional ? "/Menu" : "#announcements")">
-                @(feature.IsPromotional ? "Explore the menu" : "Read our news") →
+            <a class="text-link" asp-page="/Menu">
+                Explore the menu →
             </a>
         </div>
         @if (feature.ExpiresAt.HasValue)

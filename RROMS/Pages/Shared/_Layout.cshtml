@@ -61,7 +61,13 @@
         </a>
         @if (workspace)
         {
-            <aside class="staff-sidebar">
+            <aside class="staff-sidebar" id="staff-navigation" aria-label="Restaurant workspace navigation">
+                <div class="staff-mobile-sidebar-heading">
+                    <span>Navigation</span>
+                    <button type="button" class="staff-mobile-menu-close" aria-label="Close workspace menu">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
                 <a class="brand" asp-page="@(admin ? "/Admin/Index" : "/Staff/Index")">
                     <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M12 0C13.5 8.5 15.5 10.5 24 12C15.5 13.5 13.5 15.5 12 24C10.5 15.5 8.5 13.5 0 12C8.5 10.5 10.5 8.5 12 0Z"/>
@@ -169,8 +175,17 @@
                     </form>
                 </div>
             </aside>
+            <button type="button" class="staff-sidebar-backdrop" aria-label="Close workspace menu"></button>
             <div class="workspace-bar">
-                CÉLESTE / RESERVATION MANAGEMENT
+                <div class="workspace-bar-main">
+                    <button type="button" class="staff-mobile-menu-toggle" aria-label="Open workspace menu" aria-controls="staff-navigation" aria-expanded="false">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                            <path d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        <span>Menu</span>
+                    </button>
+                    <span>CÉLESTE / RESERVATION MANAGEMENT</span>
+                </div>
                 <span class="workspace-bar-right">
                     @(admin ? "Administrator · Shared staff access" : "Restaurant Staff")
                     <a asp-page="/Staff/Notifications" class="staff-notification-bell" aria-label="Staff notifications@(unreadStaffNotifications > 0 ? $": {unreadStaffNotifications} unread" : "")" title="Notifications">
@@ -393,6 +408,47 @@
                 });
                 window.addEventListener('resize', () => {
                     if (window.innerWidth > 1100) setMenuOpen(false);
+                });
+            })();
+        </script>
+        <script>
+            (function () {
+                const workspace = document.querySelector('body.staff-workspace');
+                const sidebar = workspace?.querySelector('#staff-navigation');
+                const toggle = workspace?.querySelector('.staff-mobile-menu-toggle');
+                const close = workspace?.querySelector('.staff-mobile-menu-close');
+                const backdrop = workspace?.querySelector('.staff-sidebar-backdrop');
+                if (!workspace || !sidebar || !toggle || !close || !backdrop) return;
+
+                const narrow = window.matchMedia('(max-width: 800px)');
+                let lastNarrow = narrow.matches;
+
+                function setOpen(open, restoreFocus = false) {
+                    const shouldOpen = narrow.matches && open;
+                    workspace.classList.toggle('staff-menu-open', shouldOpen);
+                    toggle.setAttribute('aria-expanded', String(shouldOpen));
+                    toggle.setAttribute('aria-label', shouldOpen ? 'Close workspace menu' : 'Open workspace menu');
+                    sidebar.inert = narrow.matches && !shouldOpen;
+                    if (shouldOpen) close.focus();
+                    else if (restoreFocus && narrow.matches) toggle.focus();
+                }
+
+                setOpen(false);
+                toggle.addEventListener('click', () => setOpen(!workspace.classList.contains('staff-menu-open')));
+                close.addEventListener('click', () => setOpen(false, true));
+                backdrop.addEventListener('click', () => setOpen(false, true));
+                sidebar.addEventListener('click', event => {
+                    if (event.target.closest('a')) setOpen(false);
+                });
+                document.addEventListener('keydown', event => {
+                    if (event.key === 'Escape' && workspace.classList.contains('staff-menu-open'))
+                        setOpen(false, true);
+                });
+                window.addEventListener('resize', () => {
+                    if (lastNarrow !== narrow.matches || !narrow.matches) {
+                        lastNarrow = narrow.matches;
+                        setOpen(false);
+                    }
                 });
             })();
         </script>

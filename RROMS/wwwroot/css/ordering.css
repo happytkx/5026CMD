@@ -3296,3 +3296,148 @@ button.reservation-cancel-button:focus-visible {
 .auth-card .password-visibility-toggle:hover { background: #eff1e8; color: #3e5237; }
 .auth-card .password-visibility-toggle:focus-visible { outline: 2px solid #849373; outline-offset: 2px; }
 .auth-card .password-visibility-toggle svg[hidden] { display: none !important; }
+
+
+/* A compact off-canvas navigation for restaurant staff and administrators. */
+.staff-mobile-menu-toggle,
+.staff-mobile-menu-close,
+.staff-mobile-sidebar-heading,
+.staff-sidebar-backdrop { display: none; }
+.workspace-bar-main {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+.announcement-entry-display-form { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; }
+.announcement-entry-display-form .announcement-entry-hint { margin: 0; font-size: 12px; }
+.announcement-feature-control { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin: 0; }
+.announcement-feature-control label { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; }
+.announcement-feature-control input[type="checkbox"] { accent-color: #626c50; width: 16px; height: 16px; margin: 0; }
+.announcement-publish-display-note { margin: 10px 0 18px; padding: 12px 14px; border-radius: 4px; background: #f2f3ec; color: #535e45; font-size: 13px; line-height: 1.5; }
+
+@media screen and (max-width: 800px) {
+    .staff-workspace { padding-left: 0; }
+    .staff-workspace .staff-sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 1301;
+        box-sizing: border-box;
+        width: min(320px, 87vw);
+        height: 100dvh;
+        padding: 16px 18px 26px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        background: #efede4;
+        border-right: 1px solid #d5cebf;
+        box-shadow: 14px 0 32px rgba(28, 29, 20, .15);
+        transform: translateX(-105%);
+        transition: transform .2s ease;
+        overscroll-behavior: contain;
+    }
+    .staff-workspace.staff-menu-open .staff-sidebar { transform: translateX(0); }
+    .staff-sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 1300;
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: rgba(21, 23, 18, .48);
+        cursor: pointer;
+    }
+    .staff-workspace.staff-menu-open .staff-sidebar-backdrop { display: block; }
+    .staff-workspace.staff-menu-open { overflow: hidden; }
+    .staff-mobile-sidebar-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 3px 0 16px;
+        color: #5d664d;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+    }
+    .staff-mobile-menu-close {
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        width: 37px;
+        height: 37px;
+        min-height: 37px;
+        margin: -6px 0 0;
+        padding: 0;
+        border: 1px solid #d4ccbd;
+        border-radius: 5px;
+        background: #fff;
+        color: #5d664d;
+        cursor: pointer;
+        font: 26px/1 var(--body);
+    }
+    .staff-workspace .staff-sidebar .brand { margin: 0 0 22px; }
+    .staff-workspace .staff-sidebar nav,
+    .staff-workspace .staff-sidebar .sidebar-section nav {
+        display: flex;
+        flex-direction: column;
+        flex-wrap: nowrap;
+        align-items: stretch;
+    }
+    .staff-workspace .staff-sidebar .staff-account { display: block; }
+    .staff-workspace .staff-sidebar .sidebar-label { display: block; }
+    .staff-workspace .staff-sidebar .sidebar-section > summary.sidebar-label { display: flex; }
+    .staff-workspace .staff-sidebar .sidebar-group-description { display: block; }
+    .staff-workspace .workspace-bar {
+        position: sticky;
+        top: 0;
+        z-index: 1100;
+        box-sizing: border-box;
+        min-height: 64px;
+        padding: 10px 20px;
+        gap: 12px;
+        align-items: center;
+        background: #f8f6f1;
+    }
+    .staff-mobile-menu-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 42px;
+        margin: 0;
+        padding: 8px 12px;
+        border: 1px solid #cfc8ba;
+        border-radius: 5px;
+        background: #fff;
+        color: #565f47;
+        cursor: pointer;
+        font: 600 12px var(--body);
+        letter-spacing: 0;
+        text-transform: none;
+    }
+    .staff-mobile-menu-toggle svg { width: 20px; height: 20px; }
+    .staff-mobile-menu-toggle:hover,
+    .staff-mobile-menu-close:hover { background: #e7eadf; }
+    .staff-mobile-menu-toggle:focus-visible,
+    .staff-mobile-menu-close:focus-visible { outline: 2px solid #677451; outline-offset: 3px; }
+    .workspace-bar-main > span { font-size: 10px; line-height: 1.3; }
+    .workspace-bar-right { display: inline-flex; align-items: center; gap: 10px; min-width: 0; margin-left: auto; text-align: right; }
+    .staff-workspace main { padding: 24px 18px 60px; }
+}
+@media screen and (max-width: 540px) {
+    .workspace-bar-main > span { display: none; }
+    .staff-workspace .workspace-bar { padding-inline: 13px; }
+    .workspace-bar-right { font-size: 9px; letter-spacing: .2px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .staff-workspace .staff-sidebar { transition: none; }
+}
+@media print {
+    .staff-mobile-menu-toggle,
+    .staff-mobile-menu-close,
+    .staff-sidebar-backdrop { display: none !important; }
+}

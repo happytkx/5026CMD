@@ -169,7 +169,7 @@
 <section class="card announcement-admin-panel">
     <div class="announcement-panel-heading">
         <h2>Announcements</h2>
-        <p class="muted">Manage your published messages here. The outline pin becomes filled when pinned. Pinned regular announcements appear first in customer news, and pinned promotions are prioritised in the pop-up. Featuring controls the separate homepage banner.</p>
+        <p class="muted">All published announcements appear in the welcome pop-up automatically. Regular announcements also appear in the customer news section below the dining spaces. Only promotional announcements can use the featured banner above the dining spaces. Pinning changes their order.</p>
     </div>
     <div class="announcement-entry-list">
         @foreach (var a in Model.Announcements)
@@ -217,16 +217,22 @@
                     </form>
                 </div>
                 <div class="announcement-entry-settings">
-                    <form method="post" asp-page-handler="SetAnnouncementDisplay" class="announcement-entry-display-form">
-                        <input type="hidden" name="id" value="@a.AnnouncementID" />
+                    <div class="announcement-entry-display-form">
                         <div class="announcement-entry-field-title">Where it appears</div>
-                        <div class="announcement-entry-checks">
-                            <label><input type="checkbox" name="showInPopup" value="true" checked="@a.ShowInPopup" /> Welcome pop-up</label>
-                            <label><input type="checkbox" name="isFeatured" value="true" checked="@a.IsFeatured" /> Featured banner</label>
-                        </div>
-                        <p class="announcement-entry-hint">Pop-up can be dismissed; banner stays until expiry.</p>
-                        <button type="submit" class="secondary">SAVE DISPLAY</button>
-                    </form>
+                        <p class="announcement-entry-hint">Always shown in the welcome pop-up.</p>
+                        @if (a.IsPromotional)
+                        {
+                            <form method="post" asp-page-handler="SetAnnouncementDisplay" class="announcement-feature-control">
+                                <input type="hidden" name="id" value="@a.AnnouncementID" />
+                                <label><input type="checkbox" name="isFeatured" value="true" checked="@a.IsFeatured" /> Feature promotion above dining spaces</label>
+                                <button type="submit" class="secondary">SAVE FEATURE</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <p class="announcement-entry-hint">Also listed in Announcements, below dining spaces and above the menu.</p>
+                        }
+                    </div>
                     <form method="post" asp-page-handler="SetAnnouncementExpiry"
                           class="announcement-entry-duration-form" data-announcement-duration-form>
                         <input type="hidden" name="id" value="@a.AnnouncementID" />
@@ -267,7 +273,7 @@
     }
     <div class="announcement-publish-heading">
         <h2>Publish announcement</h2>
-        <p class="muted">New announcements appear in both the welcome pop-up and the featured banner by default. You can change either option before publishing.</p>
+        <p class="muted">Published announcements always appear in the welcome pop-up and the customer Announcements section below dining spaces. Only promotions can be featured above dining spaces.</p>
     </div>
     <form method="post" asp-page-handler="Announcement" class="announcement-publish-form"
           data-announcement-duration-form>
@@ -292,11 +298,7 @@
                        min="@Model.CurrentTime.ToString("yyyy-MM-dd")" />
             </label>
         </div>
-        <div class="announcement-duration-fields">
-            <label><input type="checkbox" name="showInPopup" value="true" checked /> Show in the welcome pop-up</label>
-            <label><input type="checkbox" name="isFeatured" value="true" checked /> Feature above dining spaces</label>
-        </div>
-        <p class="muted">The welcome pop-up is dismissible. The featured banner stays on the homepage until expiry. Only one announcement can be featured at a time.</p>
+        <p class="announcement-publish-display-note">✓ Welcome pop-up and customer Announcements section are included automatically. The pop-up is dismissible, while the announcement remains in the news section until expiry.</p>
         <button type="submit">Publish</button>
     </form>
 </section>

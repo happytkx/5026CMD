@@ -36,7 +36,7 @@ public class PromotionsModel(ApplicationDbContext db) : PageModel
     public async Task<IActionResult> OnPostApplyBulkAsync(
         List<int>? menuItemIds, decimal discountPercent, DateTime promotionStartDate,
         DateTime promotionEndDate, bool publishAnnouncement, string? announcementTitle,
-        string? announcementMessage, bool showInPopup, bool featureAnnouncement)
+        string? announcementMessage, bool featureAnnouncement)
     {
         var ids = (menuItemIds ?? []).Distinct().ToList();
         if (ids.Count == 0 || ids.Count > 100)
@@ -90,7 +90,7 @@ public class PromotionsModel(ApplicationDbContext db) : PageModel
                 DurationMode = "custom",
                 IsActive = true,
                 IsPromotional = true,
-                ShowInPopup = showInPopup,
+                ShowInPopup = true,
                 IsFeatured = featureAnnouncement,
                 StartsAt = start,
                 ExpiresAt = end.AddDays(1), // Inclusive final promotion day.

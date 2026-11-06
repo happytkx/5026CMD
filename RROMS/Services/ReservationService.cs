@@ -245,7 +245,7 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
         Notify(r, action, message);
 
         // Shared operational feed for staff and administrators. Only payment failures are admin-only.
-        var reservationLink = StaffAlerts.ReservationUrl(r.ReservationDate);
+        var reservationLink = StaffAlerts.ReservationUrl(r.ReservationID);
         switch (action)
         {
             case "Pay" when paymentSuccess:
@@ -325,7 +325,7 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
                 Notify(r, "No-show", "Arrival deadline passed. Deposit forfeited and table released.");
                 StaffAlerts.Add(db, "Reservation automatically marked no-show",
                     $"Booking {r.BookingReference} was marked no-show after its arrival deadline. Table {r.TableID} is now available.",
-                    StaffAlerts.ReservationUrl(r.ReservationDate), "Reservation");
+                    StaffAlerts.ReservationUrl(r.ReservationID), "Reservation");
             }
         }
         await db.SaveChangesAsync();

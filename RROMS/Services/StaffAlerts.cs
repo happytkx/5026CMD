@@ -24,6 +24,9 @@ public static class StaffAlerts
         });
     }
 
+    public static string ReservationUrl(int reservationId) =>
+        "/Reservations/Details?id=" + reservationId.ToString(CultureInfo.InvariantCulture) + "&view=Details";
+
     public static string ReservationUrl(DateTime date) =>
         "/Staff/Index?Date=" + date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
