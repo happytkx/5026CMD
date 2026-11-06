@@ -167,74 +167,108 @@
     </div>
 }
 <section class="card announcement-admin-panel">
-    <h2>Announcements</h2>
-    <p class="muted">Choose where announcements appear and how long they stay visible. Pin published announcements to keep them first in the customer announcements list. Pinning is separate from featuring above dining spaces. Expired announcements are hidden automatically; only one can be featured at a time.</p>
-    @foreach (var a in Model.Announcements)
-    {
-        var expired = a.ExpiresAt.HasValue && a.ExpiresAt.Value <= Model.CurrentTime;
-        var scheduled = a.StartsAt.HasValue && a.StartsAt.Value > Model.CurrentTime;
-        var expiryText = !a.ExpiresAt.HasValue ? "No scheduled expiry"
-            : $"Through {a.ExpiresAt.Value.AddDays(-1):dd MMM yyyy}";
-        var selectedEndDate = a.ExpiresAt?.Date;
-        if (a.DurationMode == "custom" && selectedEndDate.HasValue)
-            selectedEndDate = selectedEndDate.Value.AddDays(-1);
-        <div class="announcement-admin-row">
-            <div class="announcement-admin-copy">
-                <strong>@a.Title</strong>
-                @if (a.IsPinned)
-                {
-                    <span class="announcement-pin-label">Pinned</span>
-                }
-                <p>@a.Message</p>
-                <small class="@(expired ? "announcement-expired" : "muted")">
-                    @(expired ? "Expired" : scheduled ? "Scheduled" : "Visible")
-                    · @expiryText
-                </small>
-            </div>
-            <div class="announcement-admin-actions">
-                <form method="post" asp-page-handler="SetAnnouncementPin" class="announcement-pin-form">
-                    <input type="hidden" name="id" value="@a.AnnouncementID" />
-                    <input type="hidden" name="isPinned" value="@(a.IsPinned ? "false" : "true")" />
-                    <button type="submit" class="secondary">@(a.IsPinned ? "Unpin" : "Pin to top")</button>
-                </form>
-                <form method="post" asp-page-handler="SetAnnouncementDisplay" class="announcement-display-form">
-                    <input type="hidden" name="id" value="@a.AnnouncementID" />
-                    <label><input type="checkbox" name="isFeatured" value="true" checked="@a.IsFeatured" /> Feature above dining spaces</label>
-                    <label><input type="checkbox" name="showInPopup" value="true" checked="@a.ShowInPopup" /> Welcome pop-up</label>
-                    <button type="submit" class="secondary">Update display</button>
-                </form>
-                <form method="post" asp-page-handler="SetAnnouncementExpiry"
-                      class="announcement-duration-form" data-announcement-duration-form>
-                    <input type="hidden" name="id" value="@a.AnnouncementID" />
-                    <label for="duration-@a.AnnouncementID">Display for</label>
-                    <select id="duration-@a.AnnouncementID" name="duration" data-announcement-duration>
-                        <option value="1" selected="@(a.DurationMode == "1")">1 day (including today)</option>
-                        <option value="7" selected="@(a.DurationMode == "7")">7 days (including today)</option>
-                        <option value="30" selected="@(a.DurationMode == "30")">30 days (including today)</option>
-                        <option value="custom" selected="@(a.DurationMode == "custom")">Until a date</option>
-                        <option value="never" selected="@(a.DurationMode == "never")">No expiry</option>
-                    </select>
-                    <label class="announcement-expiry-picker" for="end-@a.AnnouncementID" data-custom-end>
-                        End date
-                        <input id="end-@a.AnnouncementID" type="date" name="endDate"
-                               min="@Model.CurrentTime.ToString("yyyy-MM-dd")"
-                               value="@(selectedEndDate?.ToString("yyyy-MM-dd"))" />
-                    </label>
-                    <button type="submit" class="secondary">Update duration</button>
-                </form>
-                <form method="post" asp-page-handler="RetireAnnouncement"
-                      onsubmit="return confirm('Remove this announcement? It will no longer appear to customers.');">
-                    <input type="hidden" name="id" value="@a.AnnouncementID" />
-                    <button type="submit" class="quiet danger">Remove</button>
-                </form>
-            </div>
-        </div>
-    }
+    <div class="announcement-panel-heading">
+        <h2>Announcements</h2>
+        <p class="muted">Manage your published messages here. The outline pin becomes filled when pinned. Pinned regular announcements appear first in customer news, and pinned promotions are prioritised in the pop-up. Featuring controls the separate homepage banner.</p>
+    </div>
+    <div class="announcement-entry-list">
+        @foreach (var a in Model.Announcements)
+        {
+            var expired = a.ExpiresAt.HasValue && a.ExpiresAt.Value <= Model.CurrentTime;
+            var scheduled = a.StartsAt.HasValue && a.StartsAt.Value > Model.CurrentTime;
+            var expiryText = !a.ExpiresAt.HasValue ? "No scheduled expiry"
+                : $"Through {a.ExpiresAt.Value.AddDays(-1):dd MMM yyyy}";
+            var selectedEndDate = a.ExpiresAt?.Date;
+            if (a.DurationMode == "custom" && selectedEndDate.HasValue)
+                selectedEndDate = selectedEndDate.Value.AddDays(-1);
+            <article class="announcement-entry @(a.IsPinned ? "is-pinned" : "")">
+                <div class="announcement-entry-top">
+                    <div class="announcement-entry-copy">
+                        <div class="announcement-entry-title-row">
+                            <h3>@a.Title</h3>
+                            @if (a.IsPromotional)
+                            {
+                                <span class="announcement-entry-badge">Promotion</span>
+                            }
+                            @if (a.IsPinned)
+                            {
+                                <span class="announcement-entry-badge pinned">Pinned</span>
+                            }
+                        </div>
+                        <p>@a.Message</p>
+                        <small class="@(expired ? "announcement-expired" : "muted")">
+                            @(expired ? "Expired" : scheduled ? "Scheduled" : "Visible") · @expiryText
+                        </small>
+                    </div>
+                    <form method="post" asp-page-handler="SetAnnouncementPin">
+                        <input type="hidden" name="id" value="@a.AnnouncementID" />
+                        <input type="hidden" name="isPinned" value="@(a.IsPinned ? "false" : "true")" />
+                        <button type="submit" class="announcement-pin-toggle @(a.IsPinned ? "is-pinned" : "")"
+                                aria-label="@(a.IsPinned ? "Unpin announcement" : "Pin announcement to top")"
+                                aria-pressed="@(a.IsPinned ? "true" : "false")"
+                                title="@(a.IsPinned ? "Unpin announcement" : "Pin to top")">
+                            <svg viewBox="0 0 24 24" fill="@(a.IsPinned ? "currentColor" : "none")"
+                                 stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"
+                                 aria-hidden="true" focusable="false">
+                                <path d="M8 3h8l-1 2v5l3 3v2H6v-2l3-3V5L8 3Z" />
+                                <path d="M12 15v7" stroke-linecap="round" fill="none" />
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+                <div class="announcement-entry-settings">
+                    <form method="post" asp-page-handler="SetAnnouncementDisplay" class="announcement-entry-display-form">
+                        <input type="hidden" name="id" value="@a.AnnouncementID" />
+                        <div class="announcement-entry-field-title">Where it appears</div>
+                        <div class="announcement-entry-checks">
+                            <label><input type="checkbox" name="showInPopup" value="true" checked="@a.ShowInPopup" /> Welcome pop-up</label>
+                            <label><input type="checkbox" name="isFeatured" value="true" checked="@a.IsFeatured" /> Featured banner</label>
+                        </div>
+                        <p class="announcement-entry-hint">Pop-up can be dismissed; banner stays until expiry.</p>
+                        <button type="submit" class="secondary">SAVE DISPLAY</button>
+                    </form>
+                    <form method="post" asp-page-handler="SetAnnouncementExpiry"
+                          class="announcement-entry-duration-form" data-announcement-duration-form>
+                        <input type="hidden" name="id" value="@a.AnnouncementID" />
+                        <label class="announcement-entry-field-title" for="duration-@a.AnnouncementID">Display for</label>
+                        <div class="announcement-entry-duration-controls">
+                            <select id="duration-@a.AnnouncementID" name="duration" data-announcement-duration>
+                                <option value="1" selected="@(a.DurationMode == "1")">1 day (including today)</option>
+                                <option value="7" selected="@(a.DurationMode == "7")">7 days (including today)</option>
+                                <option value="30" selected="@(a.DurationMode == "30")">30 days (including today)</option>
+                                <option value="custom" selected="@(a.DurationMode == "custom")">Until a date</option>
+                                <option value="never" selected="@(a.DurationMode == "never")">No expiry</option>
+                            </select>
+                            <button type="submit" class="secondary">SAVE DURATION</button>
+                        </div>
+                        <label class="announcement-expiry-picker announcement-entry-end-date"
+                               for="end-@a.AnnouncementID" data-custom-end>
+                            End date (inclusive)
+                            <input id="end-@a.AnnouncementID" type="date" name="endDate"
+                                   min="@Model.CurrentTime.ToString("yyyy-MM-dd")"
+                                   value="@(selectedEndDate?.ToString("yyyy-MM-dd"))" />
+                        </label>
+                    </form>
+                </div>
+                <div class="announcement-entry-footer">
+                    <span class="muted">@(a.IsPromotional ? "Promotional campaign" : "Customer announcement")</span>
+                    <form method="post" asp-page-handler="RetireAnnouncement"
+                          onsubmit="return confirm('Remove this announcement? It will no longer appear to customers.');">
+                        <input type="hidden" name="id" value="@a.AnnouncementID" />
+                        <button type="submit" class="announcement-entry-remove">REMOVE</button>
+                    </form>
+                </div>
+            </article>
+        }
+    </div>
     @if (!Model.Announcements.Any())
     {
         <p class="muted">No active or scheduled announcements.</p>
     }
-    <h2>Publish announcement</h2>
+    <div class="announcement-publish-heading">
+        <h2>Publish announcement</h2>
+        <p class="muted">New announcements appear in both the welcome pop-up and the featured banner by default. You can change either option before publishing.</p>
+    </div>
     <form method="post" asp-page-handler="Announcement" class="announcement-publish-form"
           data-announcement-duration-form>
         <label for="title">Title</label>
@@ -260,9 +294,9 @@
         </div>
         <div class="announcement-duration-fields">
             <label><input type="checkbox" name="showInPopup" value="true" checked /> Show in the welcome pop-up</label>
-            <label><input type="checkbox" name="isFeatured" value="true" /> Feature above dining spaces</label>
+            <label><input type="checkbox" name="isFeatured" value="true" checked /> Feature above dining spaces</label>
         </div>
-        <p class="muted">The announcement is published immediately. An end date keeps it visible through the chosen day (Malaysia time).</p>
+        <p class="muted">The welcome pop-up is dismissible. The featured banner stays on the homepage until expiry. Only one announcement can be featured at a time.</p>
         <button type="submit">Publish</button>
     </form>
 </section>

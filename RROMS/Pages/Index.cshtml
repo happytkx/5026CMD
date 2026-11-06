@@ -146,8 +146,9 @@
             }
         </div>
     </section>
-    @if (Model.PopupAnnouncements.Count > 0)
-    {
+}
+@if (Model.PopupAnnouncements.Count > 0)
+{
     <dialog id="celeste-announcement-dialog" class="celeste-announcement-dialog" aria-labelledby="celeste-announcement-title">
         <div class="celeste-announcement-dialog-body">
             <p class="eyebrow">A NOTE FROM CÉLESTE</p>
@@ -162,13 +163,13 @@
                 }
             </div>
             <form method="dialog" class="celeste-announcement-dialog-actions">
-                <a href="#announcements" class="text-link" id="celeste-announcements-later">Read again later</a>
+                <a href="@(Model.PopupAnnouncements.Any(a => a.IsPromotional) ? "/Menu" : "#announcements")" class="text-link" id="celeste-announcements-later">@(Model.PopupAnnouncements.Any(a => a.IsPromotional) ? "Explore current offers" : "Read again later")</a>
                 <button type="submit" class="button">Dismiss</button>
             </form>
         </div>
     </dialog>
-    }
-    <script>
+}
+<script>
         document.addEventListener("DOMContentLoaded", function () {
             const track = document.getElementById('celeste-announcement-track');
             const previous = document.querySelector('[data-announcement-prev]');
@@ -213,13 +214,15 @@
                 catch (_) { /* Announcements remain readable on the homepage. */ }
             });
             dialog.showModal();
-            document.getElementById("celeste-announcements-later")?.addEventListener("click", function () {
+            const laterLink = document.getElementById("celeste-announcements-later");
+            laterLink?.addEventListener("click", function () {
                 dialog.close();
-                window.location.hash = "announcements";
+                if (laterLink.getAttribute("href") === "#announcements") {
+                    window.location.hash = "announcements";
+                }
             });
         });
-    </script>
-}
+</script>
 @if (Model.Popular.Count > 0)
 {
     <section class="dining-spaces">
