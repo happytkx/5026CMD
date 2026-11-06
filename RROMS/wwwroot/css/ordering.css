@@ -3344,11 +3344,17 @@ button.reservation-cancel-button:focus-visible {
         z-index: 1300;
         width: 100%;
         height: 100%;
+        margin: 0;
         padding: 0;
         border: 0;
         border-radius: 0;
         background: rgba(21, 23, 18, .48);
         cursor: pointer;
+    }
+    /* Keep the dimming overlay unchanged when the shared button hover rule applies. */
+    .staff-sidebar-backdrop:hover {
+        background: rgba(21, 23, 18, .48);
+        border-color: transparent;
     }
     .staff-workspace.staff-menu-open .staff-sidebar-backdrop { display: block; }
     .staff-workspace.staff-menu-open { overflow: hidden; }
