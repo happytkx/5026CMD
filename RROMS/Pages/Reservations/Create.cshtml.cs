@@ -72,7 +72,9 @@ public class CreateModel(ReservationService service, ApplicationDbContext db) : 
             try
             {
                 var allowed = new[] { "Vegetarian", "Vegan", "No Pork", "No Beef", "No Chicken" };
-                var notes = string.Join("\n", new[] { Preferences.Any() ? "Dietary preferences: " + string.Join(", ", Preferences.Where(allowed.Contains).Distinct()) : null, string.IsNullOrWhiteSpace(Allergies) ? null : "Allergies: " + Allergies, Requests }.Where(n => !string.IsNullOrWhiteSpace(n)));
+                var notes = string.Join("\n", new[] { Preferences.Any() ? "Dietary preferences: " + 
+                    string.Join(", ", Preferences.Where(allowed.Contains).Distinct()) : null, string.IsNullOrWhiteSpace(Allergies) ? null : "Allergies: " + 
+                    Allergies, Requests }.Where(n => !string.IsNullOrWhiteSpace(n)));
                 if (notes.Length > 1000)
                     throw new InvalidOperationException("Please keep your combined dining requests within 1,000 characters.");
                 var booking = await service.Create(ReservationIdentity.CustomerId(User), PartySize, Area, Date.Date.Add(time), notes);

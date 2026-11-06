@@ -413,12 +413,12 @@ try
         var forgotHtml = await forgotPage.Content.ReadAsStringAsync();
         Check(forgotPage.IsSuccessStatusCode && loginHtml.Contains("Forgot your password?"), "Forgot-password page and login link are available");
         var unknownReset = await http.PostAsync("/Account/ForgotPassword", new FormUrlEncodedContent(new Dictionary<string, string> {
-            ["Email"] = "nobody@example.test", ["__RequestVerificationToken"] = Antiforgery(forgotHtml) }));
+            ["AccountType"] = "Customer", ["Email"] = "nobody@example.test", ["__RequestVerificationToken"] = Antiforgery(forgotHtml) }));
         var knownReset = await http.PostAsync("/Account/ForgotPassword", new FormUrlEncodedContent(new Dictionary<string, string> {
-            ["Email"] = registered.Email, ["__RequestVerificationToken"] = Antiforgery(forgotHtml) }));
+            ["AccountType"] = "Customer", ["Email"] = registered.Email, ["__RequestVerificationToken"] = Antiforgery(forgotHtml) }));
         Check(unknownReset.IsSuccessStatusCode && knownReset.IsSuccessStatusCode
-            && (await unknownReset.Content.ReadAsStringAsync()).Contains("If this email belongs to a verified account")
-            && (await knownReset.Content.ReadAsStringAsync()).Contains("If this email belongs to a verified account"),
+            && (await unknownReset.Content.ReadAsStringAsync()).Contains("If this email belongs to an verified customer account")
+            && (await knownReset.Content.ReadAsStringAsync()).Contains("If this email belongs to an verified customer account"),
             "Forgot-password response does not disclose whether an email is registered");
         db.ChangeTracker.Clear();
         await accounts.SendPasswordReset(registered.Email, CancellationToken.None);
@@ -504,10 +504,10 @@ try
             Check(update != null, "Status change arrives on existing stream without page reload");
         }
         using var adminHttp = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, CookieContainer = new System.Net.CookieContainer() }) { BaseAddress = http.BaseAddress };
-        var adminLoginHtml = await (await adminHttp.GetAsync("/Account/Login")).Content.ReadAsStringAsync();
-        var adminLogin = await adminHttp.PostAsync("/Account/Login", new FormUrlEncodedContent(new Dictionary<string,string> {
+        var adminLoginHtml = await (await adminHttp.GetAsync("/Account/StaffLogin")).Content.ReadAsStringAsync();
+        var adminLogin = await adminHttp.PostAsync("/Account/StaffLogin", new FormUrlEncodedContent(new Dictionary<string,string> {
             ["Email"] = "legacy-admin@example.test", ["Password"] = legacyAdminPassword, ["__RequestVerificationToken"] = Antiforgery(adminLoginHtml) }));
-        Check(adminLogin.StatusCode == System.Net.HttpStatusCode.Redirect && adminLogin.Headers.Location!.ToString() == "/Admin", "Migrated administrator signs in through shared login");
+        Check(adminLogin.StatusCode == System.Net.HttpStatusCode.Redirect && adminLogin.Headers.Location!.ToString() == "/Admin", "Migrated administrator signs in through staff/admin login");
         Check((await adminHttp.GetAsync("/Admin")).IsSuccessStatusCode && (await adminHttp.GetAsync("/Staff")).IsSuccessStatusCode, "Independent administrator retains admin and staff access");
         Check((await adminHttp.GetAsync("/Reservations/Create")).StatusCode == System.Net.HttpStatusCode.Redirect, "Administrator does not gain customer booking identity");
         foreach (var mergedPage in new[] { "/Reviews", "/Admin/CustomerReviews", "/Staff/CustomerReviews", "/Admin/TableManagement", "/Admin/MenuPerformance?handler=Export", "/Admin/Reports", "/Admin/PaymentCollections", "/Admin/Occupancy", "/Staff/Notifications" })
@@ -541,8 +541,8 @@ try
         Check((await adminHttp.GetAsync("/Admin")).StatusCode == System.Net.HttpStatusCode.Redirect, "Administrator session version revokes stale cookies");
         using var staffHttp = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, CookieContainer = new System.Net.CookieContainer() })
             { BaseAddress = http.BaseAddress };
-        var staffLoginHtml = await (await staffHttp.GetAsync("/Account/Login")).Content.ReadAsStringAsync();
-        var staffLogin = await staffHttp.PostAsync("/Account/Login", new FormUrlEncodedContent(new Dictionary<string, string> {
+        var staffLoginHtml = await (await staffHttp.GetAsync("/Account/StaffLogin")).Content.ReadAsStringAsync();
+        var staffLogin = await staffHttp.PostAsync("/Account/StaffLogin", new FormUrlEncodedContent(new Dictionary<string, string> {
             ["Email"] = "staff@celeste.local", ["Password"] = "Staff123!", ["__RequestVerificationToken"] = Antiforgery(staffLoginHtml) }));
         Check(staffLogin.StatusCode == System.Net.HttpStatusCode.Redirect && (await staffHttp.GetAsync("/Staff")).IsSuccessStatusCode,
             "Incoming staff account can sign in and view reservation dashboard");
@@ -562,24 +562,22 @@ try
         staffAccount.PasswordHash = new Microsoft.AspNetCore.Identity.PasswordHasher<StaffAccount>().HashPassword(staffAccount, accountPassword);
         db.StaffAccounts.Add(staffAccount);
         await db.SaveChangesAsync();
-        var legacyLogin = await http.GetAsync("/Account/StaffLogin?ReturnUrl=%2FStaff");
-        Check(legacyLogin.StatusCode == System.Net.HttpStatusCode.Redirect &&
-            legacyLogin.Headers.Location!.ToString().Contains("/Account/Login") &&
-            legacyLogin.Headers.Location.ToString().Contains("ReturnUrl="), "Old staff sign-in redirects to shared login preserving return URL");
-        loginHtml = await (await http.GetAsync("/Account/Login")).Content.ReadAsStringAsync();
-        var invalidStaffLogin = await http.PostAsync("/Account/Login", new FormUrlEncodedContent(new Dictionary<string, string> {
+        var internalLogin = await http.GetAsync("/Account/StaffLogin?ReturnUrl=%2FStaff");
+        Check(internalLogin.IsSuccessStatusCode, "Staff login page renders with return URL");
+        loginHtml = await (await http.GetAsync("/Account/StaffLogin")).Content.ReadAsStringAsync();
+        var invalidStaffLogin = await http.PostAsync("/Account/StaffLogin", new FormUrlEncodedContent(new Dictionary<string, string> {
             ["Email"] = staffAccount.Email, ["Password"] = "Wrong-password",
             ["__RequestVerificationToken"] = Antiforgery(loginHtml) }));
         Check(invalidStaffLogin.IsSuccessStatusCode && (await invalidStaffLogin.Content.ReadAsStringAsync()).Contains("Invalid email or password."),
-            "Shared login rejects invalid staff credentials");
-        var sharedStaffLogin = await http.PostAsync("/Account/Login", new FormUrlEncodedContent(new Dictionary<string, string> {
+            "Staff login rejects invalid staff credentials");
+        var sharedStaffLogin = await http.PostAsync("/Account/StaffLogin", new FormUrlEncodedContent(new Dictionary<string, string> {
             ["Email"] = staffAccount.Email, ["Password"] = accountPassword, ["RememberMe"] = "true",
             ["ReturnUrl"] = "https://example.test/untrusted", ["__RequestVerificationToken"] = Antiforgery(loginHtml) }));
         Check(sharedStaffLogin.StatusCode == System.Net.HttpStatusCode.Redirect && sharedStaffLogin.Headers.Location!.ToString() == "/Staff",
-            "Shared login sends staff to dashboard and rejects external return URL");
+            "Staff login sends staff to dashboard and rejects external return URL");
         Check(sharedStaffLogin.Headers.GetValues("Set-Cookie").Any(value => value.Contains("expires=", StringComparison.OrdinalIgnoreCase)),
-            "Shared login honors remember me for staff");
-        Check((await http.GetAsync("/Staff")).IsSuccessStatusCode, "Shared login issues a valid staff session");
+            "Staff login honors remember me for staff");
+        Check((await http.GetAsync("/Staff")).IsSuccessStatusCode, "Staff login issues a valid staff session");
         Check((await http.GetAsync("/Admin")).StatusCode == System.Net.HttpStatusCode.Redirect,
             "Staff sign-in does not grant administrator access");
     }
@@ -641,4 +639,3 @@ class FakeEmailSender : IEmailSender
         return Task.CompletedTask;
     }
 }
-

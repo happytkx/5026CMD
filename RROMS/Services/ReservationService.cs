@@ -32,7 +32,7 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
             throw new InvalidOperationException($"Choose a valid future arrival slot. All dining areas require {terms.StandardDiningMinutes} minutes before closing.");
         return end;
     }
-
+    
     public async Task<List<DateTime>> Slots(int size, string area, DateTime date, int? excluding = null)
     {
         await Expire();
@@ -152,7 +152,8 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
                     r.DepositStatus = "Paid";
                     r.ReservationStatus = "Confirmed";
                     r.HoldExpiresAt = null;
-                    message = $"Confirmed {r.BookingReference}: {start:dd MMM yyyy HH:mm}, {r.PartySize} guests, {r.PreferredDiningOption}. Deposit RM{r.DepositAmount:0.00} paid. Minimum spend RM{r.MinimumSpend:0.00}. All cancellations forfeit the full deposit.";
+                    message = $"Confirmed {r.BookingReference}: {start:dd MMM yyyy HH:mm}, {r.PartySize} guests, {r.PreferredDiningOption}. " +
+                        $"Deposit RM{r.DepositAmount:0.00} paid. Minimum spend RM{r.MinimumSpend:0.00}. All cancellations forfeit the full deposit.";
                 }
                 else
                     message = "Payment failed. Retry before the payment hold expires.";

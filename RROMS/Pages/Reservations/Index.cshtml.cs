@@ -20,6 +20,7 @@ public class IndexModel(ApplicationDbContext db, ReservationService service) : P
         Bookings = await db.Reservations.AsNoTracking().Where(r => r.CustomerID == id)
             .OrderByDescending(r => r.ReservationDate).ThenByDescending(r => r.StartTime).ToListAsync();
         if (Tab != "All")
-            Bookings = Bookings.Where(r => r.ReservationDate.Add(r.EndTime) > ReservationPolicy.Now && r.ReservationStatus is "Pending" or "Confirmed" or "Seated").OrderBy(r => r.ReservationDate.Add(r.StartTime)).ToList();
+            Bookings = Bookings.Where(r => r.ReservationDate.Add(r.EndTime) > ReservationPolicy.Now && r.ReservationStatus is "Pending" or "Confirmed" or "Seated").
+                OrderBy(r => r.ReservationDate.Add(r.StartTime)).ToList();
     }
 }
