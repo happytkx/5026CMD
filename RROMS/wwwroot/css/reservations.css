@@ -3230,12 +3230,23 @@ td small
     border-radius: 4px;
     width: 42px;
     height: 42px;
+    min-height: 42px;
+    margin: 0;
     padding: 0;
     cursor: pointer;
     font-size: 20px;
     line-height: 1;
+    transition: background-color .18s ease, border-color .18s ease, color .18s ease;
 }
-.announcement-carousel-arrow:hover:not(:disabled) { background: var(--paper); }
+.announcement-carousel-arrow:hover:not(:disabled) {
+    background: var(--olive-deep);
+    border-color: var(--olive-deep);
+    color: var(--white);
+}
+.announcement-carousel-arrow:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
+}
 .announcement-carousel-arrow:disabled { opacity: .4; cursor: not-allowed; }
 @media (max-width: 720px) {
     .celeste-announcement-list { grid-auto-columns: 85%; }
