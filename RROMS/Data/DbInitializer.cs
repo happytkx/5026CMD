@@ -275,18 +275,6 @@ namespace RROMS.Data
                     "Elderflower Citrus Cooler",
                     "Elderflower and sparkling citrus with a floral finish.",
                     34m, "Beverages", "Vegetarian", "None declared",
-                    "Vegan, Vegetarian, No pork, No beef, No chicken"),
-
-                Dish(
-                    "Eau Minérale",
-                    "Still mineral water, served chilled.",
-                    12m, "Beverages", "Vegetarian", "None declared",
-                    "Vegan, Vegetarian, No pork, No beef, No chicken"),
-
-                Dish(
-                    "Eau Pétillante",
-                    "Refreshing sparkling mineral water.",
-                    16m, "Beverages", "Vegetarian", "None declared",
                     "Vegan, Vegetarian, No pork, No beef, No chicken")
             };
 
@@ -320,9 +308,7 @@ namespace RROMS.Data
                 // BEVERAGES
                 ["Lemon & Thyme Cooler"] = "/images/menu/lemonade-beverage.png",
                 ["White Peach Cooler"] = "/images/menu/peach-beverage.png",
-                ["Elderflower Citrus Cooler"] = "/images/menu/elderflower-beverage.png",
-                ["Eau Minérale"] = "/images/menu/water-beverage.png",
-                ["Eau Pétillante"] = "/images/menu/sparkling-beverage.png"
+                ["Elderflower Citrus Cooler"] = "/images/menu/elderflower-beverage.png"
             };
 
 
@@ -352,35 +338,6 @@ namespace RROMS.Data
             var existingMenuItems = context.MenuItems.ToList();
             foreach (var item in existingMenuItems)
                 item.Name = MenuDisplayNames.InEnglish(item.Name);
-
-            // Consolidate legacy water names without deleting their records or historical
-            // order lines. Prefer an available canonical dish; hide remaining aliases.
-            var waterVariants = new[]
-            {
-                new { Canonical = "Eau Minérale",
-                    Names = new[] { "Eau Minérale", "Still Mineral Water", "Mineral Water" } },
-                new { Canonical = "Eau Pétillante",
-                    Names = new[] { "Eau Pétillante", "Sparkling Mineral Water", "Sparkling Water" } }
-            };
-            foreach (var variant in waterVariants)
-            {
-                var matches = existingMenuItems
-                    .Where(item => variant.Names.Contains(item.Name, StringComparer.OrdinalIgnoreCase))
-                    .OrderByDescending(item => item.IsAvailable)
-                    .ThenBy(item => Array.FindIndex(variant.Names,
-                        name => string.Equals(name, item.Name, StringComparison.OrdinalIgnoreCase)))
-                    .ThenBy(item => item.MenuItemID)
-                    .ToList();
-                if (matches.Count == 0) continue;
-
-                var canonical = matches[0];
-                canonical.Name = variant.Canonical;
-                canonical.Category = "Beverages";
-                canonical.MenuCategoryID = categoryByName["Beverages"].MenuCategoryID;
-                canonical.ImageUrl = imagePaths[variant.Canonical];
-                foreach (var legacy in matches.Skip(1))
-                    legacy.IsAvailable = false;
-            }
 
             // Do not reinsert existing dishes or reset their prices, descriptions,
             // availability, category selection, images, or administrator changes.

@@ -23,7 +23,7 @@
     <hr/>
     <dl>
         <dt>Deposit per guest</dt>
-        <dd>RM50</dd>
+        <dd>RM @((Model.PartySize > 0 ? Model.DepositAmount / Model.PartySize : 0m).ToString("N2"))</dd>
         <dt>Total deposit</dt>
         <dd class="amount">RM @Model.DepositAmount.ToString("N2")</dd>
         <dt>Minimum spend</dt>

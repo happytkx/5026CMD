@@ -17,7 +17,7 @@
 @* Search introduction and shared booking progress. *@
 @if (Model.Stage == "Search")
 {
-    <p class="notice">Book and complete deposit payment at least 2 hours before Indoor/Outdoor visits or 24 hours before VIP visits. New times selected when rescheduling must also satisfy these limits. All times are Malaysia time (Asia/Kuala_Lumpur).</p>
+    <p class="notice">Book and complete deposit payment at least @Model.CurrentPolicy.StandardAdvanceHours hours before Indoor/Outdoor visits or @Model.CurrentPolicy.VipAdvanceHours hours before VIP visits. New times selected when rescheduling must also satisfy these limits. All times are Malaysia time (Asia/Kuala_Lumpur).</p>
 <section class="search-hero">
         <div>
             <p class="eyebrow">THE CÉLESTE EXPERIENCE</p>
@@ -92,7 +92,7 @@
         <div class="form-actions">
             <p class="muted">
                 Tables are assigned automatically within your chosen area.<br />
-                RM50 deposit per guest · Indoor/outdoor: 2 hours · VIP: until closing.
+                RM @Model.CurrentPolicy.DepositPerGuest.ToString("N2") deposit per guest · Indoor/outdoor: @Model.CurrentPolicy.StandardDiningMinutes minutes · VIP: until closing.
             </p>
             <button>Check availability →</button>
         </div>
@@ -131,7 +131,7 @@ else if (Model.Stage == "Availability")
                 {
                     <p>Table sizes: 1–2 guests use 2–4 seats; 3–4 use 4–6 seats; 5–6 use 6–8 seats; 7–8 use 8 seats.</p>
                 }
-                <p>Minimum spend: RM @ReservationPolicy.MinimumSpend(Model.PartySize, Model.Area).ToString("N2")</p>
+                <p>Minimum spend: RM @ReservationPolicy.MinimumSpend(Model.PartySize, Model.Area, Model.CurrentPolicy).ToString("N2")</p>
             </div>
         </aside>
 

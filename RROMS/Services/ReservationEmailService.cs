@@ -18,8 +18,8 @@ public class ReservationEmailService(ApplicationDbContext db, IEmailSender sende
         $"Deposit paid: RM{r.DepositAmount:N2}\nMinimum dining spend: RM{r.MinimumSpend:N2}\n" +
         "\nPlease arrive at your booked time and show your booking reference to staff for check-in. " +
         "Your deposit is deducted from the final dining bill. All cancellations and no-shows forfeit the full deposit. " +
-        "If running late, notify us through your reservation page before the normal 10-minute arrival deadline. " +
-        "Notified arrivals have up to 30 minutes from the booked time; the dining end time does not change.\n\nRROMS Restaurant";
+        $"If running late, notify us through your reservation page before the normal {r.ArrivalGraceMinutes}-minute arrival deadline. " +
+        $"Notified arrivals have up to {r.ExtendedArrivalGraceMinutes} minutes from the booked time; the dining end time does not change.\n\nRROMS Restaurant";
 
     // Called inside the booking transaction; SMTP sending is deferred until the transaction has committed.
     public static void QueueConfirmation(ApplicationDbContext context, Reservation r, bool modified)

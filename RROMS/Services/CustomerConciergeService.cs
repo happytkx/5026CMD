@@ -34,6 +34,7 @@ public sealed class CustomerConciergeService(
         var opening = settings?.OpeningTime ?? TimeSpan.FromHours(12);
         var closing = settings?.ClosingTime ?? TimeSpan.FromHours(22);
         var interval = settings?.SlotIntervalMinutes ?? 30;
+        var policy = settings ?? new RestaurantSetting();
 
         var dishes = await db.MenuItems.AsNoTracking()
             .Where(i => i.IsAvailable)
@@ -61,7 +62,7 @@ public sealed class CustomerConciergeService(
             return new ConciergeReply(
                 "You can read our guests' experiences on the Guest Reviews page. After dining, signed-in customers can also rate and review their completed orders there.", false);
 
-        var localReply = OfflineReply(question, opening, closing, interval, dishes, announcements, busyReport, now);
+        var localReply = OfflineReply(question, opening, closing, interval, dishes, announcements, busyReport, now, policy);
         var apiKey = configuration["OpenAI:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
             return new ConciergeReply(localReply, false);
@@ -73,7 +74,7 @@ public sealed class CustomerConciergeService(
             return new ConciergeReply(
                 "For your privacy, please do not share email addresses or payment details here. You can ask a general restaurant question instead.", false);
 
-        var context = BuildPublicContext(now, opening, closing, interval, dishes, announcements, busyReport);
+        var context = BuildPublicContext(now, opening, closing, interval, dishes, announcements, busyReport, policy);
         const string instruction = """
             You are Céleste's welcoming, concise English-language guest concierge.
             Answer only restaurant-related questions using the provided live public restaurant context.
@@ -153,16 +154,17 @@ public sealed class CustomerConciergeService(
 
     private static string BuildPublicContext(
         DateTime now, TimeSpan opening, TimeSpan closing, int interval,
-        List<MenuItem> dishes, List<Announcement> announcements, OccupancyReport? report)
+        List<MenuItem> dishes, List<Announcement> announcements, OccupancyReport? report, RestaurantSetting policy)
     {
         var sb = new StringBuilder();
         sb.AppendLine($"Malaysia date: {now:dd MMM yyyy}, time: {now:hh:mm tt}.");
         sb.AppendLine($"Open every day {Hour(opening)}–{Hour(closing)}; reservation slots every {interval} minutes.");
-        sb.AppendLine("Reservations: dine-in only. Deposit RM50 per guest, deducted from final dining bill.");
-        sb.AppendLine("Standard tables: 2 hours; VIP rooms: from arrival until closing.");
-        sb.AppendLine("Advance booking: standard 2 hours; VIP 24 hours. One reschedule only if more than 168 hours before original time; deposit retained.");
-        sb.AppendLine("Cancellation or no-show forfeits the deposit. More than 10 minutes late is no-show, unless Notify Restaurant was used (30-minute total grace period).");
-        sb.AppendLine("VIP rooms: 6–8 guests, RM2,400 minimum spend (8 seats); 9–12 guests, RM3,600 minimum spend (12 seats).");
+        sb.AppendLine($"Reservations: dine-in only. Deposit RM{policy.DepositPerGuest:N2} per guest, deducted from final dining bill.");
+        sb.AppendLine($"Standard tables: {policy.StandardDiningMinutes} minutes; VIP rooms: from arrival until closing.");
+        sb.AppendLine($"Advance booking: standard {policy.StandardAdvanceHours} hours; VIP {policy.VipAdvanceHours} hours. Up to {policy.MaximumReschedules} reschedules only if more than {policy.RescheduleCutoffHours} hours before original time; deposit retained.");
+        sb.AppendLine($"Cancellation or no-show forfeits the deposit. More than {policy.ArrivalGraceMinutes} minutes late is no-show, unless Notify Restaurant was used ({policy.ExtendedArrivalGraceMinutes}-minute total grace period).");
+        sb.AppendLine($"Minimum spend: Indoor/Outdoor RM{policy.StandardMinimumSpendPerGuest:N2} per guest; VIP rooms: 6–8 guests, RM{policy.VipEightSeatMinimumSpend:N2} (8 seats); 9–12 guests, RM{policy.VipTwelveSeatMinimumSpend:N2} (12 seats).");
+        if (!string.IsNullOrWhiteSpace(policy.GeneralGuidelines)) sb.AppendLine($"Other public guidelines: {policy.GeneralGuidelines}");
         sb.AppendLine("Le Menu Céleste is a four-course dining experience: soup, appetizer, main course and dessert, plus one beverage. Menu dishes can also be purchased à la carte.");
         sb.AppendLine("No dedicated vegan-only menu is offered. For any food allergy, confirm details with restaurant staff.");
         sb.AppendLine("For table availability, guests must use /Reservations/Create. No ability to view private reservations or place bookings here.");
@@ -197,7 +199,7 @@ public sealed class CustomerConciergeService(
 
     private static string OfflineReply(
         string question, TimeSpan opening, TimeSpan closing, int interval,
-        List<MenuItem> dishes, List<Announcement> announcements, OccupancyReport? report, DateTime now)
+        List<MenuItem> dishes, List<Announcement> announcements, OccupancyReport? report, DateTime now, RestaurantSetting policy)
     {
         var q = question.ToLowerInvariant();
         if (q.Contains("busy") || q.Contains("crowd") || q.Contains("peak") || q.Contains("quiet") || q.Contains("occupan"))
@@ -278,7 +280,7 @@ public sealed class CustomerConciergeService(
         if (q.Contains("tax") || q.Contains("service charge") || q.Contains("extra charge"))
             return "The My Bill page itemises dishes, recorded taxes, your paid deposit and final balance. I cannot quote a total before dishes are ordered.";
         if (q.Contains("minimum spend") || q.Contains("minimum spending") || q.Contains("minimum charge"))
-            return "Indoor and Outdoor dining have a minimum spend of RM50 per guest. VIP dining requires RM2,400 for 6–8 guests or RM3,600 for 9–12, before tax. The reservation deposit is deducted from the final bill.";
+            return $"Indoor and Outdoor dining have a minimum spend of RM{policy.StandardMinimumSpendPerGuest:N2} per guest. VIP dining requires RM{policy.VipEightSeatMinimumSpend:N2} for 6–8 guests or RM{policy.VipTwelveSeatMinimumSpend:N2} for 9–12, before tax. The reservation deposit is deducted from the final bill.";
 
         // Accounts and personal information.
         if (q.Contains("forgot password") || q.Contains("reset password") || q.Contains("lost password") ||
@@ -306,7 +308,7 @@ public sealed class CustomerConciergeService(
             return "Live availability depends on date, guest count, area and existing bookings. Use Book a Table to see actual arrival slots; I cannot hold a table in chat.";
         if (q.Contains("how early") || q.Contains("how far in advance") || q.Contains("last minute") ||
             q.Contains("same day booking") || q.Contains("when should i book") || q.Contains("booking deadline"))
-            return "Book and pay at least 2 hours before Indoor or Outdoor dining, or 24 hours before VIP dining. Book a Table shows eligible slots.";
+            return $"Book and pay at least {policy.StandardAdvanceHours} hours before Indoor or Outdoor dining, or {policy.VipAdvanceHours} hours before VIP dining. Book a Table shows eligible slots.";
         if (q.Contains("choose a table") || q.Contains("select a table") || q.Contains("specific table") ||
             q.Contains("table number"))
             return "Choose your dining area and party size through Book a Table. The system automatically allocates a suitable table; guests cannot select a specific table number.";
@@ -315,9 +317,9 @@ public sealed class CustomerConciergeService(
             return "Indoor and Outdoor dining accommodate 1–8 guests. VIP rooms accommodate 6–8 guests (8-seat room) or 9–12 guests (12-seat room). Select your party size on Book a Table.";
         if (q.Contains("indoor") || q.Contains("outdoor") || q.Contains("terrace") ||
             q.Contains("dining area") || q.Contains("dining space"))
-            return "Choose Indoor Dining, Outdoor Dining or a private VIP room. Standard bookings last two hours; VIP rooms remain reserved until closing. See the Home page or Book a Table.";
+            return $"Choose Indoor Dining, Outdoor Dining or a private VIP room. Standard bookings last {policy.StandardDiningMinutes} minutes; VIP rooms remain reserved until closing. See the Home page or Book a Table.";
         if (q.Contains("how long") || q.Contains("time limit") || q.Contains("dining duration") || q.Contains("stay until"))
-            return "Indoor and Outdoor bookings last two hours. VIP rooms are reserved from arrival until closing.";
+            return $"Indoor and Outdoor bookings last {policy.StandardDiningMinutes} minutes. VIP rooms are reserved from arrival until closing.";
         if (q.Contains("special request") || q.Contains("birthday") || q.Contains("anniversary") ||
             q.Contains("celebration") || q.Contains("wheelchair") || q.Contains("accessibility") || q.Contains("high chair"))
             return "Add special occasion or accessibility notes when booking through Book a Table. Essential arrangements should be confirmed with staff.";
@@ -356,13 +358,13 @@ public sealed class CustomerConciergeService(
         if (q.Contains("hour") || q.Contains("open") || q.Contains("clos") || q.Contains("slot"))
             return $"Céleste is currently open daily from {Hour(opening)} to {Hour(closing)} (Malaysia time). Reservation arrival slots are every {interval} minutes. Check Book a Table for an available time.";
         if (q.Contains("cancel") || q.Contains("refund") || q.Contains("deposit"))
-            return "Reservations require a RM50 deposit per guest, applied to the final bill. Cancellations and no-shows forfeit the deposit. You can review the booking policy on the reservation page.";
+            return $"Reservations require a RM{policy.DepositPerGuest:N2} deposit per guest, applied to the final bill. Cancellations and no-shows forfeit the deposit. You can review the booking policy on the reservation page.";
         if (q.Contains("late") || q.Contains("no-show") || q.Contains("notify"))
-            return "Please arrive on time. After 10 minutes a reservation is treated as a no-show unless you use Notify Restaurant, which extends the total grace period to 30 minutes from the booked time.";
+            return $"Please arrive on time. After {policy.ArrivalGraceMinutes} minutes a reservation is treated as a no-show unless you use Notify Restaurant, which extends the total grace period to {policy.ExtendedArrivalGraceMinutes} minutes from the booked time.";
         if (q.Contains("resched") || q.Contains("chang") || q.Contains("modify"))
-            return "You may reschedule once if you request it more than 168 hours before the original reservation time. Your deposit remains applied to the reservation.";
+            return $"You may reschedule up to {policy.MaximumReschedules} time(s) if you request it more than {policy.RescheduleCutoffHours} hours before the original reservation time. Your deposit remains applied to the reservation.";
         if (q.Contains("vip") || q.Contains("private"))
-            return "We have an 8-seat VIP room for 6–8 guests (RM2,400 minimum spend) and a 12-seat VIP room for 9–12 guests (RM3,600 minimum spend). VIP rooms are reserved until closing.";
+            return $"We have an 8-seat VIP room for 6–8 guests (RM{policy.VipEightSeatMinimumSpend:N2} minimum spend) and a 12-seat VIP room for 9–12 guests (RM{policy.VipTwelveSeatMinimumSpend:N2} minimum spend). VIP rooms are reserved until closing.";
         if (q.Contains("set menu") || q.Contains("four-course") || q.Contains("four course"))
             return "Le Menu Céleste includes soup, appetizer, main course and dessert, plus one beverage. Dishes are also available à la carte. Please see the Menu page for current selections.";
         if (q.Contains("vegan"))
@@ -389,7 +391,7 @@ public sealed class CustomerConciergeService(
                 "Here are some current menu choices: " + string.Join(", ", sample) + ". Please check the Menu page for descriptions and allergens.";
         }
         if (q.Contains("book") || q.Contains("reserv") || q.Contains("table"))
-            return "You can book an indoor, outdoor or VIP table through Book a Table. A RM50 deposit per guest is required, and the system shows actual available arrival times.";
+            return $"You can book an indoor, outdoor or VIP table through Book a Table. A RM{policy.DepositPerGuest:N2} deposit per guest is required, and the system shows actual available arrival times.";
         return "I can help with the Menu page, Guest Reviews page, Book a Table, promotions, opening hours, dining spaces, orders and My Bill page. Try asking about one of those topics!";
     }
 

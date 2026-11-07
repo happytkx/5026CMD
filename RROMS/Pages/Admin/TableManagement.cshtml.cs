@@ -17,15 +17,21 @@ namespace RROMS.Pages.Admin;
 public class TableManagementModel(ApplicationDbContext db) : PageModel
 {
     private static readonly string[] SupportedAreas = ["Indoor", "Outdoor", "VIP Room"];
-    private static readonly string[] AddableAreaTypes = ["Indoor", "Outdoor"];
     private static readonly Regex TableIdFormat = new("^[A-Za-z0-9-]{1,10}$", RegexOptions.Compiled);
 
     public List<DiningArea> Areas { get; private set; } = [];
     public List<RestaurantTable> Tables { get; private set; } = [];
     public Dictionary<string, int> UpcomingBookings { get; private set; } = [];
+    public Dictionary<string, List<UpcomingReservationEntry>> UpcomingReservations { get; private set; } = [];
+
+    public sealed record UpcomingReservationEntry(int ReservationID, string BookingReference, string CustomerName,
+        DateTime ReservationDate, TimeSpan StartTime, int PartySize, string ReservationStatus);
     public int VipRoomCount => Tables.Count(t => t.DiningArea.AreaType == "VIP Room");
     public int AvailableCount => Tables.Count(t => t.Status == "Available");
     public int SlotIntervalMinutes { get; private set; } = 30;
+    public int StandardDiningMinutes { get; private set; } = 120;
+    public int StandardAdvanceHours { get; private set; } = 2;
+    public int VipAdvanceHours { get; private set; } = 24;
 
     [BindProperty(SupportsGet = true)] public DateTime? CheckDate { get; set; }
     [BindProperty(SupportsGet = true)] public string? CheckTime { get; set; }
@@ -44,6 +50,10 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
         var configuredInterval = await db.RestaurantSettings.AsNoTracking()
             .OrderBy(s => s.SettingID).Select(s => (int?)s.SlotIntervalMinutes).FirstOrDefaultAsync();
         SlotIntervalMinutes = configuredInterval is 15 or 30 or 60 ? configuredInterval.Value : 30;
+        var policy = await db.RestaurantSettings.AsNoTracking().OrderBy(s => s.SettingID).FirstOrDefaultAsync();
+        StandardDiningMinutes = policy?.StandardDiningMinutes ?? 120;
+        StandardAdvanceHours = policy?.StandardAdvanceHours ?? 2;
+        VipAdvanceHours = policy?.VipAdvanceHours ?? 24;
         Areas = await db.DiningAreas.AsNoTracking()
             .Where(a => SupportedAreas.Contains(a.AreaType))
             .OrderBy(a => a.DiningAreaID).ToListAsync();
@@ -57,13 +67,22 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
                  r.ReservationStatus == "Seated"))
             .Select(r => new
             {
-                r.TableID, r.ReservationDate, r.EndTime, r.ReservationStatus, r.HoldExpiresAt
+                r.ReservationID, r.BookingReference, r.TableID, r.ReservationDate, r.StartTime,
+                r.EndTime, r.PartySize, r.ReservationStatus, r.HoldExpiresAt,
+                CustomerName = r.Customer.CustomerName
             }).ToListAsync();
-        UpcomingBookings = candidates
+        var activeReservations = candidates
             .Where(r => r.ReservationDate.Add(r.EndTime) > now &&
                 (r.ReservationStatus != "Pending" || r.HoldExpiresAt > now))
-            .GroupBy(r => r.TableID)
+            .ToList();
+        UpcomingBookings = activeReservations.GroupBy(r => r.TableID)
             .ToDictionary(g => g.Key, g => g.Count());
+        UpcomingReservations = activeReservations.GroupBy(r => r.TableID)
+            .ToDictionary(g => g.Key, g => g
+                .OrderBy(r => r.ReservationDate).ThenBy(r => r.StartTime)
+                .Select(r => new UpcomingReservationEntry(r.ReservationID, r.BookingReference, r.CustomerName,
+                    r.ReservationDate, r.StartTime, r.PartySize, r.ReservationStatus))
+                .ToList());
 
         if (CheckDate.HasValue || !string.IsNullOrWhiteSpace(CheckTime))
             await CheckSlotAvailabilityAsync();
@@ -107,6 +126,11 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
             AvailabilityError = $"Choose an arrival time between {settings.OpeningTime.ToString(@"hh\:mm")} and {settings.ClosingTime.ToString(@"hh\:mm")}.";
             return;
         }
+        if (!ReservationPolicy.FitsSharedArrivalWindow(start, settings))
+        {
+            AvailabilityError = $"All dining areas use the same arrival slots, ending at least {settings.StandardDiningMinutes} minutes before closing.";
+            return;
+        }
 
         var reservations = await db.Reservations.AsNoTracking()
             .Where(r => r.ReservationDate == date &&
@@ -118,7 +142,7 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
         foreach (var table in Tables.Where(t => SupportedAreas.Contains(t.DiningArea.AreaType)))
         {
             var area = table.DiningArea.AreaType;
-            var end = ReservationPolicy.End(start, area, settings.ClosingTime);
+            var end = ReservationPolicy.End(start, area, settings.ClosingTime, settings);
             var inHours = end > start && end.Date == date && end.TimeOfDay <= settings.ClosingTime;
             var overlap = inHours ? reservations.FirstOrDefault(r => r.TableID == table.TableID &&
                 ReservationPolicy.Overlaps(start, end, date.Add(r.StartTime), date.Add(r.EndTime))) : null;
@@ -135,7 +159,7 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
                     "Seated" => "Occupied",
                     _ => "Reserved"
                 };
-            else if (!ReservationPolicy.MeetsAdvance(area, start, now))
+            else if (!ReservationPolicy.MeetsAdvance(area, start, now, settings))
                 state = "Advance notice required";
             else
                 state = "Available";
@@ -159,29 +183,6 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
     private static bool ValidAreaName(string? name) =>
         !string.IsNullOrWhiteSpace(name) && name.Trim().Length <= 80;
 
-    public async Task<IActionResult> OnPostAddDiningAreaAsync(string? displayName, string? areaType)
-    {
-        if (!ValidAreaName(displayName) || !AddableAreaTypes.Contains(areaType))
-            return Error("Enter a zone name (up to 80 characters) and choose Indoor or Outdoor.");
-
-        var name = displayName!.Trim();
-        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-        if (await db.DiningAreas.AnyAsync(a =>
-                (a.DisplayName ?? a.AreaType).ToUpper() == name.ToUpper()))
-            return Error("A dining zone with that name already exists.");
-
-        db.DiningAreas.Add(new DiningArea
-        {
-            AreaType = areaType!,
-            DisplayName = name,
-            CreatedByAdministratorID = AdministratorId,
-            UpdatedByAdministratorID = AdministratorId
-        });
-        await db.SaveChangesAsync();
-        await transaction.CommitAsync();
-        return Success($"Dining zone {name} created under {areaType}.");
-    }
-
     public async Task<IActionResult> OnPostRenameDiningAreaAsync(int diningAreaId, string? displayName)
     {
         if (!ValidAreaName(displayName))
@@ -191,8 +192,6 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
         await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var area = await db.DiningAreas.FindAsync(diningAreaId);
         if (area is null) return NotFound();
-        if (area.AreaType == "VIP Room")
-            return Error("The VIP Room category is fixed by Céleste's two-room policy.");
         if (await db.DiningAreas.AnyAsync(a => a.DiningAreaID != diningAreaId &&
                 (a.DisplayName ?? a.AreaType).ToUpper() == name.ToUpper()))
             return Error("Another dining zone already uses that name.");
@@ -202,24 +201,6 @@ public class TableManagementModel(ApplicationDbContext db) : PageModel
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
         return Success($"Dining zone renamed to {name}.");
-    }
-
-    public async Task<IActionResult> OnPostRemoveDiningAreaAsync(int diningAreaId)
-    {
-        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-        var area = await db.DiningAreas.FindAsync(diningAreaId);
-        if (area is null) return NotFound();
-        if (area.AreaType == "VIP Room")
-            return Error("VIP Room cannot be removed.");
-        if (await db.RestaurantTables.AnyAsync(t => t.DiningAreaID == diningAreaId))
-            return Error("This zone has assigned tables. Reassign unused tables before removing the zone.");
-        if (await db.DiningAreas.CountAsync(a => a.AreaType == area.AreaType) <= 1)
-            return Error($"Keep at least one {area.AreaType} dining zone so booking remains available.");
-
-        db.DiningAreas.Remove(area);
-        await db.SaveChangesAsync();
-        await transaction.CommitAsync();
-        return Success($"Dining zone {area.DisplayLabel} removed.");
     }
 
     private IActionResult Error(string message)

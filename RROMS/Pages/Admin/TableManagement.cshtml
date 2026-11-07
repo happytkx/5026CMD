@@ -17,18 +17,25 @@
 }
 
 <style>
-    .dining-zone-form { display: grid; grid-template-columns: 2fr 1fr auto; gap: .9rem; align-items: end; }
-    .dining-zone-form label, .dining-zone-row label { display: block; font-weight: 600; margin-bottom: .3rem; }
-    .dining-zone-form input, .dining-zone-form select, .dining-zone-row input { width: 100%; }
+    .dining-zone-row label { display: block; font-weight: 600; margin-bottom: .3rem; }
+    .dining-zone-row input { width: 100%; }
     .dining-zone-row { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; padding: .9rem 0; border-bottom: 1px solid #e5ded2; }
     .dining-zone-row:last-child { border-bottom: 0; }
     .dining-zone-label { min-width: 13rem; flex: 1; }
     .dining-zone-row form { display: flex; align-items: end; gap: .45rem; flex-wrap: wrap; }
     .dining-zone-row button { padding: .55rem .8rem; }
-    .dining-zone-remove { min-height: 44px; padding: .65rem 1rem !important; background: #9c5148 !important; border: 1px solid #9c5148 !important; border-radius: 4px; color: #fff !important; font: 600 12px var(--body); letter-spacing: .07em; cursor: pointer; transition: background .15s ease, border-color .15s ease; }
-    .dining-zone-remove:hover { background: #7c3b33 !important; border-color: #7c3b33 !important; color: #fff !important; }
-    .dining-zone-remove:focus-visible { outline: 3px solid rgba(156,81,72,.25); outline-offset: 2px; }
-    @@media (max-width: 750px) { .dining-zone-form { grid-template-columns: 1fr; } }
+    .table-upcoming-details { margin: .8rem 0 1.3rem; border: 1px solid #e3dccf; border-radius: 4px; background: #fffdf9; }
+    .table-upcoming-details > summary { cursor: pointer; padding: .7rem .8rem; color: #58664d; font-size: .82rem; font-weight: 600; }
+    .table-upcoming-details > summary:hover { background: #f4f3eb; color: #44543b; }
+    .table-upcoming-details > summary:focus-visible { outline: 2px solid #a38d64; outline-offset: 2px; }
+    .table-upcoming-details[open] > summary { border-bottom: 1px solid #e3dccf; }
+    .table-upcoming-list { max-height: 270px; overflow-y: auto; padding: .35rem; }
+    .table-upcoming-item { display: flex; flex-direction: column; gap: .25rem; padding: .65rem .7rem; border-radius: 4px; color: #514e45; text-decoration: none; font-size: .79rem; }
+    .table-upcoming-item + .table-upcoming-item { border-top: 1px solid #ede7dc; border-radius: 0; }
+    .table-upcoming-item:hover { background: #f4f3eb; color: #46543b; }
+    .table-upcoming-item strong { color: #45533b; }
+    .table-upcoming-item small { color: #7d756a; }
+    .table-upcoming-empty { padding: .2rem .8rem .8rem; margin: 0; font-size: .78rem; }
 </style>
 
 <section class="table-management-summary" aria-label="Table inventory overview">
@@ -49,21 +56,7 @@
 <section class="card" id="dining-area-management" aria-labelledby="dining-zone-heading">
     <p class="eyebrow">RESTAURANT CONFIGURATION</p>
     <h2 id="dining-zone-heading">Manage dining areas</h2>
-    <p class="muted">Create named zones under the existing Indoor or Outdoor booking types, then assign tables below. Booking durations and capacities still follow each zone's type; Céleste's two VIP rooms remain unchanged.</p>
-    <form method="post" asp-page-handler="AddDiningArea" class="dining-zone-form">
-        <div>
-            <label for="new-zone-name">Dining area name</label>
-            <input id="new-zone-name" name="displayName" maxlength="80" placeholder="e.g. Garden Terrace" required />
-        </div>
-        <div>
-            <label for="new-zone-type">Booking type</label>
-            <select id="new-zone-type" name="areaType" required>
-                <option value="Indoor">Indoor</option>
-                <option value="Outdoor">Outdoor</option>
-            </select>
-        </div>
-        <button type="submit">ADD DINING AREA</button>
-    </form>
+    <p class="muted">Rename the existing dining areas below. Booking types, table allocations and the two VIP rooms are unchanged. Additional dining areas cannot be created or removed.</p>
     <h3>Current dining areas</h3>
     @foreach (var area in Model.Areas)
     {
@@ -73,25 +66,14 @@
                 <strong>@area.DisplayLabel</strong>
                 <small class="muted"> · @area.AreaType · @assignedTables assigned @(assignedTables == 1 ? "table" : "tables")</small>
             </div>
-            @if (area.AreaType != "VIP Room")
-            {
-                <form method="post" asp-page-handler="RenameDiningArea">
-                    <input type="hidden" name="diningAreaId" value="@area.DiningAreaID" />
-                    <div>
-                        <label for="rename-zone-@area.DiningAreaID">Rename</label>
-                        <input id="rename-zone-@area.DiningAreaID" name="displayName" maxlength="80" value="@area.DisplayLabel" required />
-                    </div>
-                    <button type="submit" class="secondary">SAVE NAME</button>
-                </form>
-                @if (assignedTables == 0 && Model.Areas.Count(a => a.AreaType == area.AreaType) > 1)
-                {
-                    <form method="post" asp-page-handler="RemoveDiningArea"
-                          onsubmit="return confirm('Remove this empty dining zone?');">
-                        <input type="hidden" name="diningAreaId" value="@area.DiningAreaID" />
-                        <button type="submit" class="dining-zone-remove">REMOVE</button>
-                    </form>
-                }
-            }
+            <form method="post" asp-page-handler="RenameDiningArea">
+                <input type="hidden" name="diningAreaId" value="@area.DiningAreaID" />
+                <div>
+                    <label for="rename-zone-@area.DiningAreaID">Rename</label>
+                    <input id="rename-zone-@area.DiningAreaID" name="displayName" maxlength="80" value="@area.DisplayLabel" required />
+                </div>
+                <button type="submit" class="secondary">SAVE NAME</button>
+            </form>
         </div>
     }
 </section>
@@ -131,7 +113,7 @@
                     <strong>@Model.BookableCount of @Model.AvailabilityResults.Count available</strong>
                     <p class="muted">
                         @(Model.CheckDate?.ToString("dd MMM yyyy")) at @Model.CheckTime (Malaysia time).
-                        Indoor and Outdoor tables are checked for two hours; VIP rooms are checked until closing.
+                        Indoor and Outdoor tables are checked for @Model.StandardDiningMinutes minutes; VIP rooms are checked until closing.
                     </p>
                 </div>
             </div>
@@ -166,8 +148,8 @@
                 </div>
             }
             <p class="muted table-availability-footnote">
-                Pending payment holds count as reserved. Booking lead times are at least two hours for regular tables
-                and 24 hours for VIP rooms. Party-size eligibility also applies. Results are a snapshot and do not hold a table.
+                Pending payment holds count as reserved. Booking lead times are at least @Model.StandardAdvanceHours hours for regular tables
+                and @Model.VipAdvanceHours hours for VIP rooms. Party-size eligibility also applies. Results are a snapshot and do not hold a table.
             </p>
         </div>
     }
@@ -240,7 +222,26 @@
                             <span class="table-management-status @(table.Status == "Available" ? "is-available" : "is-unavailable")">@table.Status</span>
                         </div>
                         <p>@table.Capacity guests · @table.DiningArea.DisplayLabel</p>
-                        <small>@upcoming active or upcoming @(upcoming == 1 ? "reservation" : "reservations")</small>
+                        <details class="table-upcoming-details">
+                            <summary>@upcoming active or upcoming @(upcoming == 1 ? "reservation" : "reservations") · View details</summary>
+                            @if (Model.UpcomingReservations.TryGetValue(table.TableID, out var reservations))
+                            {
+                                <div class="table-upcoming-list">
+                                    @foreach (var reservation in reservations)
+                                    {
+                                        <a class="table-upcoming-item" asp-page="/Reservations/Details" asp-route-id="@reservation.ReservationID">
+                                            <strong>@reservation.ReservationDate.ToString("dd MMM yyyy") · @DateTime.Today.Add(reservation.StartTime).ToString("h:mm tt")</strong>
+                                            <span>@reservation.CustomerName · @reservation.PartySize @(reservation.PartySize == 1 ? "guest" : "guests")</span>
+                                            <small>@reservation.ReservationStatus · @reservation.BookingReference</small>
+                                        </a>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="muted table-upcoming-empty">No active or upcoming reservations for this table.</p>
+                            }
+                        </details>
                         <form method="post" asp-page-handler="ToggleTable" class="table-management-toggle"
                               onsubmit="return @(table.Status == "Available" ? "confirm('Disable this table? It will no longer be available for new reservations.');" : "true;")">
                             <input type="hidden" name="tableId" value="@table.TableID" />

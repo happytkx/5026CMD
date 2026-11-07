@@ -1,49 +1,80 @@
-@* Shared reservation policy, displayed at the beginning and before the deposit step. *@
+@* Shared booking policy. Existing reservations show the terms saved at booking time. *@
+@using Microsoft.EntityFrameworkCore
+@inject RROMS.Data.ApplicationDbContext PolicyDb
+@{
+    var policy = await PolicyDb.RestaurantSettings.AsNoTracking()
+        .OrderBy(s => s.SettingID).FirstOrDefaultAsync() ?? new RestaurantSetting();
+    var booking = ViewData["ReservationPolicyBooking"] as Reservation;
+    var deposit = booking is { PartySize: > 0 } ? booking.DepositAmount / booking.PartySize : policy.DepositPerGuest;
+    var standardSpend = booking is { PreferredDiningOption: "Indoor" or "Outdoor", PartySize: > 0 }
+        ? booking.MinimumSpend / booking.PartySize : policy.StandardMinimumSpendPerGuest;
+    var reschedules = booking?.MaximumReschedules ?? policy.MaximumReschedules;
+    var cutoff = booking?.RescheduleCutoffHours ?? policy.RescheduleCutoffHours;
+    var standardGrace = booking?.ArrivalGraceMinutes ?? policy.ArrivalGraceMinutes;
+    var extendedGrace = booking?.ExtendedArrivalGraceMinutes ?? policy.ExtendedArrivalGraceMinutes;
+    var standardDining = booking is { PreferredDiningOption: "Indoor" or "Outdoor" }
+        ? (int)(booking.EndTime - booking.StartTime).TotalMinutes : policy.StandardDiningMinutes;
+    var standardAdvance = booking?.StandardAdvanceHours ?? policy.StandardAdvanceHours;
+    var vipAdvance = booking?.VipAdvanceHours ?? policy.VipAdvanceHours;
+}
 <p class="eyebrow">PLEASE READ BEFORE BOOKING</p>
 <h3 id="reservation-policy-title">Reservation Policy</h3>
-<p>Please review the following rules before booking and continuing to your deposit.</p>
-
-                <div class="reservation-policy-grid">
-                    <div>
-                        <h4>Deposit &amp; minimum spend</h4>
-                        <ul>
-                            <li>A <strong>RM50 deposit per guest</strong> is required. The reservation is confirmed only after successful payment.</li>
-                            <li>The deposit is deducted from your final dining bill. Indoor/outdoor minimum spending is RM50 per guest.</li>
-                            <li>VIP minimum spending is <strong>RM2,400 for 6–8 guests</strong> or <strong>RM3,600 for 9–12 guests</strong>. This is the total dining minimum, separate from the deposit.</li>
-                            <li>Complete payment within the displayed hold period of up to 10 minutes, or the unpaid booking expires.</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4>Cancellation</h4>
-                        <ul>
-                            <li>You may cancel a pending or confirmed booking. Seated and completed bookings cannot be cancelled.</li>
-                            <li><strong>The entire paid deposit is forfeited, regardless of how early you cancel. No refunds are provided.</strong> An unpaid pending booking has no paid deposit to forfeit.</li>
-                            <li>Cancellation releases your assigned seating. A new booking requires a new deposit.</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4>Modification</h4>
-                        <ul>
-                            <li>A confirmed booking may be rescheduled <strong>once, more than 168 hours (7 full days) before its original date and time</strong>, subject to availability.</li>
-                            <li>Only the date and/or arrival time may change. Party size and dining area stay unchanged.</li>
-                            <li>Your deposit stays attached; no additional deposit is required. Staff follow the same restrictions.</li>
-                            <li>If modification is unavailable, you must cancel, forfeit the paid deposit and make a new booking with a new deposit.</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4>Dining duration</h4>
-                        <ul>
-                            <li><strong>Indoor/outdoor: 2 hours</strong> from your reserved arrival time.</li>
-                            <li><strong>VIP room: from your reserved arrival time until closing.</strong></li>
-                            <li>Arriving late does not extend your dining end time.</li>
-                        </ul>
-                    </div>
-                    <div class="policy-arrival">
-                        <h4>Arrival &amp; late arrival</h4>
-                        <ul>
-                            <li>Check in with restaurant staff on arrival. Dine-in ordering is activated after staff check-in.</li>
-                            <li>Your seating is normally held for <strong>10 minutes</strong>. Report a delay through your reservation page before that deadline to extend the hold to <strong>30 minutes from your reserved arrival time</strong>.</li>
-                            <li>If you do not check in before the applicable deadline, the booking is marked <strong>No-show</strong>, the paid deposit is forfeited and your seating is released.</li>
-                        </ul>
-                    </div>
-                </div>
+<p>@(booking is null ? "Please review these current policies before booking and continuing to your deposit." : "These are the terms agreed to when this reservation was created.")</p>
+<div class="reservation-policy-grid">
+    <div>
+        <h4>Deposit &amp; minimum spend</h4>
+        <ul>
+            <li>A <strong>RM @deposit.ToString("N2") deposit per guest</strong> is required. The reservation is confirmed after successful payment.</li>
+            <li>The paid deposit is deducted from the final dining bill. The Indoor/Outdoor minimum spend is <strong>RM @standardSpend.ToString("N2") per guest</strong>.</li>
+            @if (booking is null)
+            {
+                <li>VIP minimum spending: <strong>RM @policy.VipEightSeatMinimumSpend.ToString("N2") (6–8 guests)</strong> or <strong>RM @policy.VipTwelveSeatMinimumSpend.ToString("N2") (9–12 guests)</strong>, separate from the deposit.</li>
+            }
+            else
+            {
+                <li>Your booking's agreed total minimum spending is <strong>RM @booking.MinimumSpend.ToString("N2")</strong>, separate from its deposit.</li>
+            }
+            <li>Complete payment within the displayed hold period@(booking is null ? $" (up to {policy.PaymentHoldMinutes} minutes)" : ""), or the unpaid booking expires.</li>
+        </ul>
+    </div>
+    <div>
+        <h4>Cancellation</h4>
+        <ul>
+            <li>You may cancel a pending or confirmed booking. Seated and completed bookings cannot be cancelled.</li>
+            <li><strong>The entire paid deposit is forfeited on cancellation, regardless of timing. No refunds are provided.</strong> Unpaid bookings have no deposit to forfeit.</li>
+            <li>Cancellation releases your assigned seating. A new booking requires a new deposit.</li>
+        </ul>
+    </div>
+    <div>
+        <h4>Modification</h4>
+        <ul>
+            <li>A confirmed booking may be rescheduled <strong>up to @reschedules time(s), more than @cutoff hours before its original arrival</strong>, subject to availability.</li>
+            <li>Only the date and/or arrival time may change. Party size and dining area remain unchanged.</li>
+            <li>The original paid deposit and agreed minimum spend stay attached to the booking.</li>
+            <li>Any new time must satisfy the advance booking rules: <strong>@standardAdvance hours</strong> (Indoor/Outdoor) or <strong>@vipAdvance hours</strong> (VIP).</li>
+        </ul>
+    </div>
+    <div>
+        <h4>Dining duration</h4>
+        <ul>
+            <li><strong>Indoor/Outdoor: @standardDining minutes</strong> from the booked arrival.</li>
+            <li><strong>VIP room: from arrival until the restaurant closes.</strong></li>
+            <li>Arriving late does not extend your dining end time.</li>
+        </ul>
+    </div>
+    <div class="policy-arrival">
+        <h4>Arrival &amp; late arrival</h4>
+        <ul>
+            <li>Check in with staff on arrival. Dine-in ordering begins after check-in.</li>
+            <li>Your seating is held for <strong>@standardGrace minutes</strong>. Report a delay before that deadline to extend the hold to <strong>@extendedGrace minutes from the reserved arrival time</strong>.</li>
+            <li>After the applicable deadline, the reservation is marked <strong>No-show</strong>, the deposit is forfeited and seating is released.</li>
+        </ul>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(policy.GeneralGuidelines))
+    {
+        <div class="policy-arrival">
+            <h4>Additional guidelines</h4>
+            <p style="white-space:pre-line">@policy.GeneralGuidelines</p>
+        </div>
+    }
+</div>

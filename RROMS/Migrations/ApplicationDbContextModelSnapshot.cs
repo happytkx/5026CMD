@@ -719,6 +719,27 @@ namespace RROMS.Migrations
                     b.Property<decimal>("MinimumSpend")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int>("StandardDiningMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RescheduleCutoffHours")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaximumReschedules")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ArrivalGraceMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ExtendedArrivalGraceMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StandardAdvanceHours")
+                        .HasColumnType("int");
+
+                    b.Property<int>("VipAdvanceHours")
+                        .HasColumnType("int");
+
                     b.Property<int>("ModificationCount")
                         .HasColumnType("int");
 
@@ -876,6 +897,49 @@ namespace RROMS.Migrations
 
                     b.Property<TimeSpan>("OpeningTime")
                         .HasColumnType("time");
+
+                    b.Property<decimal>("DepositPerGuest")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("StandardMinimumSpendPerGuest")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("VipEightSeatMinimumSpend")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("VipTwelveSeatMinimumSpend")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("RescheduleCutoffHours")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaximumReschedules")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ArrivalGraceMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ExtendedArrivalGraceMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StandardDiningMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StandardAdvanceHours")
+                        .HasColumnType("int");
+
+                    b.Property<int>("VipAdvanceHours")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PaymentHoldMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("GeneralGuidelines")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("PoliciesUpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("SlotIntervalMinutes")
                         .HasColumnType("int");

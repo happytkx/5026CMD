@@ -11,13 +11,36 @@
     <p><a asp-page="ForgotPassword" asp-route-AccountType="Administrator">Administrator password reset</a></p>
 </section>
 <section class="card auth-card">
+    @if (TempData["AccountMessage"] is string message)
+    {
+        <p class="success" role="status">@message</p>
+    }
     <form method="post">
         <input type="hidden" asp-for="ReturnUrl" />
         <div asp-validation-summary="All" class="error"></div>
         <label asp-for="Email">Email address</label>
         <input asp-for="Email" type="email" autocomplete="username" maxlength="100" required />
         <label asp-for="Password">Password</label>
-        <input asp-for="Password" type="password" autocomplete="current-password" required />
+        <div class="password-visibility-field" data-password-visibility>
+            <input asp-for="Password" type="password" autocomplete="current-password" required />
+            <button type="button" class="password-visibility-toggle" data-password-toggle
+                    aria-label="Show password" aria-pressed="false" title="Show password">
+                <svg data-eye-open viewBox="0 0 24 24" width="20" height="20"
+                     fill="none" stroke="currentColor" stroke-width="1.8"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Z" />
+                    <circle cx="12" cy="12" r="3" />
+                </svg>
+                <svg data-eye-closed viewBox="0 0 24 24" width="20" height="20"
+                     fill="none" stroke="currentColor" stroke-width="1.8"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden>
+                    <path d="M3 3l18 18" />
+                    <path d="M10.6 5.1A11.2 11.2 0 0 1 12 5c6.4 0 10 7 10 7a15 15 0 0 1-3.4 3.9" />
+                    <path d="M6.1 6.2C3.4 8 2 12 2 12s3.6 7 10 7c1.8 0 3.4-.5 4.7-1.3" />
+                    <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+                </svg>
+            </button>
+        </div>
         <label class="check"><input asp-for="RememberMe" /> Keep me signed in on this device</label>
         <button type="submit" class="wide-button">Sign in</button>
     </form>
@@ -26,3 +49,25 @@
         <p class="muted auth-switch-link"><a asp-page="Login">&larr; Customer Sign In</a></p>
     </div>
 </section>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('[data-password-visibility]').forEach(field => {
+            const input = field.querySelector('input');
+            const toggle = field.querySelector('[data-password-toggle]');
+            const openEye = toggle?.querySelector('[data-eye-open]');
+            const closedEye = toggle?.querySelector('[data-eye-closed]');
+            if (!input || !toggle || !openEye || !closedEye) return;
+
+            toggle.addEventListener('click', () => {
+                const reveal = input.type === 'password';
+                input.type = reveal ? 'text' : 'password';
+                toggle.setAttribute('aria-label', reveal ? 'Hide password' : 'Show password');
+                toggle.setAttribute('aria-pressed', String(reveal));
+                toggle.title = reveal ? 'Hide password' : 'Show password';
+                openEye.hidden = reveal;
+                closedEye.hidden = !reveal;
+            });
+        });
+    </script>
+}

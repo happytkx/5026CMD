@@ -39,6 +39,7 @@ public class DetailsModel(ApplicationDbContext db, ReservationService service, T
             .SingleOrDefaultAsync(r => r.ReservationID == id && (IsStaff || r.CustomerID == customerId));
         if (Booking == null)
             return false;
+        ViewData["ReservationPolicyBooking"] = Booking;
         if (IsStaff && Booking.ReservationStatus == "Seated")
             FinalBillPaid = await db.Bills.AsNoTracking()
                 .AnyAsync(b => b.ReservationID == id && b.BillStatus == "Paid");

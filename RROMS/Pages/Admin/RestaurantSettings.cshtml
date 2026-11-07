@@ -2,12 +2,33 @@
 @model RROMS.Pages.Admin.RestaurantSettingsModel
 @{
     ViewData["Title"] = "Restaurant Settings";
+    var openTime = TimeSpan.TryParseExact(Model.Opening, @"hh\:mm", System.Globalization.CultureInfo.InvariantCulture, out var parsedOpen)
+        ? parsedOpen : TimeSpan.FromHours(12);
+    var closeTime = TimeSpan.TryParseExact(Model.Closing, @"hh\:mm", System.Globalization.CultureInfo.InvariantCulture, out var parsedClose)
+        ? parsedClose : TimeSpan.FromHours(22);
+    var configuredInterval = TimeSpan.FromMinutes(Model.IntervalMinutes is 15 or 30 or 60 ? Model.IntervalMinutes : 30);
+    var allSlots = new List<TimeSpan>();
+    for (var arrival = openTime; arrival.Add(TimeSpan.FromMinutes(Model.StandardDiningMinutes)) <= closeTime; arrival += configuredInterval)
+        allSlots.Add(arrival);
 }
 <style>
     .restaurant-settings-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 1.4rem 0; }
     .restaurant-settings-field label { display: block; font-weight: 600; margin-bottom: .5rem; }
     .restaurant-settings-field input, .restaurant-settings-field select { width: 100%; }
     .restaurant-settings-note { padding: 1rem; border-radius: .4rem; background: #f5f1e8; margin: 1rem 0; }
+    .restaurant-slot-preview { margin: 1.3rem 0 1.6rem; border: 1px solid #e0d7c8; border-radius: 7px; overflow: hidden; background: #fcfaf6; }
+    .restaurant-slot-preview-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .8rem; padding: 1.05rem 1.25rem; border-bottom: 1px solid #e3dacc; }
+    .restaurant-slot-preview-heading h3 { font-size: 1.4rem; margin: 0; }
+    .restaurant-slot-preview-heading span { font-size: .75rem; color: #5e684d; background: #e9ecdf; border-radius: 999px; padding: .4rem .65rem; }
+    .restaurant-slot-preview > p { padding: .85rem 1.25rem 0; margin: 0; font-size: .82rem; line-height: 1.5; }
+    .restaurant-slot-body { padding: 1.25rem; }
+    .restaurant-slot-group-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem; margin-bottom: .25rem; }
+    .restaurant-slot-group-heading h4 { margin: 0; font-size: 1rem; color: #4f5f3e; }
+    .restaurant-slot-count { color: #526243; border-radius: 999px; background: #e9eddf; font-size: .75rem; padding: .3rem .6rem; }
+    .restaurant-slot-body p { font-size: .8rem; margin: .3rem 0 1rem; color: #787166; }
+    .restaurant-slot-list { display: flex; flex-wrap: wrap; gap: .5rem; align-content: flex-start; }
+    .restaurant-slot-time { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; padding: .55rem .7rem; border: 1px solid #d1dac8; border-radius: 4px; background: #f2f5ee; color: #435639; font-size: .82rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .restaurant-slot-empty { color: #9b403a; font-size: .82rem; }
     @@media (max-width: 760px) { .restaurant-settings-grid { grid-template-columns: 1fr; } }
 </style>
 
@@ -47,12 +68,32 @@
                 </select>
             </div>
         </div>
+        <section class="restaurant-slot-preview" data-slot-preview aria-labelledby="restaurant-slot-preview-title">
+            <div class="restaurant-slot-preview-heading">
+                <h3 id="restaurant-slot-preview-title">Available arrival times preview</h3>
+                <span>Assuming every slot is free</span>
+            </div>
+            <p class="muted">Indoor, Outdoor and VIP Rooms share the same possible arrival times. The final slot must leave at least @Model.StandardDiningMinutes minutes before closing. Actual availability still depends on party size, suitable tables, existing reservations and advance notice. This preview updates as you edit; save to apply changes.</p>
+            <div class="restaurant-slot-body">
+                <div class="restaurant-slot-group-heading">
+                    <h4>Restaurant-wide arrival times</h4>
+                    <span class="restaurant-slot-count" data-slot-count>@allSlots.Count possible times</span>
+                </div>
+                <p>Indoor and Outdoor dining lasts @Model.StandardDiningMinutes minutes. VIP reservations still run until closing, but use the same arrival cutoff.</p>
+                <div class="restaurant-slot-list" data-slots>
+                    @foreach (var slot in allSlots)
+                    {
+                        <span class="restaurant-slot-time">@DateTime.Today.Add(slot).ToString("h:mm tt", System.Globalization.CultureInfo.InvariantCulture)</span>
+                    }
+                </div>
+            </div>
+        </section>
 
         <div class="restaurant-settings-note">
             <strong>How this affects reservations</strong>
             <ul>
-                <li>Arrival slots begin at opening time and repeat at your selected interval.</li>
-                <li>Indoor and Outdoor reservations continue to last two hours; VIP rooms remain booked until closing.</li>
+                <li>All dining areas share arrival slots beginning at opening time, repeating at your selected interval and ending at least @Model.StandardDiningMinutes minutes before closing.</li>
+                <li>Indoor and Outdoor reservations last @Model.StandardDiningMinutes minutes; VIP rooms remain booked until closing.</li>
                 <li>Opening or closing time changes are blocked when they would disrupt existing active reservations.</li>
                 <li>Changing the slot interval does not cancel or move any existing reservations.</li>
                 <li>Table Utilisation uses the currently configured opening hours even for past dates. Changing those hours may change historical percentages on the report.</li>
@@ -61,3 +102,62 @@
         <button type="submit">SAVE RESTAURANT SETTINGS</button>
     </form>
 </section>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const preview = document.querySelector('[data-slot-preview]');
+            const opening = document.querySelector('input[name="Opening"]');
+            const closing = document.querySelector('input[name="Closing"]');
+            const interval = document.querySelector('select[name="IntervalMinutes"]');
+            if (!preview || !opening || !closing || !interval) return;
+
+            const toMinutes = value => {
+                if (!/^\d{2}:\d{2}$/.test(value)) return NaN;
+                const [hours, minutes] = value.split(':').map(Number);
+                return hours * 60 + minutes;
+            };
+            const formatTime = minute => {
+                const hours = Math.floor(minute / 60);
+                const minutes = minute % 60;
+                return (hours % 12 || 12) + ':' + String(minutes).padStart(2, '0') +
+                    ' ' + (hours >= 12 ? 'PM' : 'AM');
+            };
+            const diningMinutes = @Model.StandardDiningMinutes;
+            const paint = times => {
+                const list = preview.querySelector('[data-slots]');
+                const count = preview.querySelector('[data-slot-count]');
+                count.textContent = times.length + (times.length === 1 ? ' possible time' : ' possible times');
+                list.replaceChildren();
+                if (!times.length) {
+                    const empty = document.createElement('span');
+                    empty.className = 'restaurant-slot-empty';
+                    empty.textContent = 'No valid arrival times for these settings.';
+                    list.append(empty);
+                    return;
+                }
+                times.forEach(time => {
+                    const chip = document.createElement('span');
+                    chip.className = 'restaurant-slot-time';
+                    chip.textContent = formatTime(time);
+                    list.append(chip);
+                });
+            };
+            const update = () => {
+                const start = toMinutes(opening.value);
+                const end = toMinutes(closing.value);
+                const step = Number(interval.value);
+                const times = [];
+                if (Number.isFinite(start) && Number.isFinite(end) &&
+                    end - start >= Math.max(120, diningMinutes) && [15, 30, 60].includes(step)) {
+                    for (let time = start; time + diningMinutes <= end; time += step)
+                        times.push(time);
+                }
+                paint(times);
+            };
+            [opening, closing, interval].forEach(field => field.addEventListener('change', update));
+            [opening, closing].forEach(field => field.addEventListener('input', update));
+            update();
+        });
+    </script>
+}

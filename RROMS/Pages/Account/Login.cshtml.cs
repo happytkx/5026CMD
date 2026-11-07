@@ -34,7 +34,7 @@ public class LoginModel(CustomerAccountService accounts) : PageModel
             return Page();
         }
 
-        Basket.Clear(HttpContext.Session); // Prevent an earlier account's basket following this sign-in.
+        Basket.Clear(HttpContext.Session);
         await CustomerAuth.SignInAsync(HttpContext, customer, RememberMe);
         return LocalRedirect(Url.IsLocalUrl(ReturnUrl)
             ? ReturnUrl!

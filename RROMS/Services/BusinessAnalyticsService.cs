@@ -56,7 +56,7 @@ public class BusinessAnalyticsService(ApplicationDbContext db)
         decimal averageGuests = currentBookings.Count == 0 ? 0m :
             Math.Round((decimal)currentBookings.Average(r => r.PartySize), 1);
 
-        var menu = await db.MenuItems.AsNoTracking()
+        var menu = await db.MenuItems.IgnoreQueryFilters().AsNoTracking()
             .Select(i => new { i.MenuItemID, i.Name, i.Category })
             .ToListAsync();
         var menuCategories = menu.ToDictionary(i => i.MenuItemID, i => i.Category);

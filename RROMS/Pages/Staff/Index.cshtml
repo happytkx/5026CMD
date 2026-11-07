@@ -44,7 +44,7 @@
 </section>
 <section class="card">
     <h3>Reservation Schedule</h3>
-    <p>Choose a service date, filter bookings, then open a reservation to manage it. Confirmation requires the RM50-per-guest deposit.</p>
+    <p>Choose a service date, filter bookings, then open a reservation to manage it. Confirmation requires the agreed deposit (currently RM @Model.CurrentPolicy.DepositPerGuest.ToString("N2") per guest for new reservations).</p>
     <form method="get" class="staff-search">
         <input asp-for="Search" aria-label="Search reference or guest name" placeholder="Search reference or guest name…"/>
         <select asp-for="Status" aria-label="Reservation status">
@@ -132,7 +132,7 @@
                                 </a>
                             }
                             else if (r.ReservationStatus == "Confirmed" &&
-                                     ReservationPolicy.CanModify(r.OriginalStart, r.ModificationCount, ReservationPolicy.Now))
+                                     ReservationPolicy.CanModify(r.OriginalStart, r.ModificationCount, ReservationPolicy.Now, r.RescheduleCutoffHours, r.MaximumReschedules))
                             {
                                 <a class="staff-reservation-shortcut" asp-page="/Reservations/Details"
                                    asp-route-id="@r.ReservationID" asp-route-View="Modify">
@@ -157,7 +157,7 @@
         <p>No reservations match this date and filter.</p>
     }
 </section>
-<p class="notice">Unseated reservations become No-show after 10 minutes, or 30 minutes when late arrival was reported. The paid deposit is forfeited and the table released.</p>
+<p class="notice">Unseated reservations become No-show after their booked grace period (currently @Model.CurrentPolicy.ArrivalGraceMinutes minutes, or @Model.CurrentPolicy.ExtendedArrivalGraceMinutes minutes after a timely late notice for new reservations). The paid deposit is forfeited and the table released.</p>
 @section Scripts
 {
     <script>

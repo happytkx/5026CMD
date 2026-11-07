@@ -32,25 +32,38 @@
         }
     </div>
     <figure>
-        <img src="~/images/celeste-indoor.png" alt="An intimate dining room with warm architectural lighting and elegantly set tables" fetchpriority="high" />
+        <img src="~/images/celeste-indoor-2.png" alt="An intimate dining room with warm architectural lighting and elegantly set tables" fetchpriority="high" />
     </figure>
 </section>
-@if (Model.Featured is { } feature)
+@if (Model.FeaturedPromotions.Count > 0)
 {
-    <section class="homepage-featured" aria-label="Featured Céleste news">
-        <div class="homepage-featured-content">
-            <p class="eyebrow">@(feature.IsPromotional ? "A CÉLESTE OFFER" : "FEATURED FROM CÉLESTE")</p>
-            <h2>@feature.Title</h2>
-            <p>@feature.Message</p>
-            <a class="text-link" href="@(feature.IsPromotional ? "/Menu" : "#announcements")">
-                @(feature.IsPromotional ? "Explore the menu" : "Read our news") →
-            </a>
-        </div>
-        @if (feature.ExpiresAt.HasValue)
+    <section class="homepage-featured-section" aria-label="Featured Céleste promotions">
+        @if (Model.FeaturedPromotions.Count > 1)
         {
-            var remaining = Math.Max(1, (feature.ExpiresAt.Value.Date - Model.Today).Days);
-            <span class="expiry-badge feature-expiry">@(remaining == 1 ? "1 day left" : $"{remaining} days left")</span>
+            <div class="homepage-featured-controls">
+                <span class="muted">Swipe or use the arrows to browse current offers.</span>
+                <button class="announcement-carousel-arrow" type="button" data-featured-previous aria-label="Previous promotion">←</button>
+                <button class="announcement-carousel-arrow" type="button" data-featured-next aria-label="Next promotion">→</button>
+            </div>
         }
+        <div class="homepage-featured-track" id="celeste-featured-track" role="region" tabindex="0" aria-label="Featured offers">
+            @foreach (var feature in Model.FeaturedPromotions)
+            {
+                <article class="homepage-featured">
+                    <div class="homepage-featured-content">
+                        <p class="eyebrow">A CÉLESTE OFFER</p>
+                        <h2>@feature.Title</h2>
+                        <p>@feature.Message</p>
+                        <a class="text-link" asp-page="/Menu">Explore the menu →</a>
+                    </div>
+                    @if (feature.ExpiresAt.HasValue)
+                    {
+                        var remaining = Math.Max(1, (feature.ExpiresAt.Value.Date - Model.Today).Days);
+                        <span class="expiry-badge feature-expiry">@(remaining == 1 ? "1 day left" : $"{remaining} days left")</span>
+                    }
+                </article>
+            }
+        </div>
     </section>
 }
 <section id="dining-spaces" class="dining-spaces">
@@ -69,7 +82,7 @@
                 <p>
                     A warm and intimate setting for 1–8 guests.
                     <br/>
-                    Enjoy a two-hour dining experience.
+                    Enjoy a @Model.Policy.StandardDiningMinutes-minute dining experience.
                 </p>
                 <a asp-page="/Reservations/Create" asp-route-Area="Indoor">
                     Reserve indoors
@@ -84,7 +97,7 @@
                 <p>
                     An open-air evening for 1–8 guests.
                     <br/>
-                    Enjoy a two-hour dining experience.
+                    Enjoy a @Model.Policy.StandardDiningMinutes-minute dining experience.
                 </p>
                 <a asp-page="/Reservations/Create" asp-route-Area="Outdoor">
                     Reserve outdoors
@@ -146,8 +159,9 @@
             }
         </div>
     </section>
-    @if (Model.PopupAnnouncements.Count > 0)
-    {
+}
+@if (Model.PopupAnnouncements.Count > 0)
+{
     <dialog id="celeste-announcement-dialog" class="celeste-announcement-dialog" aria-labelledby="celeste-announcement-title">
         <div class="celeste-announcement-dialog-body">
             <p class="eyebrow">A NOTE FROM CÉLESTE</p>
@@ -162,13 +176,13 @@
                 }
             </div>
             <form method="dialog" class="celeste-announcement-dialog-actions">
-                <a href="#announcements" class="text-link" id="celeste-announcements-later">Read again later</a>
+                <a href="@(Model.PopupAnnouncements.Any(a => a.IsPromotional) ? "/Menu" : "#announcements")" class="text-link" id="celeste-announcements-later">@(Model.PopupAnnouncements.Any(a => a.IsPromotional) ? "Explore current offers" : "Read again later")</a>
                 <button type="submit" class="button">Dismiss</button>
             </form>
         </div>
     </dialog>
-    }
-    <script>
+}
+<script>
         document.addEventListener("DOMContentLoaded", function () {
             const track = document.getElementById('celeste-announcement-track');
             const previous = document.querySelector('[data-announcement-prev]');
@@ -194,6 +208,30 @@
                 window.addEventListener('resize', updateArrows);
                 updateArrows();
             }
+            const featuredTrack = document.getElementById('celeste-featured-track');
+            const featuredPrevious = document.querySelector('[data-featured-previous]');
+            const featuredNext = document.querySelector('[data-featured-next]');
+            if (featuredTrack && featuredPrevious && featuredNext) {
+                const updateFeaturedArrows = () => {
+                    featuredPrevious.disabled = featuredTrack.scrollLeft <= 2;
+                    featuredNext.disabled = featuredTrack.scrollLeft + featuredTrack.clientWidth >= featuredTrack.scrollWidth - 2;
+                };
+                const advanceFeatured = direction => {
+                    const card = featuredTrack.querySelector('.homepage-featured');
+                    if (!card) return;
+                    const gap = parseFloat(getComputedStyle(featuredTrack).columnGap) || 0;
+                    featuredTrack.scrollBy({
+                        left: direction * (card.getBoundingClientRect().width + gap),
+                        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+                    });
+                };
+                featuredPrevious.addEventListener('click', () => advanceFeatured(-1));
+                featuredNext.addEventListener('click', () => advanceFeatured(1));
+                featuredTrack.addEventListener('scroll', updateFeaturedArrows, { passive: true });
+                window.addEventListener('resize', updateFeaturedArrows);
+                updateFeaturedArrows();
+            }
+
             const dialog = document.getElementById("celeste-announcement-dialog");
             if (!dialog || typeof dialog.showModal !== "function") return;
             const key = "celeste-dismissed-announcements-v1";
@@ -213,13 +251,15 @@
                 catch (_) { /* Announcements remain readable on the homepage. */ }
             });
             dialog.showModal();
-            document.getElementById("celeste-announcements-later")?.addEventListener("click", function () {
+            const laterLink = document.getElementById("celeste-announcements-later");
+            laterLink?.addEventListener("click", function () {
                 dialog.close();
-                window.location.hash = "announcements";
+                if (laterLink.getAttribute("href") === "#announcements") {
+                    window.location.hash = "announcements";
+                }
             });
         });
-    </script>
-}
+</script>
 @if (Model.Popular.Count > 0)
 {
     <section class="dining-spaces">
@@ -280,9 +320,9 @@
         </em>
     </h2>
     <p>
-        RM50 per guest secures your reservation and is deducted from your final bill.
+        RM @Model.Policy.DepositPerGuest.ToString("N2") per guest secures your reservation and is deducted from your final bill.
         <br/>
-        Private rooms have a minimum spend of RM2,400 for 6–8 guests or RM3,600 for 9–12 guests.
+        Private rooms have a minimum spend of RM @Model.Policy.VipEightSeatMinimumSpend.ToString("N2") for 6–8 guests or RM @Model.Policy.VipTwelveSeatMinimumSpend.ToString("N2") for 9–12 guests.
     </p>
     <a class="button" asp-page="/Reservations/Create">
         Reserve your table

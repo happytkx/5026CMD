@@ -10,24 +10,26 @@ namespace RROMS.Services;
 // Availability must be checked inside the transaction, not only when displaying slots.
 public class ReservationService(ApplicationDbContext db, TableAllocationService allocation, IHttpContextAccessor? http = null)
 {
-    // Fixed agreed coursework deposit. Opening/closing hours are read from RestaurantSettings.
-    public decimal CalculateDeposit(int partySize) => partySize * 50m;
+    // The configured deposit is fixed on the reservation at creation, including while payment is pending.
+    public decimal CalculateDeposit(int partySize, RestaurantSetting? settings = null) => partySize * (settings?.DepositPerGuest ?? 50m);
     public string GenerateBookingReference() => "BK" + Guid.NewGuid().ToString("N");
     public async Task<RestaurantSetting> Settings() => await db.RestaurantSettings.OrderBy(s => s.SettingID).FirstAsync();
 
-    public async Task<DateTime> ValidateSlot(int size, string area, DateTime start, bool enforceCurrentInterval = true)
+    public async Task<DateTime> ValidateSlot(int size, string area, DateTime start, bool enforceCurrentInterval = true, RestaurantSetting? originalTerms = null)
     {
         var settings = await Settings();
+        var terms = originalTerms ?? settings;
         if (!ReservationPolicy.Areas(size).Contains(area))
             throw new InvalidOperationException("Choose an allowed dining area for 1–12 guests.");
-        if (!ReservationPolicy.MeetsAdvance(area, start, ReservationPolicy.Now))
-            throw new InvalidOperationException("Book Indoor/Outdoor at least 2 hours ahead, or VIP at least 24 hours ahead (Malaysia time). Choose a later slot.");
-        var end = ReservationPolicy.End(start, area, settings.ClosingTime);
-        if (start <= ReservationPolicy.Now || start.TimeOfDay < settings.OpeningTime ||
+        if (!ReservationPolicy.MeetsAdvance(area, start, ReservationPolicy.Now, terms))
+            throw new InvalidOperationException($"Book Indoor/Outdoor at least {terms.StandardAdvanceHours} hours ahead, or VIP at least {terms.VipAdvanceHours} hours ahead (Malaysia time). Choose a later slot.");
+        var end = ReservationPolicy.End(start, area, settings.ClosingTime, terms);
+        if (start <= ReservationPolicy.Now ||
+            !ReservationPolicy.FitsSharedArrivalWindow(start, settings, terms) ||
             end.Date != start.Date || end.TimeOfDay > settings.ClosingTime || end <= start ||
             (enforceCurrentInterval &&
              (start.TimeOfDay - settings.OpeningTime).Ticks % TimeSpan.FromMinutes(settings.SlotIntervalMinutes).Ticks != 0))
-            throw new InvalidOperationException("Choose a valid future arrival slot within opening hours. Indoor and Outdoor require two hours before closing.");
+            throw new InvalidOperationException($"Choose a valid future arrival slot. All dining areas require {terms.StandardDiningMinutes} minutes before closing.");
         return end;
     }
     
@@ -35,12 +37,29 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
     {
         await Expire();
         var settings = await Settings();
+        // When showing reschedule options, retain the reservation's agreed advance and dining terms.
+        var terms = settings;
+        if (excluding.HasValue)
+        {
+            var original = await db.Reservations.AsNoTracking()
+                .Where(r => r.ReservationID == excluding.Value)
+                .Select(r => new { r.StandardAdvanceHours, r.VipAdvanceHours, r.StandardDiningMinutes })
+                .SingleOrDefaultAsync();
+            if (original is not null)
+                terms = new RestaurantSetting
+                {
+                    StandardAdvanceHours = original.StandardAdvanceHours,
+                    VipAdvanceHours = original.VipAdvanceHours,
+                    StandardDiningMinutes = original.StandardDiningMinutes
+                };
+        }
         var result = new List<DateTime>();
         for (var start = date.Date.Add(settings.OpeningTime); start < date.Date.Add(settings.ClosingTime); start = start.AddMinutes(settings.SlotIntervalMinutes))
         {
-            if (!ReservationPolicy.MeetsAdvance(area, start, ReservationPolicy.Now))
+            if (!ReservationPolicy.FitsSharedArrivalWindow(start, settings, terms) ||
+                !ReservationPolicy.MeetsAdvance(area, start, ReservationPolicy.Now, terms))
                 continue;
-            var end = ReservationPolicy.End(start, area, settings.ClosingTime);
+            var end = ReservationPolicy.End(start, area, settings.ClosingTime, terms);
             if (end <= date.Date.Add(settings.ClosingTime) && end > start &&
                 (await allocation.Available(size, area, start, end, excluding)).Count > 0)
                 result.Add(start);
@@ -48,12 +67,13 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
         return result;
     }
 
-    // Reserve the smallest suitable table inside one transaction. Pending bookings hold it for up to 10 minutes.
+    // Reserve the smallest suitable table inside one transaction. Pending bookings hold it for the configured deposit-payment window.
     public async Task<Reservation> Create(int customerId, int size, string area, DateTime start, string? requests)
     {
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         await ExpireCore();
         var end = await ValidateSlot(size, area, start);
+        var settings = await Settings();
         if (!await db.Customers.AnyAsync(c => c.CustomerID == customerId))
             throw new InvalidOperationException("Your customer account could not be found. Please sign in again.");
         var table = (await allocation.Available(size, area, start, end)).FirstOrDefault()
@@ -69,12 +89,19 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
             EndTime = end.TimeOfDay,
             OriginalStart = start,
             CreatedDate = ReservationPolicy.Now,
-            DepositAmount = CalculateDeposit(size),
-            MinimumSpend = ReservationPolicy.MinimumSpend(size, area),
+            DepositAmount = CalculateDeposit(size, settings),
+            MinimumSpend = ReservationPolicy.MinimumSpend(size, area, settings),
+            StandardDiningMinutes = settings.StandardDiningMinutes,
+            RescheduleCutoffHours = settings.RescheduleCutoffHours,
+            MaximumReschedules = settings.MaximumReschedules,
+            ArrivalGraceMinutes = settings.ArrivalGraceMinutes,
+            ExtendedArrivalGraceMinutes = settings.ExtendedArrivalGraceMinutes,
+            StandardAdvanceHours = settings.StandardAdvanceHours,
+            VipAdvanceHours = settings.VipAdvanceHours,
             DepositStatus = "Unpaid",
             ReservationStatus = "Pending",
             DietaryRequest = requests,
-            HoldExpiresAt = ReservationPolicy.PaymentDeadline(area, start, ReservationPolicy.Now)
+            HoldExpiresAt = ReservationPolicy.PaymentDeadline(area, start, ReservationPolicy.Now, settings)
         };
         booking.BookingReference = GenerateBookingReference();
         db.Reservations.Add(booking);
@@ -102,10 +129,10 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
             case "Pay":
                 if (paymentMethod is not ("Card" or "TNG" or "Bank Transfer"))
                     throw new InvalidOperationException("Choose a supported simulated payment method.");
-                await ValidateSlot(r.PartySize, r.PreferredDiningOption, start, enforceCurrentInterval: false);
+                // This pending hold was already validated under its original policy.
+                // A later policy edit must never change its deposit or invalidate its saved slot.
                 if (!(await allocation.Available(r.PartySize, r.PreferredDiningOption, start, r.ReservationDate.Add(r.EndTime), id)).Any(t => t.TableID == r.TableID))
                     throw new InvalidOperationException("The assigned table is no longer available.");
-                r.DepositAmount = CalculateDeposit(r.PartySize);
                 if (paymentReference?.Length > 40)
                     throw new InvalidOperationException("Payment reference must be at most 40 characters.");
                 if (r.ReservationStatus != "Pending" || r.HoldExpiresAt <= now)
@@ -133,12 +160,18 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
                 break;
             // Preserve party size, area, paid deposit and original deadline; allocate a table for the new time.
             case "Modify":
-                if (r.ReservationStatus != "Confirmed" || !ReservationPolicy.CanModify(r.OriginalStart, r.ModificationCount, now))
-                    throw new InvalidOperationException("Only one modification is allowed, more than 168 hours before the original booking.");
+                if (r.ReservationStatus != "Confirmed" || !ReservationPolicy.CanModify(r.OriginalStart, r.ModificationCount, now, r.RescheduleCutoffHours, r.MaximumReschedules))
+                    throw new InvalidOperationException($"Up to {r.MaximumReschedules} reschedule(s) are allowed, more than {r.RescheduleCutoffHours} hours before the original booking.");
                 var replacement = newStart ?? throw new InvalidOperationException("Choose a new date and time.");
                 if (replacement == start)
                     throw new InvalidOperationException("Choose a different date or time.");
-                var end = await ValidateSlot(r.PartySize, r.PreferredDiningOption, replacement);
+                var originalTerms = new RestaurantSetting
+                {
+                    StandardAdvanceHours = r.StandardAdvanceHours,
+                    VipAdvanceHours = r.VipAdvanceHours,
+                    StandardDiningMinutes = r.StandardDiningMinutes
+                };
+                var end = await ValidateSlot(r.PartySize, r.PreferredDiningOption, replacement, originalTerms: originalTerms);
                 var table = (await allocation.Available(r.PartySize, r.PreferredDiningOption, replacement, end, id)).FirstOrDefault()
                     ?? throw new InvalidOperationException("No suitable table or room is available at that time.");
                 db.ReservationHistories.Add(new ReservationHistory
@@ -169,15 +202,15 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
                 message = "Reservation cancelled. Any paid deposit is forfeited; no refund is issued.";
                 break;
             case "Late":
-                if (r.ReservationStatus != "Confirmed" || r.LateArrivalNotified || now >= start.AddMinutes(10))
-                    throw new InvalidOperationException("Notify us before the normal 10-minute grace period expires.");
+                if (r.ReservationStatus != "Confirmed" || r.LateArrivalNotified || now >= start.AddMinutes(r.ArrivalGraceMinutes))
+                    throw new InvalidOperationException($"Notify us before the normal {r.ArrivalGraceMinutes}-minute grace period expires.");
                 r.LateArrivalNotified = true;
-                message = $"Late arrival noted. Your table is held until {start.AddMinutes(30):HH:mm}. Your dining end time remains unchanged.";
+                message = $"Late arrival noted. Your table is held until {start.AddMinutes(r.ExtendedArrivalGraceMinutes):HH:mm}. Your dining end time remains unchanged.";
                 break;
             // Only staff can seat guests. The Seated status activates the computed OrderingEnabled property.
             case "CheckIn":
                 if (!staff || r.ReservationStatus != "Confirmed" || now < start ||
-                    ReservationPolicy.IsExpired(start, r.LateArrivalNotified, now))
+                    ReservationPolicy.IsExpired(start, r.LateArrivalNotified, now, r.ArrivalGraceMinutes, r.ExtendedArrivalGraceMinutes))
                     throw new InvalidOperationException("Check-in is available from the booked time until the arrival deadline.");
                 r.ReservationStatus = "Seated";
                 r.CheckedInAt = now;
@@ -229,7 +262,7 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
             case "NoShow":
                 if (staff && r.ReservationStatus == "No-show") { await tx.CommitAsync(); return; }
 
-                if (!staff || r.ReservationStatus != "Confirmed" || !ReservationPolicy.IsExpired(start, r.LateArrivalNotified, now))
+                if (!staff || r.ReservationStatus != "Confirmed" || !ReservationPolicy.IsExpired(start, r.LateArrivalNotified, now, r.ArrivalGraceMinutes, r.ExtendedArrivalGraceMinutes))
                     throw new InvalidOperationException("No-show is allowed only after the arrival deadline.");
                 r.ReservationStatus = "No-show";
                 r.DepositStatus = "Forfeited";
@@ -246,7 +279,7 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
         Notify(r, action, message);
 
         // Shared operational feed for staff and administrators. Only payment failures are admin-only.
-        var reservationLink = StaffAlerts.ReservationUrl(r.ReservationDate);
+        var reservationLink = StaffAlerts.ReservationUrl(r.ReservationID);
         switch (action)
         {
             case "Pay" when paymentSuccess:
@@ -313,20 +346,22 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
             (r.ReservationStatus == "Confirmed" && r.ReservationDate <= now.Date)).ToListAsync();
         foreach (var r in candidates)
         {
-            if (r.ReservationStatus == "Pending" && (r.HoldExpiresAt <= now || !ReservationPolicy.MeetsAdvance(r.PreferredDiningOption, r.ReservationDate.Add(r.StartTime), now)))
+            if (r.ReservationStatus == "Pending" && (r.HoldExpiresAt <= now || !ReservationPolicy.MeetsAdvance(r.PreferredDiningOption, r.ReservationDate.Add(r.StartTime), now,
+                new RestaurantSetting { StandardAdvanceHours = r.StandardAdvanceHours, VipAdvanceHours = r.VipAdvanceHours })))
             {
                 r.ReservationStatus = "Expired";
                 r.HoldExpiresAt = null;
                 Notify(r, "Expired", "Payment deadline passed. No deposit was charged and the table has been released. Choose a later slot to book again.");
             }
-            else if (r.ReservationStatus == "Confirmed" && ReservationPolicy.IsExpired(r.ReservationDate.Add(r.StartTime), r.LateArrivalNotified, now))
+            else if (r.ReservationStatus == "Confirmed" && ReservationPolicy.IsExpired(r.ReservationDate.Add(r.StartTime), r.LateArrivalNotified, now,
+                r.ArrivalGraceMinutes, r.ExtendedArrivalGraceMinutes))
             {
                 r.ReservationStatus = "No-show";
                 r.DepositStatus = "Forfeited";
                 Notify(r, "No-show", "Arrival deadline passed. Deposit forfeited and table released.");
                 StaffAlerts.Add(db, "Reservation automatically marked no-show",
                     $"Booking {r.BookingReference} was marked no-show after its arrival deadline. Table {r.TableID} is now available.",
-                    StaffAlerts.ReservationUrl(r.ReservationDate), "Reservation");
+                    StaffAlerts.ReservationUrl(r.ReservationID), "Reservation");
             }
         }
         await db.SaveChangesAsync();

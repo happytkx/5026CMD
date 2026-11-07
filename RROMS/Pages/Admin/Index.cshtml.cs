@@ -99,7 +99,7 @@ public class IndexModel(ApplicationDbContext db, BusinessAnalyticsService analyt
         return RedirectToPage();
     }
 
-    public async Task<IActionResult> OnPostAnnouncementAsync(string? title, string? message, string? duration, DateTime? endDate, bool showInPopup, bool isFeatured)
+    public async Task<IActionResult> OnPostAnnouncementAsync(string? title, string? message, string? duration, DateTime? endDate)
     {
         if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(message) || title.Trim().Length > 120 || message.Trim().Length > 1000)
         {
@@ -114,12 +114,6 @@ public class IndexModel(ApplicationDbContext db, BusinessAnalyticsService analyt
             return RedirectToPage();
         }
 
-        await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
-        if (isFeatured)
-        {
-            var previouslyFeatured = await db.Announcements.Where(a => a.IsFeatured).ToListAsync();
-            foreach (var item in previouslyFeatured) item.IsFeatured = false;
-        }
         db.Announcements.Add(new Announcement
         {
             Title = title.Trim(),
@@ -127,38 +121,17 @@ public class IndexModel(ApplicationDbContext db, BusinessAnalyticsService analyt
             CreatedAt = now,
             ExpiresAt = expiry,
             DurationMode = duration!,
-            ShowInPopup = showInPopup,
-            IsFeatured = isFeatured,
+            ShowInPopup = true,
+            IsFeatured = false,
             CreatedByAdministratorID = AdministratorId,
             UpdatedByAdministratorID = AdministratorId
         });
         await db.SaveChangesAsync();
-        await transaction.CommitAsync();
         TempData["Success"] = "Announcement published. It will be hidden automatically when its duration ends.";
         return RedirectToPage();
     }
 
-    public async Task<IActionResult> OnPostSetAnnouncementDisplayAsync(int id, bool showInPopup, bool isFeatured)
-    {
-        await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
-        var announcement = await db.Announcements.FindAsync(id);
-        if (announcement is null) return NotFound();
-
-        if (isFeatured)
-        {
-            var previouslyFeatured = await db.Announcements.Where(a => a.IsFeatured && a.AnnouncementID != id).ToListAsync();
-            foreach (var previous in previouslyFeatured) previous.IsFeatured = false;
-        }
-        announcement.IsFeatured = isFeatured;
-        announcement.ShowInPopup = showInPopup;
-        announcement.UpdatedByAdministratorID = AdministratorId;
-        await db.SaveChangesAsync();
-        await transaction.CommitAsync();
-        TempData["Success"] = $"Display settings saved for {announcement.Title}.";
-        return RedirectToPage();
-    }
-
-    // Pinning changes homepage announcement order without changing its featured/banner or pop-up settings.
+    // Pinning changes order in the customer announcements list independently of the promotion banner.
     public async Task<IActionResult> OnPostSetAnnouncementPinAsync(int id, bool isPinned)
     {
         var announcement = await db.Announcements.FindAsync(id);

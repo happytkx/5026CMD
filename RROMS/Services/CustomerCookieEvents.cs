@@ -7,17 +7,19 @@ namespace RROMS.Services;
 
 public class CustomerCookieEvents(ApplicationDbContext db, IWebHostEnvironment environment, IConfiguration config) : CookieAuthenticationEvents
 {
-    // Staff and administrator protected pages lead to the internal login, not the customer form.
+    // Keep unauthenticated staff/admin visitors on their dedicated sign-in page.
     public override Task RedirectToLogin(RedirectContext<CookieAuthenticationOptions> context)
     {
-        var path = context.Request.Path;
-        if (path.StartsWithSegments("/Staff") || path.StartsWithSegments("/Admin"))
-        {
-            var returnUrl = context.Request.PathBase.ToString() + path.ToString() + context.Request.QueryString.ToString();
-            context.Response.Redirect("/Account/StaffLogin?ReturnUrl=" + Uri.EscapeDataString(returnUrl));
-            return Task.CompletedTask;
-        }
-        return base.RedirectToLogin(context);
+        var path = context.Request.Path.Value ?? string.Empty;
+        var internalArea = path.Equals("/Admin", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/Admin/", StringComparison.OrdinalIgnoreCase) ||
+            path.Equals("/Staff", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/Staff/", StringComparison.OrdinalIgnoreCase);
+        if (!internalArea) return base.RedirectToLogin(context);
+
+        var returnUrl = $"{context.Request.PathBase}{context.Request.Path}{context.Request.QueryString}";
+        context.Response.Redirect("/Account/StaffLogin?ReturnUrl=" + Uri.EscapeDataString(returnUrl));
+        return Task.CompletedTask;
     }
 
     public override async Task ValidatePrincipal(CookieValidatePrincipalContext context)

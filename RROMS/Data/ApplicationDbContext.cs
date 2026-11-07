@@ -106,6 +106,12 @@ namespace RROMS.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Administrator>().HasIndex(a => a.NormalizedEmail).IsUnique();
+            // Retire the two water dishes (including older names) across all live
+            // menu and management queries. Keep the database rows for order history.
+            modelBuilder.Entity<MenuItem>().HasQueryFilter(i =>
+                i.Name != "Eau Minérale" && i.Name != "Eau Pétillante" &&
+                i.Name != "Still Mineral Water" && i.Name != "Mineral Water" &&
+                i.Name != "Sparkling Mineral Water" && i.Name != "Sparkling Water");
             modelBuilder.Entity<Customer>().ToTable(t => t.HasCheckConstraint("CK_Customers_CustomerRole", "[Role] = 'Customer'"));
             modelBuilder.Entity<MenuItem>().HasOne(i => i.MenuCategory).WithMany()
                 .HasForeignKey(i => i.MenuCategoryID).OnDelete(DeleteBehavior.Restrict);

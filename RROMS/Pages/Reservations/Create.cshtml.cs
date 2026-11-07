@@ -24,8 +24,8 @@ public class CreateModel(ReservationService service, ApplicationDbContext db) : 
     }
     [BindProperty] public List<string> Preferences { get; set; } = [];
     public Customer Guest { get; set; } = new();
-    public Reservation Summary => new() { Customer = Guest, PartySize = PartySize, PreferredDiningOption = Area, ReservationDate = Date.Date, 
-        StartTime = TimeSpan.TryParse(Time, out var t) ? t : TimeSpan.Zero, DepositAmount = PartySize * 50m, MinimumSpend = ReservationPolicy.MinimumSpend(PartySize, Area) };
+    public RestaurantSetting CurrentPolicy { get; private set; } = new();
+    public Reservation Summary => new() { Customer = Guest, PartySize = PartySize, PreferredDiningOption = Area, ReservationDate = Date.Date, StartTime = TimeSpan.TryParse(Time, out var t) ? t : TimeSpan.Zero, DepositAmount = PartySize * CurrentPolicy.DepositPerGuest, MinimumSpend = ReservationPolicy.MinimumSpend(PartySize, Area, CurrentPolicy) };
     [BindProperty, StringLength(1000)]
     public string? Requests
     {
@@ -56,6 +56,7 @@ public class CreateModel(ReservationService service, ApplicationDbContext db) : 
     }
     private async Task Load()
     {
+        CurrentPolicy = await db.RestaurantSettings.AsNoTracking().OrderBy(s => s.SettingID).FirstOrDefaultAsync() ?? new RestaurantSetting();
         Slots = await service.Slots(PartySize, Area, Date);
         Guest = await db.Customers.AsNoTracking().SingleAsync(c => c.CustomerID == ReservationIdentity.CustomerId(User));
     }

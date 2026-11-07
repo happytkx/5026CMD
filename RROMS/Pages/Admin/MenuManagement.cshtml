@@ -215,149 +215,187 @@
             </div>
         </details>
     }
+    @{
+        var preferredCategoryOrder = new[] { "Soups", "Appetizers", "Main Course", "Desserts", "Beverages" };
+        var groupedMenuItems = Model.Items.GroupBy(item => item.Category)
+            .OrderBy(group => {
+                var position = Array.IndexOf(preferredCategoryOrder, group.Key);
+                return position < 0 ? int.MaxValue : position;
+            })
+            .ThenBy(group => group.Key)
+            .ToList();
+    }
+    @if (groupedMenuItems.Count > 0)
+    {
+        <nav class="menu-category-tabs" aria-label="Browse menu items by category">
+            <button type="button" class="menu-category-tab is-active" data-menu-category-tab="all" aria-pressed="true">
+                All dishes <span>@Model.Items.Count</span>
+            </button>
+            @foreach (var categoryGroup in groupedMenuItems)
+            {
+                <button type="button" class="menu-category-tab" data-menu-category-tab="@categoryGroup.Key" aria-pressed="false">
+                    @categoryGroup.Key <span>@categoryGroup.Count()</span>
+                </button>
+            }
+        </nav>
+    }
     @if (Model.Items.Count == 0)
     {
         <p class="notice">No dishes match the selected search, category or availability filters.</p>
     }
     <div class="menu-unified-list">
-        <div class="menu-unified-grid menu-unified-head" aria-hidden="true">
-            <span>Dish &amp; category</span><span>Current price</span><span>Units sold</span>
-            <span>Sales (RM)</span><span>Status</span><span>Availability</span>
-        </div>
-        @foreach (var item in Model.Items)
+        @foreach (var categoryGroup in groupedMenuItems)
         {
-            var metrics = Model.MetricsFor(item);
-            <article class="menu-unified-item" id="menu-item-@item.MenuItemID">
-                <div class="menu-unified-grid">
-                    <div class="menu-unified-dish">
-                        <strong>@item.Name</strong>
-                        <small>@item.Category</small>
-                    </div>
-                    <div class="menu-unified-value" data-label="Current price">RM @item.Price.ToString("N2")</div>
-                    <div class="menu-unified-value" data-label="Units sold">@metrics.Units</div>
-                    <div class="menu-unified-value" data-label="Sales (RM)">RM @metrics.Sales.ToString("N2")</div>
-                    <div><span class="badge @(item.IsAvailable ? "" : "menu-unavailable")">
-                        @(item.IsAvailable ? "Available" : "Unavailable")
-                    </span></div>
-                    <form method="post" asp-page-handler="ToggleAvailability" class="menu-unified-availability"
-                          onsubmit="return @(item.IsAvailable ? "confirm('Disable this dish on the customer menu?');" : "true;")">
-                    <input type="hidden" name="Search" value="@Model.Search" />
-                    <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
-                    <input type="hidden" name="FilterAvailability" value="@Model.FilterAvailability" />
-                    <input type="hidden" name="SortBy" value="@Model.SortBy" />
-                    <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
-                    <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
-                        <input type="hidden" name="itemId" value="@item.MenuItemID" />
-                        <button type="submit" class="menu-availability-action @(item.IsAvailable ? "menu-action-disable" : "menu-action-enable")"
-                                aria-label="@(item.IsAvailable ? "Disable" : "Enable") @item.Name for customer orders">
-                            @(item.IsAvailable ? "Disable" : "Enable")
-                        </button>
-                    </form>
-
-</div>
-                <div class="menu-unified-details">
-                    <details class="menu-editor-panel">
-                        <summary>Edit details <span>⌄</span></summary>
-                        <div class="menu-editor-inner">
-                            <form method="post" asp-page-handler="SaveItem" enctype="multipart/form-data">
-                    <input type="hidden" name="Search" value="@Model.Search" />
-                    <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
-                    <input type="hidden" name="FilterAvailability" value="@Model.FilterAvailability" />
-                    <input type="hidden" name="SortBy" value="@Model.SortBy" />
-                    <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
-                    <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
-                                <partial name="_MenuItemEditor" model="item" />
-                            </form>
-                        </div>
-                    </details>
-                    <details class="menu-trend-panel">
-                        <summary>View trend <span>⌄</span></summary>
-                        <div class="menu-trend-body">
-                            <div class="menu-trend-heading">
-                                <div>
-                                    <h3>@item.Name: Ordering Trend</h3>
-                                    <p class="muted">Based on order placement dates; grouped by @Model.TrendInterval.</p>
-                                </div>
-                                <div class="menu-trend-switch" role="group" aria-label="Choose chart measure">
-                                    <button type="button" class="menu-trend-mode active" data-trend-mode="units" aria-pressed="true">Units</button>
-                                    <button type="button" class="menu-trend-mode" data-trend-mode="sales" aria-pressed="false">Sales (RM)</button>
-                                </div>
-                            </div>
-                            <p class="menu-trend-explanation">Switch between units ordered and sales value in RM. Every dish uses the same Units scale and the same Sales scale for the selected reporting period, so their trends can be compared directly.</p>
-                            @if (!Model.HasValidPeriod)
-                            {
-                                <p class="notice">Select a valid reporting period to view this chart.</p>
-                            }
-                            else if (metrics.Units == 0)
-                            {
-                                <p class="notice">No non-cancelled orders for this dish during the selected period.</p>
-                            }
-                            else
-                            {
-                                var peakUnits = Model.TrendUnitsAxisStep * 5;
-                                var peakSales = Model.TrendSalesAxisStep * 5m;
-                                var dots = metrics.Trend.Select((point, index) => new
-                                {
-                                    Point = point,
-                                    X = (metrics.Trend.Count == 1 ? 465d : 90d + index * 750d / (metrics.Trend.Count - 1))
-                                        .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture),
-                                    UnitY = (226d - point.Units * 170d / peakUnits)
-                                        .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture),
-                                    SaleY = (226d - (double)(point.Sales / peakSales) * 170d)
-                                        .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)
-                                }).ToList();
-                                var unitLine = string.Join(" ", dots.Select(p => p.X + "," + p.UnitY));
-                                var salesLine = string.Join(" ", dots.Select(p => p.X + "," + p.SaleY));
-                                var labelEvery = Math.Max(1, (int)Math.Ceiling(dots.Count / 5d));
-                                <div class="menu-trend-reading" aria-live="polite">
-                                    <span data-trend-axis-title>Units ordered</span>
-                                    <strong data-trend-summary>@metrics.Units units sold</strong>
-                                </div>
-                                <div class="menu-trend-chart reservation-chart-interactive" data-menu-trend-chart
-                                     data-units-total="@metrics.Units"
-                                     data-sales-total="@metrics.Sales.ToString("N2")">
-                                    <div class="menu-trend-scroll">
-                                        <svg viewBox="0 0 900 275" role="img" aria-label="Ordering trend for @item.Name. Hover or focus on a data point for quantity and sales.">
-                                            @for (var tick = 0; tick <= 5; tick++)
-                                            {
-                                                var y = 226d - tick * 170d / 5d;
-                                                var yText = y.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
-                                                var unitsTick = Model.TrendUnitsAxisStep * tick;
-                                                var salesValue = Model.TrendSalesAxisStep * tick;
-                                                var salesTick = salesValue.ToString(salesValue % 1m == 0m ? "N0" : "N2");
-                                                <line class="reservation-chart-gridline" x1="85" y1="@yText" x2="862" y2="@yText"></line>
-                                                @Html.Raw($"<text class=\"reservation-chart-axis menu-trend-axis-tick\" x=\"75\" y=\"{(y + 4d).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}\" text-anchor=\"end\" data-trend-axis data-units-label=\"{unitsTick}\" data-sales-label=\"RM {salesTick}\">{unitsTick}</text>")
-                                            }
-                                            <polyline class="reservation-chart-line menu-trend-line" points="@unitLine"
-                                                      data-units-line="@unitLine" data-sales-line="@salesLine"></polyline>
-                                            @for (var index = 0; index < dots.Count; index++)
-                                            {
-                                                var point = dots[index];
-                                                <circle class="reservation-chart-point menu-trend-point" cx="@point.X" cy="@point.UnitY"
-                                                        r="6" tabindex="0" data-menu-trend-point
-                                                        data-units-y="@point.UnitY" data-sales-y="@point.SaleY"
-                                                        data-chart-date="@point.Point.Date.ToString("dd MMM yyyy")"
-                                                        data-chart-units="@point.Point.Units"
-                                                        data-chart-sales="@point.Point.Sales.ToString("N2")"
-                                                        aria-label="@($"{point.Point.Date:dd MMM yyyy}: {point.Point.Units} units, RM {point.Point.Sales:N2} in sales")"></circle>
-                                                if (index % labelEvery == 0 || index == dots.Count - 1)
-                                                {
-                                                    @Html.Raw($"<text class=\"reservation-chart-axis reservation-chart-date\" x=\"{point.X}\" y=\"261\" text-anchor=\"middle\">{System.Net.WebUtility.HtmlEncode(point.Point.Date.ToString(Model.TrendInterval == "month" ? "MMM yy" : "dd MMM"))}</text>")
-                                                }
-                                            }
-                                        </svg>
-                                    </div>
-                                    <div class="reservation-chart-tooltip menu-trend-tooltip" role="tooltip" hidden>
-                                        <strong data-trend-tooltip-date></strong>
-                                        <span data-trend-tooltip-units></span>
-                                        <span data-trend-tooltip-sales></span>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    </details>
+            <section class="menu-unified-category" data-menu-category-panel="@categoryGroup.Key">
+                <div class="menu-unified-category-heading">
+                    <h3>@categoryGroup.Key</h3>
+                    <span>@categoryGroup.Count() dish@(categoryGroup.Count() == 1 ? "" : "es")</span>
                 </div>
-            </article>
+                <div class="menu-unified-grid menu-unified-head" aria-hidden="true">
+                    <span>Dish &amp; category</span><span>Current price</span><span>Units sold</span>
+                    <span>Sales (RM)</span><span>Status</span><span>Availability</span>
+                </div>
+                @foreach (var item in categoryGroup)
+                {
+                    var metrics = Model.MetricsFor(item);
+                    <article class="menu-unified-item @(Model.FocusItemId == item.MenuItemID ? "is-recently-saved" : "")" id="menu-item-@item.MenuItemID">
+                        <div class="menu-unified-grid">
+                            <div class="menu-unified-dish">
+                                <strong>@item.Name</strong>
+                                @if (Model.FocusItemId == item.MenuItemID)
+                                {
+                                    <small class="menu-saved-marker">Just saved</small>
+                                }
+                                <small>@item.Category</small>
+                            </div>
+                            <div class="menu-unified-value" data-label="Current price">RM @item.Price.ToString("N2")</div>
+                            <div class="menu-unified-value" data-label="Units sold">@metrics.Units</div>
+                            <div class="menu-unified-value" data-label="Sales (RM)">RM @metrics.Sales.ToString("N2")</div>
+                            <div><span class="badge @(item.IsAvailable ? "" : "menu-unavailable")">
+                                @(item.IsAvailable ? "Available" : "Unavailable")
+                            </span></div>
+                            <form method="post" asp-page-handler="ToggleAvailability" class="menu-unified-availability"
+                                  onsubmit="return @(item.IsAvailable ? "confirm('Disable this dish on the customer menu?');" : "true;")">
+                            <input type="hidden" name="Search" value="@Model.Search" />
+                            <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
+                            <input type="hidden" name="FilterAvailability" value="@Model.FilterAvailability" />
+                            <input type="hidden" name="SortBy" value="@Model.SortBy" />
+                            <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                            <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+                                <input type="hidden" name="itemId" value="@item.MenuItemID" />
+                                <button type="submit" class="menu-availability-action @(item.IsAvailable ? "menu-action-disable" : "menu-action-enable")"
+                                        aria-label="@(item.IsAvailable ? "Disable" : "Enable") @item.Name for customer orders">
+                                    @(item.IsAvailable ? "Disable" : "Enable")
+                                </button>
+                            </form>
+
+        </div>
+                        <div class="menu-unified-details">
+                            <details class="menu-editor-panel">
+                                <summary>Edit details <span>⌄</span></summary>
+                                <div class="menu-editor-inner">
+                                    <form method="post" asp-page-handler="SaveItem" enctype="multipart/form-data">
+                            <input type="hidden" name="Search" value="@Model.Search" />
+                            <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
+                            <input type="hidden" name="FilterAvailability" value="@Model.FilterAvailability" />
+                            <input type="hidden" name="SortBy" value="@Model.SortBy" />
+                            <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                            <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+                                        <partial name="_MenuItemEditor" model="item" />
+                                    </form>
+                                </div>
+                            </details>
+                            <details class="menu-trend-panel">
+                                <summary>View trend <span>⌄</span></summary>
+                                <div class="menu-trend-body">
+                                    <div class="menu-trend-heading">
+                                        <div>
+                                            <h3>@item.Name: Ordering Trend</h3>
+                                            <p class="muted">Based on order placement dates; grouped by @Model.TrendInterval.</p>
+                                        </div>
+                                        <div class="menu-trend-switch" role="group" aria-label="Choose chart measure">
+                                            <button type="button" class="menu-trend-mode active" data-trend-mode="units" aria-pressed="true">Units</button>
+                                            <button type="button" class="menu-trend-mode" data-trend-mode="sales" aria-pressed="false">Sales (RM)</button>
+                                        </div>
+                                    </div>
+                                    <p class="menu-trend-explanation">Switch between units ordered and sales value in RM. Every dish uses the same Units scale and the same Sales scale for the selected reporting period, so their trends can be compared directly.</p>
+                                    @if (!Model.HasValidPeriod)
+                                    {
+                                        <p class="notice">Select a valid reporting period to view this chart.</p>
+                                    }
+                                    else if (metrics.Units == 0)
+                                    {
+                                        <p class="notice">No non-cancelled orders for this dish during the selected period.</p>
+                                    }
+                                    else
+                                    {
+                                        var peakUnits = Model.TrendUnitsAxisStep * 5;
+                                        var peakSales = Model.TrendSalesAxisStep * 5m;
+                                        var dots = metrics.Trend.Select((point, index) => new
+                                        {
+                                            Point = point,
+                                            X = (metrics.Trend.Count == 1 ? 465d : 90d + index * 750d / (metrics.Trend.Count - 1))
+                                                .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture),
+                                            UnitY = (226d - point.Units * 170d / peakUnits)
+                                                .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture),
+                                            SaleY = (226d - (double)(point.Sales / peakSales) * 170d)
+                                                .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)
+                                        }).ToList();
+                                        var unitLine = string.Join(" ", dots.Select(p => p.X + "," + p.UnitY));
+                                        var salesLine = string.Join(" ", dots.Select(p => p.X + "," + p.SaleY));
+                                        var labelEvery = Math.Max(1, (int)Math.Ceiling(dots.Count / 5d));
+                                        <div class="menu-trend-reading" aria-live="polite">
+                                            <span data-trend-axis-title>Units ordered</span>
+                                            <strong data-trend-summary>@metrics.Units units sold</strong>
+                                        </div>
+                                        <div class="menu-trend-chart reservation-chart-interactive" data-menu-trend-chart
+                                             data-units-total="@metrics.Units"
+                                             data-sales-total="@metrics.Sales.ToString("N2")">
+                                            <div class="menu-trend-scroll">
+                                                <svg viewBox="0 0 900 275" role="img" aria-label="Ordering trend for @item.Name. Hover or focus on a data point for quantity and sales.">
+                                                    @for (var tick = 0; tick <= 5; tick++)
+                                                    {
+                                                        var y = 226d - tick * 170d / 5d;
+                                                        var yText = y.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+                                                        var unitsTick = Model.TrendUnitsAxisStep * tick;
+                                                        var salesValue = Model.TrendSalesAxisStep * tick;
+                                                        var salesTick = salesValue.ToString(salesValue % 1m == 0m ? "N0" : "N2");
+                                                        <line class="reservation-chart-gridline" x1="85" y1="@yText" x2="862" y2="@yText"></line>
+                                                        @Html.Raw($"<text class=\"reservation-chart-axis menu-trend-axis-tick\" x=\"75\" y=\"{(y + 4d).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}\" text-anchor=\"end\" data-trend-axis data-units-label=\"{unitsTick}\" data-sales-label=\"RM {salesTick}\">{unitsTick}</text>")
+                                                    }
+                                                    <polyline class="reservation-chart-line menu-trend-line" points="@unitLine"
+                                                              data-units-line="@unitLine" data-sales-line="@salesLine"></polyline>
+                                                    @for (var index = 0; index < dots.Count; index++)
+                                                    {
+                                                        var point = dots[index];
+                                                        <circle class="reservation-chart-point menu-trend-point" cx="@point.X" cy="@point.UnitY"
+                                                                r="6" tabindex="0" data-menu-trend-point
+                                                                data-units-y="@point.UnitY" data-sales-y="@point.SaleY"
+                                                                data-chart-date="@point.Point.Date.ToString("dd MMM yyyy")"
+                                                                data-chart-units="@point.Point.Units"
+                                                                data-chart-sales="@point.Point.Sales.ToString("N2")"
+                                                                aria-label="@($"{point.Point.Date:dd MMM yyyy}: {point.Point.Units} units, RM {point.Point.Sales:N2} in sales")"></circle>
+                                                        if (index % labelEvery == 0 || index == dots.Count - 1)
+                                                        {
+                                                            @Html.Raw($"<text class=\"reservation-chart-axis reservation-chart-date\" x=\"{point.X}\" y=\"261\" text-anchor=\"middle\">{System.Net.WebUtility.HtmlEncode(point.Point.Date.ToString(Model.TrendInterval == "month" ? "MMM yy" : "dd MMM"))}</text>")
+                                                        }
+                                                    }
+                                                </svg>
+                                            </div>
+                                            <div class="reservation-chart-tooltip menu-trend-tooltip" role="tooltip" hidden>
+                                                <strong data-trend-tooltip-date></strong>
+                                                <span data-trend-tooltip-units></span>
+                                                <span data-trend-tooltip-sales></span>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </details>
+                        </div>
+                    </article>
+                }
+
+            </section>
         }
     </div>
 </section>
@@ -393,58 +431,76 @@
             }
             <details class="menu-performance-data menu-unified-dish-ranking">
                 <summary>View dish popularity comparison</summary>
-                @if (string.IsNullOrWhiteSpace(Model.FilterCategory))
+                @if (Model.CategoryPerformance.Count == 0)
                 {
-                    <p class="muted">Choose one category above to compare its dishes on a ranked line chart.</p>
-                }
-                else if (Model.Items.Count == 0)
-                {
-                    <p class="muted">No matching dishes in this category.</p>
+                    <p class="muted">No matching dishes to compare for these filters.</p>
                 }
                 else
                 {
-                    var ranked = Model.Items.OrderByDescending(i => Model.MetricsFor(i).Units).ToList();
-                    var chartWidth = Math.Max(975, ranked.Count * 180);
-                    var maximum = Math.Max(4, ranked.Max(i => Model.MetricsFor(i).Units));
-                    string Plot(double n) => n.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
-                    var ranks = ranked.Select((dish, index) => new
-                    {
-                        Dish = dish,
-                        Metric = Model.MetricsFor(dish),
-                        X = Plot(ranked.Count == 1 ? chartWidth / 2d : 95d + index * (chartWidth - 190d) / (ranked.Count - 1)),
-                        Y = Plot(245d - Model.MetricsFor(dish).Units * 215d / maximum),
-                        Label = dish.Name.Length <= 18 ? dish.Name : dish.Name[..16] + "…"
-                    }).ToList();
-                    var rankLine = string.Join(" ", ranks.Select(point => point.X + "," + point.Y));
-                    <p class="muted">Items are ranked by units ordered, not by date. Hover or focus for exact quantity and sales.</p>
-                    <div class="reservation-chart-interactive menu-rank-interactive">
-                        <div class="reservation-line-chart">
-                            <svg viewBox="0 0 @chartWidth 310" style="min-width: @(Math.Max(570, ranked.Count * 180))px"
-                                 role="img" aria-label="Dish popularity comparison for @Model.FilterCategory">
-                                @for (var tick = 0; tick <= 4; tick++)
-                                {
-                                    var y = Plot(245d - tick * 215d / 4d);
-                                    var value = (int)Math.Round(maximum * tick / 4d);
-                                    <line class="reservation-chart-gridline" x1="80" y1="@y" x2="@Plot(chartWidth - 80d)" y2="@y"></line>
-                                    @Html.Raw($"<text class=\"reservation-chart-axis\" x=\"65\" y=\"{Plot(249d - tick * 215d / 4d)}\" text-anchor=\"end\">{value}</text>")
-                                }
-                                <polyline class="reservation-chart-line" points="@rankLine"></polyline>
-                                @foreach (var rank in ranks)
-                                {
-                                    <circle class="reservation-chart-point" cx="@rank.X" cy="@rank.Y" r="8"
-                                            tabindex="0" data-menu-point data-chart-count="@rank.Metric.Units"
-                                            data-chart-name="@rank.Dish.Name" data-chart-sales="@rank.Metric.Sales.ToString("N2")"
-                                            aria-label="@($"{rank.Dish.Name}: {rank.Metric.Units} units and RM {rank.Metric.Sales:N2} sales")"></circle>
-                                    @Html.Raw($"<text class=\"reservation-chart-axis reservation-chart-date\" x=\"{rank.X}\" y=\"279\" text-anchor=\"middle\">{System.Net.WebUtility.HtmlEncode(rank.Label)}</text>")
-                                }
-                            </svg>
+                    <div class="menu-comparison-picker">
+                        <div>
+                            <label for="menu-comparison-category">Compare dishes in</label>
+                            <p class="muted">Choose a category to compare its dishes without changing the other filters.</p>
                         </div>
-                        <div class="reservation-chart-tooltip" role="tooltip" hidden>
-                            <strong data-chart-tooltip-name></strong>
-                            <span data-chart-tooltip-count></span>
-                            <span data-chart-tooltip-sales></span>
-                        </div>
+                        <select id="menu-comparison-category" class="menu-comparison-select" data-menu-comparison-category>
+                            @foreach (var category in Model.CategoryPerformance)
+                            {
+                                <option value="@category.Name">@category.Name (@category.Dishes dishes)</option>
+                            }
+                        </select>
                     </div>
+                    @foreach (var category in Model.CategoryPerformance)
+                    {
+                        var ranked = Model.Items.Where(item => item.Category == category.Name)
+                            .OrderByDescending(item => Model.MetricsFor(item).Units)
+                            .ThenBy(item => item.Name)
+                            .ToList();
+                        var chartWidth = Math.Max(975, ranked.Count * 180);
+                        var maximum = Math.Max(4, ranked.Max(item => Model.MetricsFor(item).Units));
+                        string Plot(double number) => number.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+                        var ranks = ranked.Select((dish, index) => new
+                        {
+                            Dish = dish,
+                            Metric = Model.MetricsFor(dish),
+                            X = Plot(ranked.Count == 1 ? chartWidth / 2d : 95d + index * (chartWidth - 190d) / (ranked.Count - 1)),
+                            Y = Plot(245d - Model.MetricsFor(dish).Units * 215d / maximum),
+                            Label = dish.Name.Length <= 18 ? dish.Name : dish.Name[..16] + "…"
+                        }).ToList();
+                        var rankLine = string.Join(" ", ranks.Select(point => point.X + "," + point.Y));
+                        <div class="menu-comparison-panel" data-menu-comparison-panel="@category.Name"
+                             hidden="@(category.Name != Model.CategoryPerformance[0].Name)">
+                            <p class="menu-comparison-caption"><strong>@category.Name</strong> · @category.Dishes dishes · @category.Units units sold</p>
+                            <p class="muted">Dishes are ranked by units ordered, not by date. Hover or focus for exact quantities and sales.</p>
+                            <div class="reservation-chart-interactive menu-rank-interactive">
+                                <div class="reservation-line-chart">
+                                    <svg viewBox="0 0 @chartWidth 310" style="min-width: @(Math.Max(570, ranked.Count * 180))px"
+                                         role="img" aria-label="Dish popularity comparison for @category.Name">
+                                        @for (var tick = 0; tick <= 4; tick++)
+                                        {
+                                            var y = Plot(245d - tick * 215d / 4d);
+                                            var value = (int)Math.Round(maximum * tick / 4d);
+                                            <line class="reservation-chart-gridline" x1="80" y1="@y" x2="@Plot(chartWidth - 80d)" y2="@y"></line>
+                                            @Html.Raw($"<text class=\"reservation-chart-axis\" x=\"65\" y=\"{Plot(249d - tick * 215d / 4d)}\" text-anchor=\"end\">{value}</text>")
+                                        }
+                                        <polyline class="reservation-chart-line" points="@rankLine"></polyline>
+                                        @foreach (var rank in ranks)
+                                        {
+                                            <circle class="reservation-chart-point" cx="@rank.X" cy="@rank.Y" r="8"
+                                                    tabindex="0" data-menu-point data-chart-count="@rank.Metric.Units"
+                                                    data-chart-name="@rank.Dish.Name" data-chart-sales="@rank.Metric.Sales.ToString("N2")"
+                                                    aria-label="@($"{rank.Dish.Name}: {rank.Metric.Units} units and RM {rank.Metric.Sales:N2} sales")"></circle>
+                                            @Html.Raw($"<text class=\"reservation-chart-axis reservation-chart-date\" x=\"{rank.X}\" y=\"279\" text-anchor=\"middle\">{System.Net.WebUtility.HtmlEncode(rank.Label)}</text>")
+                                        }
+                                    </svg>
+                                </div>
+                                <div class="reservation-chart-tooltip" role="tooltip" hidden>
+                                    <strong data-chart-tooltip-name></strong>
+                                    <span data-chart-tooltip-count></span>
+                                    <span data-chart-tooltip-sales></span>
+                                </div>
+                            </div>
+                        </div>
+                    }
                 }
             </details>
             <p class="muted">A dish with zero orders may be newly added, unavailable or intentionally niche. Low sales alone do not measure profitability.</p>
@@ -565,6 +621,33 @@
                 point.addEventListener('blur', () => tooltip.hidden = true);
             });
             container.querySelector('.menu-trend-scroll')?.addEventListener('scroll', () => tooltip.hidden = true, { passive: true });
+        });
+
+        // Category tabs keep the menu grouped while letting staff focus on one section.
+        const menuTabs = Array.from(document.querySelectorAll('[data-menu-category-tab]'));
+        const menuPanels = Array.from(document.querySelectorAll('[data-menu-category-panel]'));
+        menuTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const selected = tab.dataset.menuCategoryTab;
+                menuPanels.forEach(panel => {
+                    panel.hidden = selected !== 'all' && panel.dataset.menuCategoryPanel !== selected;
+                });
+                menuTabs.forEach(choice => {
+                    const active = choice === tab;
+                    choice.classList.toggle('is-active', active);
+                    choice.setAttribute('aria-pressed', String(active));
+                });
+            });
+        });
+
+        // The comparison dropdown is independent from the page-wide category filter.
+        const comparisonPicker = document.querySelector('[data-menu-comparison-category]');
+        comparisonPicker?.addEventListener('change', () => {
+            document.querySelectorAll('[data-menu-comparison-panel]').forEach(panel => {
+                panel.hidden = panel.dataset.menuComparisonPanel !== comparisonPicker.value;
+                const tooltip = panel.querySelector('.reservation-chart-tooltip');
+                if (tooltip) tooltip.hidden = true;
+            });
         });
 
         const savedDishId = @Model.FocusItemId.GetValueOrDefault(0);
