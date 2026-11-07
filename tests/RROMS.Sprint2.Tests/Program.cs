@@ -125,7 +125,7 @@ try
     Check(await db.StaffAccounts.AnyAsync(a => a.Email == "staff@celeste.local" && a.PasswordHash == legacyStaffHash), "Legacy staff credentials move into StaffAccounts");
 
 
-    var unusedColumns = await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.columns c JOIN sys.tables t ON c.object_id=t.object_id WHERE (t.name='Customers' AND c.name='Password') OR (t.name='DiningAreas' AND c.name IN ('AreaName','Description')) OR (t.name='RestaurantSettings' AND c.name IN ('DepositPerPerson','ReservationDurationMinutes','MaxModificationCount','GracePeriod','LateArrivalPeriod'))").SingleAsync();
+    var unusedColumns = await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.columns c JOIN sys.tables t ON c.object_id=t.object_id WHERE (t.name='Customers' AND c.name='Password') OR (t.name='DiningAreas' AND c.name IN ('AreaName','Description')) OR (t.name='RestaurantSettings' AND c.name IN ('DepositPerPerson','ReservationDurationMinutes','MaxModificationCount','GracePeriod','LateArrivalPeriod')) OR (t.name='MenuItems' AND c.name='SpiceLevel')").SingleAsync();
     Check(unusedColumns == 0, "Unused columns removed by schema upgrade");
     var migratedSettings = await db.RestaurantSettings.FirstAsync();
     Check(migratedSettings.OpeningTime == TimeSpan.FromHours(12) && migratedSettings.ClosingTime == TimeSpan.FromHours(22), "Existing settings upgraded with usable opening hours");

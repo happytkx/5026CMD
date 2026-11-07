@@ -533,9 +533,6 @@ namespace RROMS.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
-                    b.Property<int>("SpiceLevel")
-                        .HasColumnType("int");
-
                     b.Property<int?>("UpdatedByAdministratorID")
                         .HasColumnType("int");
 

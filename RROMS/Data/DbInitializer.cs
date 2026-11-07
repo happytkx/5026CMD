@@ -157,8 +157,7 @@ namespace RROMS.Data
                                 Allergens = allergens,
                                 DietaryTags = dietaryTags,
                                 IsPopular = popular,
-                                IsAvailable = true,
-                                SpiceLevel = 0
+                                IsAvailable = true
                             };
                         }
 

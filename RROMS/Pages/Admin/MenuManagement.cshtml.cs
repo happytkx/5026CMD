@@ -407,7 +407,7 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
         MenuItem item;
         if (Dish.MenuItemID == 0)
         {
-            item = new MenuItem { SpiceLevel = 0 };
+            item = new MenuItem();
             db.MenuItems.Add(item);
         }
         else
