@@ -2294,10 +2294,26 @@ form.card.mybill-selector {
 .menu-unified-availability .menu-availability-action:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 .menu-unified-details {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(110px, .46fr);
     gap: 12px;
     padding: 0 14px 15px;
 }
+.menu-unified-delete-form { margin: 0; }
+.menu-unified-delete-form button {
+    width: 100%;
+    min-height: 43px;
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid #ba716a;
+    border-radius: 4px;
+    background: #fff;
+    color: #9c3833;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.menu-unified-delete-form button:hover { background: #fff1ef; border-color: #9c3833; }
+.menu-unified-delete-form button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 .menu-unified-details > details { min-width: 0; }
 .menu-unified-details > details[open] { grid-column: 1 / -1; }
 .menu-unified-details > details > summary {

@@ -391,6 +391,17 @@
                                     }
                                 </div>
                             </details>
+                            <form method="post" asp-page-handler="DeleteItem" class="menu-unified-delete-form"
+                                  onsubmit="return confirm('Permanently delete this dish? This cannot be undone. Dishes linked to orders must be disabled instead.');">
+                                <input type="hidden" name="Search" value="@Model.Search" />
+                                <input type="hidden" name="FilterCategory" value="@Model.FilterCategory" />
+                                <input type="hidden" name="FilterAvailability" value="@Model.FilterAvailability" />
+                                <input type="hidden" name="SortBy" value="@Model.SortBy" />
+                                <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                                <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+                                <input type="hidden" name="itemId" value="@item.MenuItemID" />
+                                <button type="submit" aria-label="Permanently delete @item.Name">Delete dish</button>
+                            </form>
                         </div>
                     </article>
                 }

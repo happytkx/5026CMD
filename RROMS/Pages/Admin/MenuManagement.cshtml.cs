@@ -511,6 +511,28 @@ public class MenuManagementModel(ApplicationDbContext db, IWebHostEnvironment ho
         return $"/images/menu/uploads/{filename}";
     }
 
+    public async Task<IActionResult> OnPostDeleteItemAsync(int itemId)
+    {
+        var item = await db.MenuItems.FindAsync(itemId);
+        if (item is null) return NotFound();
+
+        const string historyWarning = "This dish is linked to orders and cannot be deleted. Disable it instead to preserve order history.";
+        if (await db.OrderLines.AnyAsync(line => line.MenuItemID == itemId))
+            return Error(historyWarning);
+
+        db.MenuItems.Remove(item);
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // A concurrent order may have linked this dish after the history check.
+            return Error("The dish could not be deleted. Disable it instead if it has order history.");
+        }
+        return Success($"Dish {item.Name} deleted permanently.");
+    }
+
     public async Task<IActionResult> OnPostToggleAvailabilityAsync(int itemId)
     {
         var item = await db.MenuItems.FindAsync(itemId);
