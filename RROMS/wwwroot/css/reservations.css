@@ -3081,7 +3081,8 @@ td small
 .staff-notifications-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 24px; }
 .staff-notifications-heading h1 { margin-bottom: 12px; }
 .staff-notifications-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.staff-notifications-actions form, .staff-notifications-actions form button { margin: 0; }
+.staff-notifications-actions form { margin: 0; padding: 0; border: 0; }
+.staff-notifications-actions form button { margin: 0; }
 .staff-notifications-actions .staff-notification-clear { border-color: #a44e43; color: #923e34; background: transparent; }
 .staff-notifications-actions .staff-notification-clear:hover { border-color: #923e34; color: #fff; background: #923e34; }
 .staff-notifications-actions .staff-notification-clear:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
@@ -3096,7 +3097,7 @@ td small
 .staff-notification-meta { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; color: var(--muted); font-size: 11px; }
 .staff-notification-meta span:first-child { text-transform: uppercase; letter-spacing: 1.5px; }
 .staff-alert-new { background: #e5e9db; color: var(--olive-deep); border-radius: 15px; padding: 2px 9px; }
-.staff-notification-item form { margin: 0; flex-shrink: 0; }
+.staff-notification-item form { margin: 0; padding: 0; border: 0; flex-shrink: 0; }
 .staff-notification-item form button { white-space: nowrap; }
 .staff-notification-item .staff-notification-dismiss { position: absolute; top: 12px; right: 14px; }
 .staff-notification-item .staff-notification-dismiss button {
