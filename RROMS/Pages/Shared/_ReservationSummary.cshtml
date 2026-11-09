@@ -1,33 +1,65 @@
 @model RROMS.Models.Reservation
-@* Reusable reservation sidebar showing the selected area, visit date/time, guest count, deposit and minimum spend. Its model is a Reservation. *@
+
+@* Reusable reservation summary.
+   Uses the amounts recorded on the reservation so that
+   later administrator setting changes do not alter
+   historical booking information. *@
+
 @{
     var photo = Model.PreferredDiningOption switch
     {
-        "Outdoor" => "celeste-outdoor.jpg", "VIP Room" => "celeste-private-dining.png", _ => "celeste-indoor.png"
+        "Outdoor" => "celeste-outdoor.jpg",
+        "VIP Room" => "celeste-private-dining.png",
+        _ => "celeste-indoor-2.png"
     };
+
+    decimal depositPerGuest = Model.PartySize > 0
+        ? Model.DepositAmount / Model.PartySize
+        : 0m;
 }
+
 <aside class="card reservation-summary">
     <p class="eyebrow">YOUR RESERVATION</p>
     <h3>A table at Céleste</h3>
-    <img src="~/images/@photo" alt="@Model.PreferredDiningOption dining area"/>
+
+    <img src="~/images/@photo"
+         alt="@Model.PreferredDiningOption dining area" />
+
     <dl>
         <dt>Dining preference</dt>
         <dd>@Model.PreferredDiningOption</dd>
+
         <dt>Date</dt>
         <dd>@Model.ReservationDate.ToString("dd MMM yyyy")</dd>
+
         <dt>Arrival time</dt>
-        <dd>@Model.ReservationDate.Add(Model.StartTime).ToString("h:mm tt")</dd>
+        <dd>
+            @(Model.ReservationDate.Add(Model.StartTime).ToString("h:mm tt"))
+        </dd>
+
         <dt>Guests</dt>
         <dd>@Model.PartySize</dd>
     </dl>
-    <hr/>
+
+    <hr />
+
     <dl>
         <dt>Deposit per guest</dt>
-        <dd>RM50</dd>
+        <dd>RM @depositPerGuest.ToString("N2")</dd>
+
         <dt>Total deposit</dt>
-        <dd class="amount">RM @Model.DepositAmount.ToString("N2")</dd>
+        <dd class="amount">
+            RM @Model.DepositAmount.ToString("N2")
+        </dd>
+
         <dt>Minimum spend</dt>
-        <dd>RM @Model.MinimumSpend.ToString("N2")</dd>
+        <dd>
+            RM @Model.MinimumSpend.ToString("N2")
+        </dd>
     </dl>
-    <p class="notice">The reservation is confirmed after successful payment. Your paid deposit is applied to your dining bill.</p>
+
+    <p class="notice">
+        The reservation is confirmed after successful payment.
+        Your paid deposit is applied to your dining bill.
+    </p>
 </aside>

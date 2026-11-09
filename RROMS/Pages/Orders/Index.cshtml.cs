@@ -20,7 +20,7 @@ public class IndexModel(ApplicationDbContext db) : PageModel
         var id = ReservationIdentity.CustomerId(User);
         Items = await db.Orders.AsNoTracking().Include(o => o.Lines).Include(o => o.Reservation)
             .Where(o => o.CustomerID == id).OrderByDescending(o => o.CreatedAt).ToListAsync();
-        ReviewedOrderIds = (await db.Reviews.Where(r => r.CustomerID == id).Select(r => r.OrderID).ToListAsync()).ToHashSet();
+        ReviewedOrderIds = (await db.Reviews.Where(r => r.CustomerID == id && r.OrderID.HasValue).Select(r => r.OrderID!.Value).ToListAsync()).ToHashSet();
     }
 
     // Authenticated SSE snapshots catch changes and reconnects without reloading review forms.

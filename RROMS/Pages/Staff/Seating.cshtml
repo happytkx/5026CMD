@@ -4,7 +4,9 @@
 @{
     ViewData["Title"]="Seating & allocation";var photo=Model.Area switch
     {
-        "Outdoor"=>"celeste-outdoor.jpg","VIP Room"=>"celeste-private-dining.png",_=>"celeste-indoor.png"
+        "Outdoor" => "celeste-outdoor.jpg",
+        "VIP Room" => "celeste-private-dining.png",
+        _ => "celeste-indoor-2.png"
     };
 }
 <p class="eyebrow">TABLE OVERSIGHT</p>

@@ -41,7 +41,14 @@ else
                 <div class="basket-line">
                     <div class="basket-item-info">
                         <strong>@l.Name</strong>
-                        <small>RM @l.Price.ToString("0.00") each</small>
+                        @if (l.Price < l.OriginalPrice)
+                        {
+                            <small><del>RM @l.OriginalPrice.ToString("0.00")</del> <strong>RM @l.Price.ToString("0.00") promotional price</strong> each</small>
+                        }
+                        else
+                        {
+                            <small>RM @l.Price.ToString("0.00") each</small>
+                        }
                     </div>
                     <form method="post" asp-page-handler="Change" class="basket-qty" aria-label="Quantity for @l.Name">
                         <input type="hidden" name="itemId" value="@l.Id" />

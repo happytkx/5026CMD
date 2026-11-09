@@ -1,8 +1,10 @@
 @page
 @* Staff workspace dashboard: service totals, date/status/name filters and links to manage each reservation. *@
 @model RROMS.Pages.Staff.IndexModel
+@inject RROMS.Services.ReservationService ReservationService
 @{
-    ViewData["Title"]="Daily reservations";
+    ViewData["Title"] = "Daily reservations";
+    var restaurantSettings = await ReservationService.Settings();
 }
 <p class="eyebrow">YOUR SERVICE OVERVIEW</p>
 <h1>Daily Reservations</h1>
@@ -15,8 +17,8 @@
     </article>
     <article class="card">
         <small>EXPECTED ARRIVALS</small>
-        <h2>@Model.DailyBookings.Count(r=>r.ReservationStatus=="Confirmed")</h2>
-        <p>Confirmed and awaiting check-in</p>
+        <h2>@Model.DailyBookings.Count(r => r.ReservationStatus == "Confirmed")</h2>
+        <p>Confirmed bookings for this date, awaiting check-in</p>
     </article>
     <article class="card">
         <a class="text-reset text-decoration-none"
@@ -38,27 +40,27 @@
 
     <article class="card">
         <small>ATTENTION NEEDED</small>
-        <h2>@Model.DailyBookings.Count(r=>r.ReservationStatus=="No-show" || (r.ReservationStatus=="Confirmed" && r.LateArrivalNotified))</h2>
+        <h2>@Model.DailyBookings.Count(r => r.ReservationStatus == "No-show" || (r.ReservationStatus == "Confirmed" && r.LateArrivalNotified))</h2>
         <p>Late arrivals / no-shows</p>
     </article>
 </section>
 <section class="card">
     <h3>Reservation Schedule</h3>
-    <p>Choose a service date, filter bookings, then open a reservation to manage it. Confirmation requires the RM50-per-guest deposit.</p>
+    <p>Choose a service date, filter bookings, then open a reservation to manage it. Confirmation requires the RM @restaurantSettings.DepositPerGuest.ToString("N2")-per-guest deposit for new reservations. Existing reservations retain their original deposit amounts.</p>
     <form method="get" class="staff-search">
-        <input asp-for="Search" aria-label="Search reference or guest name" placeholder="Search reference or guest name…"/>
+        <input asp-for="Search" aria-label="Search reference or guest name" placeholder="Search reference or guest name…" />
         <select asp-for="Status" aria-label="Reservation status">
             <option value="">
                 All statuses
             </option>
-            @foreach (var s in new[]{"Pending","Confirmed","Seated","Completed","Cancelled","No-show","Expired"})
+            @foreach (var s in new[] { "Pending", "Confirmed", "Seated", "Completed", "Cancelled", "No-show", "Expired" })
             {
                 <option>
                     @s
                 </option>
             }
         </select>
-        <input asp-for="Date" type="date" aria-label="Service date"/>
+        <input asp-for="Date" type="date" aria-label="Service date" />
         <button>View</button>
     </form>
     <div class="table-wrap">
@@ -92,14 +94,14 @@
                     <tr>
                         <td>
                             <strong>@r.ReservationDate.Add(r.StartTime).ToString("h:mm tt")</strong>
-                            <br/>
+                            <br />
                             <small>@r.BookingReference</small>
                         </td>
                         <td>
                             <strong>@r.Customer.CustomerName</strong>
                             @if (r.LateArrivalNotified)
                             {
-                                <br/>
+                                <br />
                                 <small>Late arrival notified</small>
                             }
                         </td>
@@ -139,13 +141,20 @@
                                     Reschedule
                                 </a>
                             }
+                            @if (r.ReservationStatus == "Confirmed")
+                            {
+                                <a class="staff-reservation-shortcut" asp-page="/Reservations/Details"
+                                   asp-route-id="@r.ReservationID" asp-fragment="staff-guest-arrival">
+                                    Guest check-in
+                                </a>
+                            }
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
     </div>
-    @if (Model.Bookings.Count==0)
+    @if (Model.Bookings.Count == 0)
     {
         <p>No reservations match this date and filter.</p>
     }

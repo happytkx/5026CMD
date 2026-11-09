@@ -30,6 +30,8 @@ public class IndexModel(ApplicationDbContext db, ReservationService service) : P
         DailyBookings = await db.Reservations.AsNoTracking().Include(r => r.Customer)
             .Where(r => r.ReservationDate == Date.Date)
             .OrderBy(r => r.StartTime).ToListAsync();
-        Bookings = DailyBookings.Where(r => (string.IsNullOrEmpty(Status) || r.ReservationStatus == Status) && (string.IsNullOrWhiteSpace(Search) || r.BookingReference.Contains(Search, StringComparison.OrdinalIgnoreCase) || r.Customer.CustomerName.Contains(Search, StringComparison.OrdinalIgnoreCase))).ToList();
+        Bookings = DailyBookings.Where(r => (string.IsNullOrEmpty(Status) || r.ReservationStatus == Status) && 
+        (string.IsNullOrWhiteSpace(Search) || r.BookingReference.Contains(Search, StringComparison.OrdinalIgnoreCase) || 
+        r.Customer.CustomerName.Contains(Search, StringComparison.OrdinalIgnoreCase))).ToList();
     }
 }

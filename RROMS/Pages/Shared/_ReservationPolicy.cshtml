@@ -1,49 +1,188 @@
-@* Shared reservation policy, displayed at the beginning and before the deposit step. *@
-<p class="eyebrow">PLEASE READ BEFORE BOOKING</p>
-<h3 id="reservation-policy-title">Reservation Policy</h3>
-<p>Please review the following rules before booking and continuing to your deposit.</p>
+@inject RROMS.Services.ReservationService ReservationService
 
-                <div class="reservation-policy-grid">
-                    <div>
-                        <h4>Deposit &amp; minimum spend</h4>
-                        <ul>
-                            <li>A <strong>RM50 deposit per guest</strong> is required. The reservation is confirmed only after successful payment.</li>
-                            <li>The deposit is deducted from your final dining bill. Indoor/outdoor minimum spending is RM50 per guest.</li>
-                            <li>VIP minimum spending is <strong>RM2,400 for 6–8 guests</strong> or <strong>RM3,600 for 9–12 guests</strong>. This is the total dining minimum, separate from the deposit.</li>
-                            <li>Complete payment within the displayed hold period of up to 10 minutes, or the unpaid booking expires.</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4>Cancellation</h4>
-                        <ul>
-                            <li>You may cancel a pending or confirmed booking. Seated and completed bookings cannot be cancelled.</li>
-                            <li><strong>The entire paid deposit is forfeited, regardless of how early you cancel. No refunds are provided.</strong> An unpaid pending booking has no paid deposit to forfeit.</li>
-                            <li>Cancellation releases your assigned seating. A new booking requires a new deposit.</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4>Modification</h4>
-                        <ul>
-                            <li>A confirmed booking may be rescheduled <strong>once, more than 168 hours (7 full days) before its original date and time</strong>, subject to availability.</li>
-                            <li>Only the date and/or arrival time may change. Party size and dining area stay unchanged.</li>
-                            <li>Your deposit stays attached; no additional deposit is required. Staff follow the same restrictions.</li>
-                            <li>If modification is unavailable, you must cancel, forfeit the paid deposit and make a new booking with a new deposit.</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4>Dining duration</h4>
-                        <ul>
-                            <li><strong>Indoor/outdoor: 2 hours</strong> from your reserved arrival time.</li>
-                            <li><strong>VIP room: from your reserved arrival time until closing.</strong></li>
-                            <li>Arriving late does not extend your dining end time.</li>
-                        </ul>
-                    </div>
-                    <div class="policy-arrival">
-                        <h4>Arrival &amp; late arrival</h4>
-                        <ul>
-                            <li>Check in with restaurant staff on arrival. Dine-in ordering is activated after staff check-in.</li>
-                            <li>Your seating is normally held for <strong>10 minutes</strong>. Report a delay through your reservation page before that deadline to extend the hold to <strong>30 minutes from your reserved arrival time</strong>.</li>
-                            <li>If you do not check in before the applicable deadline, the booking is marked <strong>No-show</strong>, the paid deposit is forfeited and your seating is released.</li>
-                        </ul>
-                    </div>
-                </div>
+@{
+    // Read the latest restaurant configuration.
+    // The policy will reflect changes made by the administrator.
+    var settings = await ReservationService.Settings();
+
+    var depositPerGuest = settings.DepositPerGuest;
+    var standardMinimumSpend = settings.StandardMinimumSpendPerGuest;
+    var vipSmallMinimumSpend = settings.VipMinimumSpendSmallGroup;
+    var vipLargeMinimumSpend = settings.VipMinimumSpendLargeGroup;
+}
+
+@* Shared reservation policy, displayed at the beginning
+   and before the deposit step. *@
+
+<p class="eyebrow">PLEASE READ BEFORE BOOKING</p>
+
+<h3 id="reservation-policy-title">Reservation Policy</h3>
+
+<p>
+    Please review the following rules before booking
+    and continuing to your deposit.
+</p>
+
+<div class="reservation-policy-grid">
+
+    <div>
+        <h4>Deposit &amp; minimum spend</h4>
+
+        <ul>
+            <li>
+                A
+                <strong>
+                    RM @depositPerGuest.ToString("N2") deposit per guest
+                </strong>
+                is required. The reservation is confirmed only
+                after successful payment.
+            </li>
+
+            <li>
+                The deposit is deducted from your final dining bill.
+                Indoor/outdoor minimum spending is
+                <strong>
+                    RM @standardMinimumSpend.ToString("N2") per guest.
+                </strong>
+            </li>
+
+            <li>
+                VIP minimum spending is
+                <strong>
+                    RM @vipSmallMinimumSpend.ToString("N2")
+                    for 6–8 guests
+                </strong>
+                or
+                <strong>
+                    RM @vipLargeMinimumSpend.ToString("N2")
+                    for 9–12 guests.
+                </strong>
+                This is the total dining minimum, separate from
+                the deposit.
+            </li>
+
+            <li>
+                The restaurant currently accepts reservations
+                for @settings.MinimumPartySize to
+                @settings.MaximumPartySize guests,
+                subject to dining-area capacity.
+            </li>
+
+            <li>
+                Complete payment within the displayed hold period
+                of up to 10 minutes, or the unpaid booking expires.
+            </li>
+        </ul>
+    </div>
+
+    <div>
+        <h4>Cancellation</h4>
+
+        <ul>
+            <li>
+                You may cancel a pending or confirmed booking.
+                Seated and completed bookings cannot be cancelled.
+            </li>
+
+            <li>
+                <strong>
+                    The entire paid deposit is forfeited,
+                    regardless of how early you cancel.
+                    No refunds are provided.
+                </strong>
+                An unpaid pending booking has no paid deposit
+                to forfeit.
+            </li>
+
+            <li>
+                Cancellation releases your assigned seating.
+                A new booking requires a new deposit.
+            </li>
+        </ul>
+    </div>
+
+    <div>
+        <h4>Modification</h4>
+
+        <ul>
+            <li>
+                A confirmed booking may be rescheduled
+                <strong>
+                    once, more than 168 hours
+                    (7 full days) before its original
+                    date and time
+                </strong>,
+                subject to availability.
+            </li>
+
+            <li>
+                Only the date and/or arrival time may change.
+                Party size and dining area stay unchanged.
+            </li>
+
+            <li>
+                Your deposit stays attached;
+                no additional deposit is required.
+                Staff follow the same restrictions.
+            </li>
+
+            <li>
+                If modification is unavailable, you must cancel,
+                forfeit the paid deposit and make a new booking
+                with a new deposit.
+            </li>
+        </ul>
+    </div>
+
+    <div>
+        <h4>Dining duration</h4>
+
+        <ul>
+            <li>
+                <strong>Indoor/outdoor: 2 hours</strong>
+                from your reserved arrival time.
+            </li>
+
+            <li>
+                <strong>
+                    VIP room: from your reserved arrival time
+                    until closing.
+                </strong>
+            </li>
+
+            <li>
+                Arriving late does not extend your dining end time.
+            </li>
+        </ul>
+    </div>
+
+    <div class="policy-arrival">
+        <h4>Arrival &amp; late arrival</h4>
+
+        <ul>
+            <li>
+                Check in with restaurant staff on arrival.
+                Dine-in ordering is activated after staff check-in.
+            </li>
+
+            <li>
+                Your seating is normally held for
+                <strong>10 minutes</strong>.
+                Report a delay through your reservation page
+                before that deadline to extend the hold to
+                <strong>
+                    30 minutes from your reserved arrival time.
+                </strong>
+            </li>
+
+            <li>
+                If you do not check in before the applicable
+                deadline, the booking is marked
+                <strong>No-show</strong>,
+                the paid deposit is forfeited and your seating
+                is released.
+            </li>
+        </ul>
+    </div>
+
+</div>

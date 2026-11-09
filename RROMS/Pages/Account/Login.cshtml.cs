@@ -1,4 +1,3 @@
-// Email and password sign-in for customers, staff and administrators, with a temporary lockout after repeated failures.
 
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
@@ -9,21 +8,16 @@ using RROMS.Services;
 
 namespace RROMS.Pages.Account;
 
-[EnableRateLimiting("staff-accounts")]
+// Customer login only.
+// Staff and administrators use StaffLogin.cshtml.
+[EnableRateLimiting("accounts")]
 public class LoginModel : PageModel
 {
-    private readonly CustomerAccountService _customerAccounts;
-    private readonly StaffAccountService _staffAccounts;
-    private readonly AdministratorAccountService _adminAccounts;
+    private readonly CustomerAccountService _accounts;
 
-    public LoginModel(
-        CustomerAccountService customerAccounts,
-        StaffAccountService staffAccounts,
-        AdministratorAccountService adminAccounts)
+    public LoginModel(CustomerAccountService accounts)
     {
-        _customerAccounts = customerAccounts;
-        _staffAccounts = staffAccounts;
-        _adminAccounts = adminAccounts;
+        _accounts = accounts;
     }
 
     [BindProperty, Required, EmailAddress, StringLength(100)]
@@ -50,60 +44,26 @@ public class LoginModel : PageModel
             return Page();
         }
 
-        // Check whether the account belongs to an administrator.
-        var admin = await _adminAccounts.Authenticate(Email, Password);
+        var customer = await _accounts.Authenticate(Email, Password);
 
-        if (admin != null)
+        if (customer == null)
         {
-            Basket.Clear(HttpContext.Session);
-
-            await InternalAccountAuth.SignInAsync(
-                HttpContext, admin, RememberMe);
-
-            return LocalRedirect(GetDestination(Customer.AdminRole));
+            ModelState.AddModelError("", "Invalid email or password.");
+            return Page();
         }
 
-        // Check whether the account belongs to a customer.
-        var customer = await _customerAccounts.Authenticate(
-            Email, Password);
+        // Clear the previous session basket.
+        Basket.Clear(HttpContext.Session);
 
-        if (customer != null)
-        {
-            Basket.Clear(HttpContext.Session);
+        await CustomerAuth.SignInAsync(
+            HttpContext, customer, RememberMe);
 
-            await CustomerAuth.SignInAsync(
-                HttpContext, customer, RememberMe);
-
-            return LocalRedirect(GetDestination(customer.Role));
-        }
-
-        // Check whether the account belongs to restaurant staff.
-        var staff = await _staffAccounts.Authenticate(
-            Email, Password);
-
-        if (staff != null)
-        {
-            Basket.Clear(HttpContext.Session);
-
-            await InternalAccountAuth.SignInAsync(
-                HttpContext, staff, RememberMe);
-
-            return LocalRedirect(GetDestination(Customer.StaffRole));
-        }
-
-        ModelState.AddModelError(
-            "", "Invalid email or password.");
-
-        return Page();
-    }
-
-    private string GetDestination(string role)
-    {
         if (Url.IsLocalUrl(ReturnUrl))
         {
-            return ReturnUrl!;
+            return LocalRedirect(ReturnUrl!);
         }
 
-        return Url.Page(CustomerAuth.LandingPage(role))!;
+        return LocalRedirect(
+            Url.Page(CustomerAuth.LandingPage(Customer.CustomerRole))!);
     }
 }

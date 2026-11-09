@@ -1,4 +1,4 @@
-// Customer rating and comment for a completed order. Each customer can review an order once.
+// Customer rating and comment, optionally linked to a completed dining order.
 using System.ComponentModel.DataAnnotations;
 
 namespace RROMS.Models
@@ -16,7 +16,7 @@ namespace RROMS.Models
             get; set;
         }
 
-        public int OrderID
+        public int? OrderID
         {
             get; set;
         }
@@ -37,6 +37,6 @@ namespace RROMS.Models
 
         public Customer Customer { get; set; } = null!;
 
-        public CustomerOrder Order { get; set; } = null!;
+        public CustomerOrder? Order { get; set; }
     }
 }

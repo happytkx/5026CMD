@@ -18,7 +18,7 @@
 @if (Model.Stage == "Search")
 {
     <p class="notice">Book and complete deposit payment at least 2 hours before Indoor/Outdoor visits or 24 hours before VIP visits. New times selected when rescheduling must also satisfy these limits. All times are Malaysia time (Asia/Kuala_Lumpur).</p>
-<section class="search-hero">
+    <section class="search-hero">
         <div>
             <p class="eyebrow">THE CÉLESTE EXPERIENCE</p>
             <h1>Reserve Your <em>Table</em></h1>
@@ -51,7 +51,7 @@
             <div>
                 <label asp-for="PartySize">Number of guests</label>
                 <select asp-for="PartySize">
-                    @for (var n = 1; n <= 12; n++)
+                    @for (var n = Model.Settings.MinimumPartySize; n <= Model.Settings.MaximumPartySize; n++)
                     {
                         <option value="@n">@n Guests</option>
                     }
@@ -72,7 +72,7 @@
                 {
                     "Outdoor" => "celeste-outdoor.jpg",
                     "VIP Room" => "celeste-private-dining.png",
-                    _ => "celeste-indoor.png"
+                    _ => "celeste-indoor-2.png"
                 };
                 var allowed = ReservationPolicy.Areas(Model.PartySize).Contains(area);
 
@@ -92,7 +92,7 @@
         <div class="form-actions">
             <p class="muted">
                 Tables are assigned automatically within your chosen area.<br />
-                RM50 deposit per guest · Indoor/outdoor: 2 hours · VIP: until closing.
+                RM @Model.Settings.DepositPerGuest.ToString("N2") deposit per guest · Indoor/outdoor: 2 hours · VIP: until closing.
             </p>
             <button>Check availability →</button>
         </div>
@@ -131,7 +131,7 @@ else if (Model.Stage == "Availability")
                 {
                     <p>Table sizes: 1–2 guests use 2–4 seats; 3–4 use 4–6 seats; 5–6 use 6–8 seats; 7–8 use 8 seats.</p>
                 }
-                <p>Minimum spend: RM @ReservationPolicy.MinimumSpend(Model.PartySize, Model.Area).ToString("N2")</p>
+                <p>Minimum spend: RM @ReservationPolicy.MinimumSpend(Model.PartySize, Model.Area, Model.Settings).ToString("N2")</p>
             </div>
         </aside>
 
@@ -288,7 +288,7 @@ else
                 const radios = [...document.querySelectorAll('.area-choice input')];
 
                 radios.forEach(r => {
-                    const allowed = r.value === 'VIP Room' ? size >= 6 : size <= 8;
+                    const allowed = r.value === 'VIP Room' ? size >= 6 && size <= 12 : size >= 1 && size <= 8;
 
                     r.disabled = !allowed;
                     r.closest('label').classList.toggle('unavailable', !allowed);
@@ -298,7 +298,8 @@ else
 
                 // If the previous area is no longer allowed, select the first eligible area.
                 if (!radios.some(r => r.checked && !r.disabled)) {
-                    radios.find(r => !r.disabled).checked = true;
+                    const firstAllowed = radios.find(r => !r.disabled);
+                    if (firstAllowed) firstAllowed.checked = true;
                 }
             });
         }

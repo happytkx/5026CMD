@@ -10,23 +10,33 @@ namespace RROMS.Services;
 // Availability must be checked inside the transaction, not only when displaying slots.
 public class ReservationService(ApplicationDbContext db, TableAllocationService allocation, IHttpContextAccessor? http = null)
 {
-    // Fixed agreed coursework deposit. Opening/closing hours are read from RestaurantSettings.
-    public decimal CalculateDeposit(int partySize) => partySize * 50m;
+    // Financial terms are snapshotted when the booking is created.
+    public decimal CalculateDeposit(int partySize, RestaurantSetting settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        if (partySize < settings.MinimumPartySize || partySize > settings.MaximumPartySize ||
+            ReservationPolicy.Areas(partySize).Length == 0)
+            throw new ArgumentOutOfRangeException(nameof(partySize), "Party size is outside configured limits.");
+        return partySize * settings.DepositPerGuest;
+    }
     public string GenerateBookingReference() => "BK" + Guid.NewGuid().ToString("N");
     public async Task<RestaurantSetting> Settings() => await db.RestaurantSettings.OrderBy(s => s.SettingID).FirstAsync();
 
-    public async Task<DateTime> ValidateSlot(int size, string area, DateTime start)
+    public async Task<DateTime> ValidateSlot(int size, string area, DateTime start, bool enforceCurrentInterval = true)
     {
         var settings = await Settings();
-        if (!ReservationPolicy.Areas(size).Contains(area))
-            throw new InvalidOperationException("Choose an allowed dining area for 1–12 guests.");
+        if (size < settings.MinimumPartySize || size > settings.MaximumPartySize ||
+            !ReservationPolicy.Areas(size).Contains(area))
+            throw new InvalidOperationException(
+                $"Choose an allowed dining area for {settings.MinimumPartySize}–{settings.MaximumPartySize} guests.");
         if (!ReservationPolicy.MeetsAdvance(area, start, ReservationPolicy.Now))
             throw new InvalidOperationException("Book Indoor/Outdoor at least 2 hours ahead, or VIP at least 24 hours ahead (Malaysia time). Choose a later slot.");
         var end = ReservationPolicy.End(start, area, settings.ClosingTime);
         if (start <= ReservationPolicy.Now || start.TimeOfDay < settings.OpeningTime ||
             end.Date != start.Date || end.TimeOfDay > settings.ClosingTime || end <= start ||
-            start.TimeOfDay.Ticks % TimeSpan.FromMinutes(30).Ticks != 0)
-            throw new InvalidOperationException("Choose a future half-hour slot within opening hours. Indoor and Outdoor require two hours before closing.");
+            (enforceCurrentInterval &&
+             (start.TimeOfDay - settings.OpeningTime).Ticks % TimeSpan.FromMinutes(settings.SlotIntervalMinutes).Ticks != 0))
+            throw new InvalidOperationException("Choose a valid future arrival slot within opening hours. Indoor and Outdoor require two hours before closing.");
         return end;
     }
 
@@ -35,7 +45,10 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
         await Expire();
         var settings = await Settings();
         var result = new List<DateTime>();
-        for (var start = date.Date.Add(settings.OpeningTime); start < date.Date.Add(settings.ClosingTime); start = start.AddMinutes(30))
+        if (size < settings.MinimumPartySize || size > settings.MaximumPartySize ||
+            !ReservationPolicy.Areas(size).Contains(area) || settings.SlotIntervalMinutes <= 0)
+            return result;
+        for (var start = date.Date.Add(settings.OpeningTime); start < date.Date.Add(settings.ClosingTime); start = start.AddMinutes(settings.SlotIntervalMinutes))
         {
             if (!ReservationPolicy.MeetsAdvance(area, start, ReservationPolicy.Now))
                 continue;
@@ -53,6 +66,7 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         await ExpireCore();
         var end = await ValidateSlot(size, area, start);
+        var settings = await Settings();
         if (!await db.Customers.AnyAsync(c => c.CustomerID == customerId))
             throw new InvalidOperationException("Your customer account could not be found. Please sign in again.");
         var table = (await allocation.Available(size, area, start, end)).FirstOrDefault()
@@ -68,8 +82,8 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
             EndTime = end.TimeOfDay,
             OriginalStart = start,
             CreatedDate = ReservationPolicy.Now,
-            DepositAmount = CalculateDeposit(size),
-            MinimumSpend = ReservationPolicy.MinimumSpend(size, area),
+            DepositAmount = CalculateDeposit(size, settings),
+            MinimumSpend = ReservationPolicy.MinimumSpend(size, area, settings),
             DepositStatus = "Unpaid",
             ReservationStatus = "Pending",
             DietaryRequest = requests,
@@ -101,10 +115,9 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
             case "Pay":
                 if (paymentMethod is not ("Card" or "TNG" or "Bank Transfer"))
                     throw new InvalidOperationException("Choose a supported simulated payment method.");
-                await ValidateSlot(r.PartySize, r.PreferredDiningOption, start);
+                await ValidateSlot(r.PartySize, r.PreferredDiningOption, start, enforceCurrentInterval: false);
                 if (!(await allocation.Available(r.PartySize, r.PreferredDiningOption, start, r.ReservationDate.Add(r.EndTime), id)).Any(t => t.TableID == r.TableID))
                     throw new InvalidOperationException("The assigned table is no longer available.");
-                r.DepositAmount = CalculateDeposit(r.PartySize);
                 if (paymentReference?.Length > 40)
                     throw new InvalidOperationException("Payment reference must be at most 40 characters.");
                 if (r.ReservationStatus != "Pending" || r.HoldExpiresAt <= now)
@@ -124,7 +137,8 @@ public class ReservationService(ApplicationDbContext db, TableAllocationService 
                     r.DepositStatus = "Paid";
                     r.ReservationStatus = "Confirmed";
                     r.HoldExpiresAt = null;
-                    message = $"Confirmed {r.BookingReference}: {start:dd MMM yyyy HH:mm}, {r.PartySize} guests, {r.PreferredDiningOption}. Deposit RM{r.DepositAmount:0.00} paid. Minimum spend RM{r.MinimumSpend:0.00}. All cancellations forfeit the full deposit.";
+                    message = $"Confirmed {r.BookingReference}: {start:dd MMM yyyy HH:mm}, {r.PartySize} guests, {r.PreferredDiningOption}. " +
+                        $"Deposit RM{r.DepositAmount:0.00} paid. Minimum spend RM{r.MinimumSpend:0.00}. All cancellations forfeit the full deposit.";
                 }
                 else
                     message = "Payment failed. Retry before the payment hold expires.";

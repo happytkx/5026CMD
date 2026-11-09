@@ -33,6 +33,11 @@
                 <option value="@p" selected="@(Model.Protein == p)">@p</option>
             }
         </select>
+        <select name="Highlights" multiple aria-label="Filter by popular dishes and promotions"
+                placeholder="Popular or offers" data-placeholder="Popular or offers">
+            <option value="popular" selected="@(Model.Highlights.Contains("popular"))">Popular dishes</option>
+            <option value="promotion" selected="@(Model.Highlights.Contains("promotion"))">On promotion</option>
+        </select>
         <button type="submit">Apply</button>
         <a class="button secondary" asp-page="Menu">Clear</a>
     </form>
@@ -58,23 +63,47 @@
     {
         <article class="dish">
             <div class="dish-art">
+                @if (MenuPricing.IsPromotionActive(item, ReservationPolicy.Now) && item.PromotionEndDate.HasValue)
+                {
+                    var remaining = Math.Max(1, (item.PromotionEndDate.Value.Date - ReservationPolicy.Now.Date).Days + 1);
+                    <span class="expiry-badge">@(remaining == 1 ? "1 day left" : $"{remaining} days left")</span>
+                }
                 <img src="@MenuImages.Url(item)" alt="@MenuImages.Alt(item)" loading="lazy"
                              onerror="this.onerror=null; this.src='/images/celeste-indoor.png'; this.alt='Dining at Céleste';" />
             </div>
             <div class="dish-body">
                 <div class="dish-title">
                     <h3>@item.Name</h3>
-                    @if (item.IsPopular)
-                    {
-                        <span class="badge">Popular</span>
-                    }
                 </div>
+                @if (item.IsPopular || MenuPricing.IsPromotionActive(item, ReservationPolicy.Now))
+                {
+                    <div class="dish-tags">
+                        @if (item.IsPopular)
+                        {
+                            <span class="badge">Popular</span>
+                        }
+                        @if (MenuPricing.IsPromotionActive(item, ReservationPolicy.Now))
+                        {
+                            <span class="badge offer-badge">Save @(item.DiscountPercent?.ToString("0.##"))%</span>
+                        }
+                    </div>
+                }
                 <p>@item.Description</p>
                 <small>@item.Category · Protein: @item.ProteinType</small>
                 <small>Dietary: @(string.IsNullOrWhiteSpace(item.DietaryTags) ? "Not specified" : item.DietaryTags)</small>
                 <small>Allergens: @(string.IsNullOrWhiteSpace(item.Allergens) ? "Not specified" : item.Allergens)</small>
                 <div class="dish-bottom">
-                    <span class="price">RM @item.Price.ToString("0.00")</span>
+                    <div class="dish-pricing">
+                        @if (MenuPricing.IsPromotionActive(item, ReservationPolicy.Now))
+                        {
+                            <span class="price">RM @MenuPricing.CurrentPrice(item, ReservationPolicy.Now).ToString("0.00")</span>
+                            <del class="muted">RM @item.Price.ToString("0.00")</del>
+                        }
+                        else
+                        {
+                            <span class="price">RM @item.Price.ToString("0.00")</span>
+                        }
+                    </div>
                     @if (Model.CanOrder)
                     {
                         <form method="post" asp-page-handler="Add">

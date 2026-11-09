@@ -1,13 +1,93 @@
 @page
-@* Public guest reviews: ratings and comments from completed orders, first names only. *@
+@* Public guest reviews: general feedback and verified completed-order reviews, first names only. *@
 @model RROMS.Pages.ReviewsModel
 @{
     ViewData["Title"] = "Guest Reviews";
 }
+<style>
+    .guest-review-form { margin-bottom: 2rem; }
+    .guest-review-form h2 { margin-top: .35rem; }
+    .guest-review-fields { display: grid; gap: 1rem; max-width: 48rem; }
+    .guest-review-fields label { display: block; font-weight: 600; margin-bottom: .45rem; }
+    .guest-review-fields select, .guest-review-fields textarea { width: 100%; }
+    .guest-review-fields textarea { min-height: 8rem; resize: vertical; }
+    .guest-rating-options { display: flex; flex-wrap: wrap; gap: .55rem; }
+    .guest-rating-options label { cursor: pointer; display: inline-flex; align-items: center; gap: .3rem;
+        margin: 0; padding: .6rem .75rem; border: 1px solid #cfc2a7; border-radius: .45rem; }
+    .guest-rating-options label:has(input:checked) { background: #ece5d5; border-color: #9d773e; }
+    .guest-rating-options input { accent-color: #8a6d3b; }
+    .guest-review-hint { color: #71685c; font-size: .92rem; }
+</style>
 <section class="account-heading">
     <p class="eyebrow">FROM OUR GUESTS</p>
     <h1>Guest reviews</h1>
-    <p>Honest words from guests who have dined with us. Only completed orders can be reviewed.</p>
+    <p>Share your experience at Céleste. Signed-in customers may write general feedback, and completed orders can receive a verified dining review.</p>
 </section>
+
+<section class="card guest-review-form" aria-labelledby="write-review-heading">
+    <p class="eyebrow">SHARE YOUR EXPERIENCE</p>
+    <h2 id="write-review-heading">Write a review</h2>
+    @if (TempData["ReviewSuccess"] is string success)
+    {
+        <p class="success" role="status">@success</p>
+    }
+    @if (TempData["ReviewError"] is string error)
+    {
+        <p class="error" role="alert">@error</p>
+    }
+    @if (!Model.IsSignedInCustomer)
+    {
+        <p>Sign in to share your experience at Céleste. You can write general feedback, or review a completed dining order.</p>
+        <a class="button" asp-page="/Account/Login" asp-route-returnUrl="/Reviews">SIGN IN TO REVIEW</a>
+    }
+    else if (!Model.CanSubmitGeneralReview && Model.ReviewableOrders.Count == 0)
+    {
+        <p class="muted">Thank you! You have already submitted general feedback and reviewed all eligible completed orders.</p>
+    }
+    else
+    {
+        <form method="post" asp-page-handler="Review" class="guest-review-fields">
+            @if (Model.ReviewableOrders.Count > 0)
+            {
+                <div>
+                    <label for="review-order">What would you like to review?</label>
+                    <select id="review-order" name="orderId" required>
+                        <option value="">Select review type</option>
+                        @if (Model.CanSubmitGeneralReview)
+                        {
+                            <option value="0">General feedback about Céleste</option>
+                        }
+                        @foreach (var order in Model.ReviewableOrders)
+                        {
+                            <option value="@order.OrderID">Completed order @order.Reference · @order.CreatedAt.ToString("dd MMM yyyy")</option>
+                        }
+                    </select>
+                </div>
+            }
+            else
+            {
+                <input type="hidden" name="orderId" value="0" />
+                <p class="guest-review-hint">General feedback (one general review per customer account).</p>
+            }
+            <fieldset>
+                <legend>Your experience <span class="guest-review-hint">(1 to 5 stars)</span></legend>
+                <div class="guest-rating-options" role="radiogroup" aria-label="Rate your experience">
+                    @for (var star = 5; star >= 1; star--)
+                    {
+                        <label><input type="radio" name="rating" value="@star" required /> @star ★</label>
+                    }
+                </div>
+            </fieldset>
+            <div>
+                <label for="review-message">Your review</label>
+                <textarea id="review-message" name="comment" maxlength="800" rows="5"
+                    placeholder="Tell us about your dining experience..." required></textarea>
+                <p class="guest-review-hint">Maximum 800 characters. Your first name and review will be shown publicly. Only reviews linked to completed orders carry a Verified dining badge.</p>
+            </div>
+            <div><button type="submit">SUBMIT REVIEW</button></div>
+        </form>
+    }
+</section>
+
 @{ var board = new ReviewBoardView(Model, "/Reviews", false, false, true); }
 <partial name="_ReviewBoard" model="board" />

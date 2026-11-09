@@ -71,6 +71,7 @@ namespace RROMS.Models
         public DateTime? PasswordResetSentUtc { get; set; }
         public int SessionVersion { get; set; }
         public bool IsDemo { get; set; }
+        public bool IsActive { get; set; } = true;
 
         public ICollection<Reservation> Reservations { get; set; } = [];
     }

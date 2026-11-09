@@ -1,4 +1,3 @@
-
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -27,18 +26,14 @@ public class BillDetailsModel : PageModel
     }
 
     public Reservation? Booking { get; set; }
-
     public Bill? Bill { get; set; }
-
     public List<Payment> Payments { get; set; } = new();
 
-    //Error fix from Cloned Rep (temp)
-    public decimal PaidDiningPayments =>
-    Payments
-        .Where(p => p.PaymentType == "DiningBill" &&
-                    p.PaymentStatus == "Paid")
+    // The amount collected at checkout, excluding the reservation deposit.
+    // Only successful dining-bill payments count toward the final bill.
+    public decimal PaidDiningPayments => Payments
+        .Where(p => p.PaymentType == "DiningBill" && p.PaymentStatus == "Paid")
         .Sum(p => p.Amount);
-    //Error fix from Cloned Rep (temp)
 
     // Actual non-cancelled order lines, shown on the itemised final bill.
     public List<CustomerOrder> DiningOrders { get; set; } = new();
@@ -113,8 +108,7 @@ public class BillDetailsModel : PageModel
         Booking = await _db.Reservations
             .AsNoTracking()
             .Include(r => r.Customer)
-            .SingleOrDefaultAsync(
-                r => r.ReservationID == id);
+            .SingleOrDefaultAsync(r => r.ReservationID == id);
 
         if (Booking == null)
         {

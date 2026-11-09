@@ -2,11 +2,11 @@
 @* Booking interface shared by customers and staff: payment, confirmation, management and notification history. Staff-only controls require the staff role in the handler too. *@
 @model RROMS.Pages.Reservations.DetailsModel
 @{
-    ViewData["Title"] = "Reservation details"; var r=Model.Booking!; var photo=r.PreferredDiningOption switch
+    ViewData["Title"] = "Reservation details"; var r = Model.Booking!; var photo = r.PreferredDiningOption switch
     {
         "Outdoor" => "celeste-outdoor.jpg",
         "VIP Room" => "celeste-private-dining.png",
-        _ => "celeste-indoor.png"
+        _ => "celeste-indoor-2.png"
     };
 }
 @if (TempData["Message"] is string message)
@@ -16,26 +16,26 @@
 <p class="notice">Book and complete deposit payment at least 2 hours before Indoor/Outdoor visits or 24 hours before VIP visits. New times selected when rescheduling must also satisfy these limits. All times are Malaysia time (Asia/Kuala_Lumpur).</p>
 <div asp-validation-summary="All" class="error" role="alert">
 </div>
-@if (Model.View=="Payment")
+@if (Model.View == "Payment")
 {
-    <partial name="_BookingSteps" model="3"/>
+    <partial name="_BookingSteps" model="3" />
     <p class="eyebrow">STEP 03 · SECURE YOUR RESERVATION</p>
     <h1>Complete Your Deposit</h1>
-    <p>A deposit of RM50 per guest secures your reservation at Céleste.</p>
+    <p>A deposit of RM @(r.PartySize > 0 ? (r.DepositAmount / r.PartySize).ToString("N2") : "0.00") per guest secures your reservation at Céleste.</p>
     <div class="workflow-columns">
         <div>
             <section class="card">
                 <h3>Deposit Payment</h3>
                 <p>No real money is charged. Select a payment method and use demo details.</p>
                 <form method="post" asp-page-handler="Action">
-                    <input type="hidden" name="action" value="Pay"/>
+                    <input type="hidden" name="action" value="Pay" />
                     <label for="billing-email">Billing email</label>
-                    <input id="billing-email" value="@r.Customer.Email" readonly/>
-<label>Payment method <select id="paymentMethod" name="paymentMethod"><option value="TNG">Touch 'n Go eWallet</option><option value="Card">Credit / Debit Card</option><option value="Bank Transfer">Bank Transfer</option></select></label>
-<fieldset data-method="TNG"><legend>Touch 'n Go simulation</legend><img src="/images/demo-payment-qr.svg" width="180" height="180" alt="Simulated merchant QR" /><p>Demo merchant QR. No real payment.</p><label>TNG phone number <input name="phone" type="tel" maxlength="14" required /></label></fieldset>
-<fieldset data-method="Card"><legend>Demo card only</legend><p>Use fictional card details for this simulation. Do not enter real card details.</p><label>Cardholder name <input name="cardholder" maxlength="100" required autocomplete="off" /></label><label>Card number <input name="cardNumber" inputmode="numeric" pattern="[0-9 \-]{13,32}" maxlength="32" required autocomplete="off" /></label><label>Expiry MM/YY <input name="expiry" placeholder="MM/YY" pattern="(0[1-9]|1[0-2])/[0-9]{2}" maxlength="5" required autocomplete="off" /></label><label>CVV <input name="cvv" type="password" inputmode="numeric" pattern="[0-9]{3,4}" maxlength="4" required autocomplete="off" /></label></fieldset>
-<fieldset data-method="Bank Transfer"><legend>Simulated bank transfer</legend><p>Bank: @Model.BankName<br />Account name: @Model.BankAccountName<br />Account number: @Model.BankAccountNumber</p><p>No real transfer or online banking credentials required.</p><label>Transaction reference <input name="dummyReference" maxlength="40" pattern="[A-Za-z0-9-]+" required /></label></fieldset>
-<script>(() => { const selector = document.getElementById('paymentMethod'); function update() { document.querySelectorAll('[data-method]').forEach(panel => { panel.hidden = panel.dataset.method !== selector.value; panel.disabled = panel.hidden; }); } selector.addEventListener('change', update); update(); })();</script>
+                    <input id="billing-email" value="@r.Customer.Email" readonly />
+                    <label>Payment method <select id="paymentMethod" name="paymentMethod"><option value="TNG">Touch 'n Go eWallet</option><option value="Card">Credit / Debit Card</option><option value="Bank Transfer">Bank Transfer</option></select></label>
+                    <fieldset data-method="TNG"><legend>Touch 'n Go simulation</legend><img src="/images/demo-payment-qr.svg" width="180" height="180" alt="Simulated merchant QR" /><p>Demo merchant QR. No real payment.</p><label>Name on TNG account <input name="tngAccountName" type="text" maxlength="100" autocomplete="name" placeholder="Full name shown on your Touch 'n Go account" required /></label></fieldset>
+                    <fieldset data-method="Card"><legend>Demo card only</legend><p>Use fictional card details for this simulation. Do not enter real card details.</p><label>Cardholder name <input name="cardholder" maxlength="100" required autocomplete="off" /></label><label>Card number <input name="cardNumber" inputmode="numeric" pattern="[0-9 \-]{13,32}" maxlength="32" required autocomplete="off" /></label><label>Expiry MM/YY <input name="expiry" placeholder="MM/YY" pattern="(0[1-9]|1[0-2])/[0-9]{2}" maxlength="5" required autocomplete="off" /></label><label>CVV <input name="cvv" type="password" inputmode="numeric" pattern="[0-9]{3,4}" maxlength="4" required autocomplete="off" /></label></fieldset>
+                    <fieldset data-method="Bank Transfer"><legend>Simulated bank transfer</legend><p>Bank: @Model.BankName<br />Account name: @Model.BankAccountName<br />Account number: @Model.BankAccountNumber</p><p>No real transfer or online banking credentials required.</p><label>Transaction reference <input name="dummyReference" maxlength="40" pattern="[A-Za-z0-9-]+" required /></label></fieldset>
+                    <script>(() => { const selector = document.getElementById('paymentMethod'); function update() { document.querySelectorAll('[data-method]').forEach(panel => { panel.hidden = panel.dataset.method !== selector.value; panel.disabled = panel.hidden; }); } selector.addEventListener('change', update); update(); })();</script>
                     <label for="paymentSuccess">Simulation outcome</label>
                     <select id="paymentSuccess" name="paymentSuccess">
                         <option value="true">
@@ -50,8 +50,14 @@
                         <p>The deposit is credited to your final dining bill. Minimum spend: RM @r.MinimumSpend.ToString("N2").</p>
                         <p>All cancellations forfeit the full paid deposit. One date/time change is allowed more than 168 hours before the original booking.</p>
                     </div>
+                    <details class="reservation-policy reservation-policy-disclosure">
+                        <summary>Review the full reservation policies</summary>
+                        <div class="reservation-policy-disclosure-content">
+                            <partial name="_ReservationPolicy" />
+                        </div>
+                    </details>
                     <label class="check">
-                        <input type="checkbox" required/>
+                        <input type="checkbox" required />
                         <span>I understand and agree to the deposit, cancellation and rescheduling policies.</span>
                     </label>
                     <div class="form-actions">
@@ -68,17 +74,17 @@
                 <button type="submit" class="reservation-cancel-button" name="action" value="Cancel">Cancel pending reservation</button>
             </form>
         </div>
-        <partial name="_ReservationSummary" model="r"/>
+        <partial name="_ReservationSummary" model="r" />
     </div>
 }
-else if (Model.View=="Confirmation")
+else if (Model.View == "Confirmation")
 {
     <div class="confirmation-heading">
         <span class="confirmation-check">✓</span>
         <p class="eyebrow">RESERVATION CONFIRMED</p>
         <h1>
             We Look Forward
-            <br/>
+            <br />
             to Welcoming You.
         </h1>
         <p>Thank you, @r.Customer.CustomerName. Your deposit payment succeeded and your table is reserved.</p>
@@ -91,7 +97,7 @@ else if (Model.View=="Confirmation")
             </div>
             <span class="badge">@r.ReservationStatus</span>
         </div>
-        <hr/>
+        <hr />
         <div class="detail-fields">
             <div>
                 <small>Reservation reference</small>
@@ -118,7 +124,7 @@ else if (Model.View=="Confirmation")
                 <strong>@r.TableID</strong>
             </div>
         </div>
-        <hr/>
+        <hr />
         <p>Please arrive within 10 minutes unless you notify us before the normal grace period expires. Cancellation forfeits your deposit.</p>
     </section>
     <div class="form-actions centered">
@@ -132,7 +138,7 @@ else if (Model.View=="Confirmation")
 }
 else
 {
-    @if (!Model.IsStaff && Model.View=="Details")
+    @if (!Model.IsStaff && Model.View == "Details")
     {
         <section class="booking-banner" style="background-image:linear-gradient(90deg,rgba(45,42,38,.7),rgba(45,42,38,.1)),url('/images/@photo')">
             <p class="eyebrow">YOUR CÉLESTE EXPERIENCE</p>
@@ -140,15 +146,19 @@ else
             <p>Reference @r.BookingReference</p>
         </section>
     }
-    @if (r.ReservationStatus == "Expired") {
+    @if (r.ReservationStatus == "Expired")
+    {
         <p class="notice">Payment deadline passed. Choose a later slot to make a new reservation.</p>
-        @if (!Model.IsStaff) { <a class="button" asp-page="Create">Choose another slot</a> }
+        @if (!Model.IsStaff)
+        {
+            <a class="button" asp-page="Create">Choose another slot</a>
+        }
     }
-    <p class="eyebrow">@(Model.IsStaff ? "GUEST RESERVATION" : Model.View=="Modify" ? "MANAGE RESERVATION" : Model.View=="Late" ? "ARRIVAL INFORMATION" : "YOUR VISIT")</p>
+    <p class="eyebrow">@(Model.IsStaff ? "GUEST RESERVATION" : Model.View == "Modify" ? "MANAGE RESERVATION" : Model.View == "Late" ? "ARRIVAL INFORMATION" : "YOUR VISIT")</p>
     <div class="section-heading">
         <div>
             <span class="badge">@r.ReservationStatus</span>
-            <h1>@(Model.View=="Modify" ? "Reschedule Your Visit" : Model.View=="Late" ? "Running a Little Late?" : Model.IsStaff ? "Reservation Details" : r.ReservationDate.ToString("ddd, dd MMMM yyyy"))</h1>
+            <h1>@(Model.View == "Modify" ? "Reschedule Your Visit" : Model.View == "Late" ? "Running a Little Late?" : Model.IsStaff ? "Reservation Details" : r.ReservationDate.ToString("ddd, dd MMMM yyyy"))</h1>
             <p>@r.ReservationDate.Add(r.StartTime).ToString("h:mm tt") · @r.PartySize guests · @r.PreferredDiningOption</p>
         </div>
         <a class="button secondary" asp-page="@(Model.IsStaff ? "/Staff/Index" : "Index")">
@@ -199,27 +209,27 @@ else
     }
     <div class="workflow-columns">
         <div>
-            @if (Model.View=="Modify")
+            @if (Model.View == "Modify")
             {
                 <section class="card">
                     <h3>Current Reservation</h3>
                     <p>@r.ReservationDate.Add(r.StartTime).ToString("dddd, dd MMMM yyyy · h:mm tt")</p>
-                    <hr/>
+                    <hr />
                     <h3>Select a New Time</h3>
-                    @if (r.ReservationStatus=="Confirmed" && ReservationPolicy.CanModify(r.OriginalStart,r.ModificationCount,ReservationPolicy.Now))
+                    @if (r.ReservationStatus == "Confirmed" && ReservationPolicy.CanModify(r.OriginalStart, r.ModificationCount, ReservationPolicy.Now))
                     {
                         <form method="get">
-                            <input type="hidden" name="View" value="Modify"/>
+                            <input type="hidden" name="View" value="Modify" />
                             <label asp-for="NewDate">New date</label>
-                            <input asp-for="NewDate" type="date" min="@ReservationPolicy.Now.ToString("yyyy-MM-dd")"/>
+                            <input asp-for="NewDate" type="date" min="@ReservationPolicy.Now.ToString("yyyy-MM-dd")" />
                             <button class="secondary">Find available times</button>
                         </form>
-                        @if (Model.ModifySlots.Count>0)
+                        @if (Model.ModifySlots.Count > 0)
                         {
                             <form method="post" asp-page-handler="Action">
-                                <input type="hidden" name="action" value="Modify"/>
-                                <input type="hidden" name="View" value="Modify"/>
-                                <input type="hidden" name="NewDate" value="@Model.NewDate.ToString("yyyy-MM-dd")"/>
+                                <input type="hidden" name="action" value="Modify" />
+                                <input type="hidden" name="View" value="Modify" />
+                                <input type="hidden" name="NewDate" value="@Model.NewDate.ToString("yyyy-MM-dd")" />
                                 <label asp-for="NewTime">New time</label>
                                 <select asp-for="NewTime">
                                     @foreach (var slot in Model.ModifySlots)
@@ -249,7 +259,7 @@ else
                     }
                 </section>
             }
-            else if (Model.View=="Late")
+            else if (Model.View == "Late")
             {
                 <section class="card">
                     <h3>We'll Hold Your Table</h3>
@@ -271,7 +281,7 @@ else
                         </div>
                     </div>
                     <p class="notice">The 30-minute hold is measured from your booked arrival time, not when you send the notice. Your dining end time remains unchanged.</p>
-                    @if (r.ReservationStatus=="Confirmed" && !r.LateArrivalNotified && ReservationPolicy.Now < r.ReservationDate.Add(r.StartTime).AddMinutes(10))
+                    @if (r.ReservationStatus == "Confirmed" && !r.LateArrivalNotified && ReservationPolicy.Now < r.ReservationDate.Add(r.StartTime).AddMinutes(10))
                     {
                         <form method="post" asp-page-handler="Action">
                             <a class="button secondary" asp-page="Details" asp-route-id="@r.ReservationID">
@@ -319,25 +329,25 @@ else
                             <strong>@(string.IsNullOrWhiteSpace(r.DietaryRequest) ? "None provided" : r.DietaryRequest)</strong>
                         </div>
                     </div>
-                    <hr/>
+                    <hr />
                     <p class="eyebrow">ARRIVAL INFORMATION</p>
                     <p>@(r.OrderingEnabled ? "You are seated. Dine-in ordering is enabled." : "Check in with restaurant staff on arrival. Ordering is available only after staff check-in.")</p>
-                    @if (r.ReservationStatus=="Confirmed")
+                    @if (r.ReservationStatus == "Confirmed")
                     {
                         <p>
                             Arrival deadline:
-                            <strong>@r.ReservationDate.Add(r.StartTime).AddMinutes(r.LateArrivalNotified?30:10).ToString("h:mm tt")</strong>
+                            <strong>@r.ReservationDate.Add(r.StartTime).AddMinutes(r.LateArrivalNotified ? 30 : 10).ToString("h:mm tt")</strong>
                             . @(r.LateArrivalNotified ? "Late arrival notified." : "Normal 10-minute hold.")
                         </p>
                     }
                 </section>
-                @if (!Model.IsStaff && r.ReservationStatus=="Confirmed")
+                @if (!Model.IsStaff && r.ReservationStatus == "Confirmed")
                 {
                     <section class="card">
                         <h3>Manage Your Reservation</h3>
                         <p>Manage changes or inform our team if you expect to arrive late.</p>
                         <div class="form-actions">
-                            @if (ReservationPolicy.CanModify(r.OriginalStart,r.ModificationCount,ReservationPolicy.Now))
+                            @if (ReservationPolicy.CanModify(r.OriginalStart, r.ModificationCount, ReservationPolicy.Now))
                             {
                                 <a class="button secondary" asp-page="Details" asp-route-id="@r.ReservationID" asp-route-View="Modify">
                                     Reschedule
@@ -360,7 +370,7 @@ else
                         </div>
                     </section>
                 }
-                @if (Model.IsStaff && r.ReservationStatus=="Confirmed")
+                @if (Model.IsStaff && r.ReservationStatus == "Confirmed")
                 {
                     <section class="card">
                         <h3>Assigned Seating</h3>
@@ -370,7 +380,7 @@ else
                                 @foreach (var t in Model.AvailableTables)
                                 {
                                     <label class="seat-option">
-                                        <input type="radio" name="tableId" value="@t.TableID" checked="@(r.TableID==t.TableID)" required/>
+                                        <input type="radio" name="tableId" value="@t.TableID" checked="@(r.TableID == t.TableID)" required />
                                         <span>
                                             <strong>@t.TableID</strong>
                                             <small>Up to @t.Capacity guests</small>
@@ -399,7 +409,7 @@ else
                         </form>
                     </section>
                 }
-                @if (Model.IsStaff && r.ReservationStatus=="Seated")
+                @if (Model.IsStaff && r.ReservationStatus == "Seated")
                 {
                     <section class="card">
                         <h3>Dining Checkout</h3>
@@ -433,7 +443,7 @@ else
             }
         </div>
         <div>
-            <partial name="_ReservationSummary" model="r"/>
+            <partial name="_ReservationSummary" model="r" />
             <p class="notice">Cancellation forfeits your full paid deposit. Rescheduling is allowed once, more than 168 hours before the original time.</p>
         </div>
     </div>
@@ -447,36 +457,97 @@ else
         {
             <p>
                 @email.Subject
-                <br/>
+                <br />
                 <small>@(email.Status switch { "Sent" => "Sent", "Skipped" => "No longer applicable", "Failed" => "Delivery failed — please contact the restaurant", "Sending" => "Sending", _ => "Scheduled for " + email.DueAt.ToString("dd MMM yyyy, h:mm tt") })</small>
             </p>
         }
     </section>
-    <section class="card">
-        <h2>Reservation updates</h2>
-        @foreach (var n in Model.Notifications)
+    var guestUpdates = Model.Notifications.Where(n => n.NotificationType != "Audit").ToList();
+    var auditUpdates = Model.Notifications.Where(n => n.NotificationType == "Audit").ToList();
+    var paidDepositTotal = r.Payments.Where(p => p.PaymentType == "Deposit" && p.PaymentStatus == "Paid").Sum(p => p.Amount);
+    <section class="card reservation-record-card" aria-labelledby="reservation-updates-heading">
+        <div class="reservation-record-heading">
+            <div>
+                <h2 id="reservation-updates-heading">Reservation updates</h2>
+                <p class="muted">Important changes to this booking, newest first.</p>
+            </div>
+            <span class="reservation-count-badge">@guestUpdates.Count @(guestUpdates.Count == 1 ? "update" : "updates")</span>
+        </div>
+        @if (guestUpdates.Count == 0)
         {
-            <p>
-                <small>@n.SentDate.ToString("dd MMM yyyy HH:mm")</small>
-                <br/>
-                @n.Message
-            </p>
+            <p class="muted">No reservation updates yet.</p>
+        }
+        else
+        {
+            <ol class="reservation-update-timeline">
+                @foreach (var n in guestUpdates)
+                {
+                    <li>
+                        <div class="reservation-update-time">@n.SentDate.ToString("dd MMM yyyy · h:mm tt")</div>
+                        <div class="reservation-update-message">
+                            <span class="reservation-update-type">@(n.NotificationType switch { "Pay" => "Deposit paid", "Late" => "Late arrival", "CheckIn" => "Guest checked in", "Modify" => "Rescheduled", "Reassign" => "Table changed", "Complete" => "Visit completed", "Cancel" => "Cancellation", "NoShow" => "No-show", _ => n.NotificationType })</span>
+                            <p>@n.Message</p>
+                        </div>
+                    </li>
+                }
+            </ol>
+        }
+        @if (Model.IsStaff && auditUpdates.Count > 0)
+        {
+            <details class="reservation-audit-details">
+                <summary>Staff audit trail (@auditUpdates.Count)</summary>
+                <p class="muted">Technical action records for staff review.</p>
+                <ol>
+                    @foreach (var n in auditUpdates)
+                    {
+                        <li><small>@n.SentDate.ToString("dd MMM yyyy HH:mm")</small><p>@n.Message</p></li>
+                    }
+                </ol>
+            </details>
         }
     </section>
-    <section class="card">
-        <h2>Deposit payment records</h2>
-        @foreach (var p in r.Payments)
+    <section class="card reservation-record-card" aria-labelledby="deposit-records-heading">
+        <div class="reservation-record-heading">
+            <div>
+                <h2 id="deposit-records-heading">Deposit payment records</h2>
+                <p class="muted">Payment attempts and receipt details for this reservation.</p>
+            </div>
+            <span class="reservation-count-badge">@r.Payments.Count @(r.Payments.Count == 1 ? "record" : "records")</span>
+        </div>
+        <p class="reservation-paid-summary">Total paid deposits <strong>RM @paidDepositTotal.ToString("N2")</strong></p>
+        @if (r.Payments.Count == 0)
         {
-            <p>
-                @p.PaymentDate.ToString("dd MMM yyyy HH:mm") · RM @p.Amount.ToString("N2") · @p.PaymentStatus · @p.PaymentType
-                <br/>
-                <small>@p.PaymentMethod · Reference @p.PaymentReference</small>
-                @if (p.PaymentStatus == "Paid" && (p.PaymentType == "Deposit" || p.PaymentType == "DiningBill"))
-                {
-                    <a asp-page="@(Model.IsStaff ? "/Staff/PaymentReceipt" : "/Reservations/Receipt")" asp-route-id="@p.PaymentID">View / print receipt</a>
-                }
-
-            </p>
+            <p class="muted">No payment records yet.</p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="reservation-record-table">
+                    <thead><tr><th>Date &amp; time</th><th>Type</th><th>Method / reference</th><th>Status</th><th class="amount-column">Amount</th><th>Receipt</th></tr></thead>
+                    <tbody>
+                        @foreach (var p in r.Payments.OrderByDescending(p => p.PaymentDate))
+                        {
+                            <tr>
+                                <td>@p.PaymentDate.ToString("dd MMM yyyy")<small>@p.PaymentDate.ToString("h:mm tt")</small></td>
+                                <td>@p.PaymentType</td>
+                                <td>@p.PaymentMethod<small class="reservation-ref">@p.PaymentReference</small></td>
+                                <td><span class="reservation-status-chip" data-status="@p.PaymentStatus">@p.PaymentStatus</span></td>
+                                <td class="amount-column"><strong>RM @p.Amount.ToString("N2")</strong></td>
+                                <td>
+                                    @if (p.PaymentStatus == "Paid" && (p.PaymentType == "Deposit" || p.PaymentType == "DiningBill"))
+                                    {
+                                        <a asp-page="@(Model.IsStaff ? "/Staff/PaymentReceipt" : "/Reservations/Receipt")" asp-route-id="@p.PaymentID">View receipt</a>
+                                    }
+                                    else
+                                    {
+                                        <span class="muted">—</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         }
     </section>
     @if (r.ReservationHistories.Any())
@@ -491,15 +562,39 @@ else
     }
     @if (Model.IsStaff)
     {
-        <section class="card">
-            <h2>Customer reservation history</h2>
-            @foreach (var h in Model.CustomerHistory)
+        <section class="card reservation-record-card" aria-labelledby="customer-history-heading">
+            <div class="reservation-record-heading">
+                <div>
+                    <h2 id="customer-history-heading">Customer reservation history</h2>
+                    <p class="muted">This customer's bookings, most recent first.</p>
+                </div>
+                <span class="reservation-count-badge">@Model.CustomerHistory.Count @(Model.CustomerHistory.Count == 1 ? "booking" : "bookings")</span>
+            </div>
+            @if (Model.CustomerHistory.Count == 0)
             {
-                <p>
-                    <a asp-page="Details" asp-route-id="@h.ReservationID">
-                        @h.ReservationDate.ToString("dd MMM yyyy") · @h.ReservationStatus · @h.PartySize guests
-                    </a>
-                </p>
+                <p class="muted">No previous reservations found.</p>
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table class="reservation-record-table">
+                        <thead><tr><th>#</th><th>Reservation date</th><th>Reference</th><th>Guests</th><th>Status</th><th>Details</th></tr></thead>
+                        <tbody>
+                            @for (var index = 0; index < Model.CustomerHistory.Count; index++)
+                            {
+                                var h = Model.CustomerHistory[index];
+                                <tr>
+                                    <td>@(index + 1)</td>
+                                    <td><strong>@h.ReservationDate.ToString("dd MMM yyyy")</strong><small>@h.ReservationDate.Add(h.StartTime).ToString("h:mm tt")</small></td>
+                                    <td class="reservation-ref">@h.BookingReference</td>
+                                    <td>@h.PartySize</td>
+                                    <td><span class="reservation-status-chip" data-status="@h.ReservationStatus">@h.ReservationStatus</span></td>
+                                    <td><a asp-page="Details" asp-route-id="@h.ReservationID">View booking</a></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             }
         </section>
     }

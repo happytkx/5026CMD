@@ -10,8 +10,8 @@
 <h1>Restaurant Settings</h1>
 
 <p>
-    Configure reservation deposits, allowed party sizes
-    and the tax charged on new customer orders.
+    Configure reservation deposits, party-size limits,
+    minimum spending requirements, and tax rates.
 </p>
 
 @if (TempData["Success"] is string message)
@@ -25,7 +25,9 @@
 
     <form method="post">
 
-        <div asp-validation-summary="All" class="error"></div>
+        <div asp-validation-summary="All"
+             class="error"
+             role="alert"></div>
 
         <h3>Reservation Deposit</h3>
 
@@ -41,8 +43,9 @@
                required />
 
         <p class="muted">
-            The deposit for a new reservation is calculated
-            by multiplying this amount by the number of guests.
+            The total deposit is calculated by multiplying
+            the deposit per guest by the number of guests.
+            Changes apply to new reservations.
         </p>
 
         <h3>Party Size Limits</h3>
@@ -55,6 +58,7 @@
                type="number"
                min="1"
                max="12"
+               step="1"
                required />
 
         <label asp-for="MaximumPartySize">
@@ -65,11 +69,66 @@
                type="number"
                min="1"
                max="12"
+               step="1"
                required />
 
         <p class="muted">
-            Party sizes must remain between 1 and 12 guests,
-            based on the restaurant's existing table allocation rules.
+            The minimum cannot exceed the maximum.
+            The restaurant supports parties of up to 12 guests,
+            subject to dining-area and table-capacity rules.
+        </p>
+
+        <h3>Minimum Spending Requirements</h3>
+
+        <p class="muted">
+            Minimum spending is separate from the reservation
+            deposit. It represents the minimum dining bill
+            required for the selected dining area.
+        </p>
+
+        <label asp-for="StandardMinimumSpendPerGuest">
+            Indoor / Outdoor Minimum Spend per Guest (RM)
+        </label>
+
+        <input asp-for="StandardMinimumSpendPerGuest"
+               type="number"
+               min="0"
+               max="100000"
+               step="0.01"
+               required />
+
+        <p class="muted">
+            For indoor and outdoor reservations, the total
+            minimum spend is this amount multiplied by
+            the number of guests.
+        </p>
+
+        <label asp-for="VipMinimumSpendSmallGroup">
+            VIP Room Minimum Spend — 6 to 8 Guests (RM)
+        </label>
+
+        <input asp-for="VipMinimumSpendSmallGroup"
+               type="number"
+               min="0"
+               max="100000"
+               step="0.01"
+               required />
+
+        <label asp-for="VipMinimumSpendLargeGroup">
+            VIP Room Minimum Spend — 9 to 12 Guests (RM)
+        </label>
+
+        <input asp-for="VipMinimumSpendLargeGroup"
+               type="number"
+               min="0"
+               max="100000"
+               step="0.01"
+               required />
+
+        <p class="muted">
+            VIP minimum spending is charged per reservation,
+            not per guest. The applicable amount depends
+            on the party size.
         </p>
 
         <h3>Billing Charges</h3>
@@ -86,9 +145,9 @@
                required />
 
         <p class="muted">
-            This percentage will be applied to the subtotal
-            of new customer orders once checkout is connected
-            to these settings.
+            Enter a percentage, such as 6 for 6% or 8 for 8%.
+            The tax rate is stored as a decimal fraction
+            and applies to new orders through the billing system.
         </p>
 
         <button type="submit">

@@ -134,6 +134,78 @@ public class OrdersModel(ApplicationDbContext db, ILogger<OrdersModel> logger) :
         }
     }
 
+    // Staff can select dishes from any round. Each selected dish advances exactly
+    // one step according to its own current status, within a single transaction.
+    public async Task<IActionResult> OnPostUpdateSessionDishesAsync(
+        int reservationId, int[]? lineIds)
+    {
+        if (reservationId <= 0)
+            return BadRequest();
+
+        var selectedIds = (lineIds ?? []).Distinct().ToArray();
+        if (selectedIds.Length == 0 || selectedIds.Length > 100)
+        {
+            TempData["Error"] = "Select between 1 and 100 dishes to update.";
+            return RedirectToPage(new { expanded = reservationId, search = Search });
+        }
+
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var reservation = await db.Reservations.FindAsync(reservationId);
+        if (reservation == null) return NotFound();
+
+        if (reservation.ReservationStatus != "Seated" ||
+            await db.Bills.AnyAsync(b => b.ReservationID == reservationId && b.BillStatus == "Paid"))
+        {
+            TempData["Error"] = "Dish statuses cannot be changed after checkout or when the reservation is not seated.";
+            return RedirectToPage(new { expanded = reservationId, search = Search });
+        }
+
+        var orders = await db.Orders.Include(o => o.Lines)
+            .Where(o => o.ReservationID == reservationId).ToListAsync();
+        var selected = orders.SelectMany(o => o.Lines)
+            .Where(l => selectedIds.Contains(l.OrderLineID)).ToList();
+
+        if (selected.Count != selectedIds.Length ||
+            selected.Any(l => l.IsCancelled || NextDishStatus(l.KitchenStatus) is null))
+        {
+            TempData["Error"] = "One or more selected dishes cannot advance. Refresh and try again.";
+            return RedirectToPage(new { expanded = reservationId, search = Search });
+        }
+
+        foreach (var line in selected)
+            line.KitchenStatus = NextDishStatus(line.KitchenStatus)!;
+
+        foreach (var order in orders.Where(o => selected.Any(l => l.OrderID == o.OrderID)))
+        {
+            order.Status = DeriveRoundStatus(order.Lines);
+            var updates = string.Join("; ", selected.Where(l => l.OrderID == order.OrderID)
+                .Select(l => $"{l.ItemName}: {l.KitchenStatus}"));
+            db.CustomerNotifications.Add(new CustomerNotification
+            {
+                CustomerID = order.CustomerID,
+                Title = "Dish status updated",
+                Message = $"Kitchen update: {updates[..Math.Min(updates.Length, 320)]}.",
+                Type = "Order",
+                RelatedOrderID = order.OrderID,
+                CreatedAt = ReservationPolicy.Now
+            });
+        }
+
+        try
+        {
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (DbUpdateException)
+        {
+            TempData["Error"] = "The selected dish statuses could not be saved. Refresh and try again.";
+            return RedirectToPage(new { expanded = reservationId, search = Search });
+        }
+
+        TempData["Success"] = $"{selected.Count} dish(es) advanced to their next status. The customer was notified.";
+        return RedirectToPage(new { expanded = reservationId, search = Search });
+    }
+
     public async Task<IActionResult> OnPostUpdateDishesAsync(int orderId, string status, int[]? lineIds)
     {
         if (orderId <= 0 || status is not ("Preparing" or "Ready to Serve" or "Served"))

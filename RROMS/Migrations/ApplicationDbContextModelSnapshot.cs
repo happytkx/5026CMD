@@ -108,10 +108,25 @@ namespace RROMS.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsFeatured")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPinned")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPromotional")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Message")
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("ShowInPopup")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("StartsAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -204,6 +219,9 @@ namespace RROMS.Migrations
 
                     b.Property<int>("FailedLoginCount")
                         .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsDemo")
                         .HasColumnType("bit");
@@ -377,6 +395,10 @@ namespace RROMS.Migrations
                     b.Property<int?>("CreatedByAdministratorID")
                         .HasColumnType("int");
 
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
                     b.Property<int?>("UpdatedByAdministratorID")
                         .HasColumnType("int");
 
@@ -474,6 +496,12 @@ namespace RROMS.Migrations
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("PromotionEndDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("PromotionStartDate")
+                        .HasColumnType("date");
 
                     b.Property<string>("ProteinType")
                         .IsRequired()
@@ -859,11 +887,23 @@ namespace RROMS.Migrations
                     b.Property<TimeSpan>("OpeningTime")
                         .HasColumnType("time");
 
+                    b.Property<int>("SlotIntervalMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("StandardMinimumSpendPerGuest")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal>("TaxRate")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("UpdatedByAdministratorID")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("VipMinimumSpendLargeGroup")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("VipMinimumSpendSmallGroup")
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("SettingID");
 
@@ -916,7 +956,7 @@ namespace RROMS.Migrations
                     b.Property<int>("CustomerID")
                         .HasColumnType("int");
 
-                    b.Property<int>("OrderID")
+                    b.Property<int?>("OrderID")
                         .HasColumnType("int");
 
                     b.Property<int>("Rating")
@@ -1306,8 +1346,7 @@ namespace RROMS.Migrations
                     b.HasOne("RROMS.Models.CustomerOrder", "Order")
                         .WithMany()
                         .HasForeignKey("OrderID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Customer");
 
