@@ -17,22 +17,25 @@ public class NotificationsModel(ApplicationDbContext db) : PageModel
     public int UnreadCount { get; private set; }
     private string RecipientKey => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
 
-    private IQueryable<StaffNotification> VisibleAlerts()
+    private IQueryable<StaffNotification> VisibleAlerts(string recipientKey)
     {
         var isAdministrator = User.IsInRole(Customer.AdminRole);
         return db.StaffNotifications.Where(n =>
-            n.Audience == StaffNotification.StaffAudience ||
-            (isAdministrator && n.Audience == StaffNotification.AdministratorAudience));
+            (n.Audience == StaffNotification.StaffAudience ||
+             (isAdministrator && n.Audience == StaffNotification.AdministratorAudience)) &&
+            !db.StaffNotificationReads.Any(r =>
+                r.StaffNotificationID == n.StaffNotificationID &&
+                r.RecipientKey == recipientKey && r.DismissedAt != null));
     }
 
     public async Task OnGetAsync()
     {
         var key = RecipientKey;
         if (string.IsNullOrWhiteSpace(key)) return;
-        UnreadCount = await VisibleAlerts().CountAsync(n =>
+        UnreadCount = await VisibleAlerts(key).CountAsync(n =>
             !db.StaffNotificationReads.Any(r => r.StaffNotificationID == n.StaffNotificationID && r.RecipientKey == key));
 
-        var rows = await VisibleAlerts().AsNoTracking()
+        var rows = await VisibleAlerts(key).AsNoTracking()
             .OrderByDescending(n => n.CreatedAt)
             .ThenByDescending(n => n.StaffNotificationID)
             .Take(150)
@@ -95,7 +98,7 @@ public class NotificationsModel(ApplicationDbContext db) : PageModel
     {
         var key = RecipientKey;
         if (string.IsNullOrWhiteSpace(key)) return Forbid();
-        if (!await VisibleAlerts().AnyAsync(n => n.StaffNotificationID == id))
+        if (!await VisibleAlerts(key).AnyAsync(n => n.StaffNotificationID == id))
             return NotFound();
         if (!await db.StaffNotificationReads.AnyAsync(r => r.StaffNotificationID == id && r.RecipientKey == key))
         {
@@ -112,7 +115,7 @@ public class NotificationsModel(ApplicationDbContext db) : PageModel
     {
         var key = RecipientKey;
         if (string.IsNullOrWhiteSpace(key)) return Forbid();
-        var ids = await VisibleAlerts()
+        var ids = await VisibleAlerts(key)
             .Where(n => !db.StaffNotificationReads.Any(r =>
                 r.StaffNotificationID == n.StaffNotificationID && r.RecipientKey == key))
             .Select(n => n.StaffNotificationID)
@@ -123,6 +126,56 @@ public class NotificationsModel(ApplicationDbContext db) : PageModel
                 StaffNotificationID = id, RecipientKey = key, ReadAt = ReservationPolicy.Now
             });
         if (ids.Count > 0) await db.SaveChangesAsync();
+        return RedirectToPage();
+    }
+
+
+    public async Task<IActionResult> OnPostDismissAsync(int id)
+    {
+        var key = RecipientKey;
+        if (string.IsNullOrWhiteSpace(key)) return Forbid();
+        if (!await VisibleAlerts(key).AnyAsync(n => n.StaffNotificationID == id))
+            return NotFound();
+
+        var read = await db.StaffNotificationReads.SingleOrDefaultAsync(r =>
+            r.StaffNotificationID == id && r.RecipientKey == key);
+        var now = ReservationPolicy.Now;
+        if (read is null)
+            db.StaffNotificationReads.Add(new StaffNotificationRead
+            {
+                StaffNotificationID = id, RecipientKey = key, ReadAt = now, DismissedAt = now
+            });
+        else
+            read.DismissedAt = now;
+
+        await db.SaveChangesAsync();
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostClearAllAsync()
+    {
+        var key = RecipientKey;
+        if (string.IsNullOrWhiteSpace(key)) return Forbid();
+
+        // Clear every visible alert, not only the 150 shown on the page.
+        var ids = await VisibleAlerts(key).Select(n => n.StaffNotificationID).ToListAsync();
+        if (ids.Count == 0) return RedirectToPage();
+
+        var existing = await db.StaffNotificationReads
+            .Where(r => r.RecipientKey == key && ids.Contains(r.StaffNotificationID))
+            .ToDictionaryAsync(r => r.StaffNotificationID);
+        var now = ReservationPolicy.Now;
+        foreach (var id in ids)
+        {
+            if (existing.TryGetValue(id, out var read))
+                read.DismissedAt = now;
+            else
+                db.StaffNotificationReads.Add(new StaffNotificationRead
+                {
+                    StaffNotificationID = id, RecipientKey = key, ReadAt = now, DismissedAt = now
+                });
+        }
+        await db.SaveChangesAsync();
         return RedirectToPage();
     }
 }

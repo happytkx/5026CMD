@@ -3080,8 +3080,13 @@ td small
 .staff-sidebar nav a .staff-alert-count { margin-left: 8px; }
 .staff-notifications-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 24px; }
 .staff-notifications-heading h1 { margin-bottom: 12px; }
+.staff-notifications-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.staff-notifications-actions form, .staff-notifications-actions form button { margin: 0; }
+.staff-notifications-actions .staff-notification-clear { border-color: #a44e43; color: #923e34; background: transparent; }
+.staff-notifications-actions .staff-notification-clear:hover { border-color: #923e34; color: #fff; background: #923e34; }
+.staff-notifications-actions .staff-notification-clear:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 .staff-notifications-list { padding: 0; overflow: hidden; }
-.staff-notification-item { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 24px 30px; border-bottom: 1px solid var(--line); }
+.staff-notification-item { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 24px 56px 24px 30px; border-bottom: 1px solid var(--line); }
 .staff-notification-item:last-child { border-bottom: 0; }
 .staff-notification-item.unread { background: #f4f5ee; }
 .staff-notification-content { flex: 1; min-width: 0; }
@@ -3093,7 +3098,26 @@ td small
 .staff-alert-new { background: #e5e9db; color: var(--olive-deep); border-radius: 15px; padding: 2px 9px; }
 .staff-notification-item form { margin: 0; flex-shrink: 0; }
 .staff-notification-item form button { white-space: nowrap; }
-@media(max-width: 700px) { .staff-notification-item { align-items: flex-start; flex-direction: column; padding: 20px; } .staff-notifications-heading { align-items: flex-start; flex-direction: column; } .workspace-bar-right { gap: 10px; } }
+.staff-notification-item .staff-notification-dismiss { position: absolute; top: 12px; right: 14px; }
+.staff-notification-item .staff-notification-dismiss button {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; min-height: 30px; margin: 0; padding: 0;
+    border: 1px solid transparent; border-radius: 50%;
+    background: transparent; color: var(--muted);
+    font: 24px/1 var(--body); letter-spacing: 0; text-transform: none;
+    transition: background-color .16s ease, color .16s ease, border-color .16s ease;
+}
+.staff-notification-item .staff-notification-dismiss button:hover {
+    background: #f4e7e3; border-color: #e2c5bd; color: #923e34;
+}
+.staff-notification-item .staff-notification-dismiss button:focus-visible {
+    outline: 2px solid var(--gold); outline-offset: 2px;
+}
+@media(max-width: 700px) {
+    .staff-notification-item { align-items: flex-start; flex-direction: column; padding: 20px 56px 20px 20px; }
+    .staff-notifications-heading { align-items: flex-start; flex-direction: column; }
+    .workspace-bar-right { gap: 10px; }
+}
 
 /* Customer inbox follows staff notifications: new messages have a highlight and shadow
    until a customer explicitly marks them as read. */

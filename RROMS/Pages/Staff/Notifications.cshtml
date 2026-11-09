@@ -10,11 +10,20 @@
             <h1>Notifications</h1>
             <p class="muted">Reservation, order and payment updates for the restaurant team.</p>
         </div>
-        @if (Model.UnreadCount > 0)
+        @if (Model.Items.Count > 0)
         {
-            <form method="post" asp-page-handler="MarkAllRead">
-                <button type="submit" class="secondary">Mark all as read (@Model.UnreadCount)</button>
-            </form>
+            <div class="staff-notifications-actions">
+                @if (Model.UnreadCount > 0)
+                {
+                    <form method="post" asp-page-handler="MarkAllRead">
+                        <button type="submit" class="secondary">Mark all as read (@Model.UnreadCount)</button>
+                    </form>
+                }
+                <form method="post" asp-page-handler="ClearAll"
+                      onsubmit="return confirm('Clear all notifications from your inbox? This will not affect other staff accounts.');">
+                    <button type="submit" class="secondary staff-notification-clear">Clear notifications</button>
+                </form>
+            </div>
         }
     </div>
     @if (Model.Items.Count == 0)
@@ -46,6 +55,11 @@
                             <button class="secondary" type="submit">Mark as read</button>
                         </form>
                     }
+                    <form method="post" asp-page-handler="Dismiss" class="staff-notification-dismiss">
+                        <input type="hidden" name="id" value="@item.Id" />
+                        <button type="submit" title="Dismiss notification"
+                                aria-label="Dismiss notification: @item.Title">&times;</button>
+                    </form>
                 </article>
             }
         </section>

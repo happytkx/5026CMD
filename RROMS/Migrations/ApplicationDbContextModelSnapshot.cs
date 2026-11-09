@@ -1062,6 +1062,9 @@ namespace RROMS.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffNotificationReadID"));
 
+                    b.Property<DateTime?>("DismissedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("ReadAt")
                         .HasColumnType("datetime2");
 
