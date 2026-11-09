@@ -58,6 +58,14 @@ public sealed class CustomerConciergeService(
         }
 
         // Navigation questions need a dependable route, even without paid AI access.
+        // Answer deposit-deduction questions directly, regardless of AI availability.
+        // This must precede general final-bill guidance so a yes/no question receives a clear answer.
+        if (Regex.IsMatch(question, @"\bdeposit\b", RegexOptions.IgnoreCase) &&
+            Regex.IsMatch(question, @"\b(deduct\w*|appl\w*|offset|bill)\b", RegexOptions.IgnoreCase) &&
+            !Regex.IsMatch(question, @"\b(cancel\w*|refund\w*|no-show)\b", RegexOptions.IgnoreCase))
+            return new ConciergeReply(
+                $"Yes. Your RM{policy.DepositPerGuest:N2}-per-guest reservation deposit is deducted from your final dining bill. You only pay the remaining balance at checkout. You can see the deduction on the My Bill page.", false);
+
         if (Regex.IsMatch(question, @"\b(reviews?|ratings?|testimonials?|feedback)\b", RegexOptions.IgnoreCase))
             return new ConciergeReply(
                 "You can read our guests' experiences on the Guest Reviews page. After dining, signed-in customers can also rate and review their completed orders there.", false);
