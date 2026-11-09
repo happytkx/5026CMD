@@ -47,11 +47,13 @@ Use separate browser profiles or different browsers for customer and staff testi
 
 ## 4. Suggested assessment walkthrough
 
+Before testing, sign in as administrator and inspect **Restaurant Policies** (`/Admin/RestaurantPolicies`). The examples below assume the default policy values in section 5. If policies were edited, use the amounts and terms shown on the individual reservation instead. Restarting does not restore default policies.
+
 ### A. Customer reservation
 
 1. Sign in as a customer and open Reservations.
 2. Create a reservation for **2 people, Indoor**, using an available slot tomorrow or later.
-3. Confirm the booking details and the **RM100 deposit** (RM50 per person).
+3. Confirm the booking details and the deposit: **RM100 at the default RM50-per-person policy**.
 4. Complete a successful **simulated** deposit payment before the displayed hold deadline. Expect the reservation to become `Confirmed` and a receipt to be available.
 5. In a separate booking, try a failed payment and check that it does not confirm the booking. Retry before the hold expires.
 
@@ -70,7 +72,7 @@ The payment interface is a simulation; it does not charge a real card or transfe
 ### C. Billing and payment
 
 1. Use a seated reservation with a paid deposit and active dishes that have all been served.
-2. Ensure the food subtotal meets the reservation's minimum spend. For a 2-person Indoor booking, the minimum is **RM100**, excluding tax.
+2. Ensure the food subtotal meets the reservation's saved minimum spend. For a 2-person Indoor booking created under the default policy, the minimum is **RM100**, excluding tax.
 3. Open staff Billing and generate the bill from the actual orders.
 4. Check the food subtotal, tax, total, deposit applied, and remaining balance.
 5. Record final payment using a supported option displayed by the application, then inspect the payment receipt and billing history.
@@ -82,11 +84,14 @@ Sign in as administrator and test:
 
 - Menu items, categories, availability, and dated promotions.
 - Dining areas, tables, restaurant hours, and reservation slot interval.
-- Staff accounts and account activation controls.
+- Customer and staff account creation/editing, individual activation/deactivation, and bulk deactivation. Bulk activation is not currently provided.
+- Restaurant Policies: deposit, minimum spending, advance notice, rescheduling, arrival grace, dining duration, payment hold, and general guidelines.
 - Announcements, scheduling, pinning, and homepage display.
 - Customer reviews, payment collections, occupancy, and reporting screens.
 
 Make a small identifiable change (for example, a test announcement) and verify its effect in the customer view. Remove or reverse the change after assessment if desired.
+
+To test policy changes, record the original settings and create a reservation before editing. Change the deposit per guest, then create another reservation with the same party size. Verify that the new reservation uses the new deposit while the earlier reservation retains its saved amount. Restore the original setting afterwards; restoring it does not rewrite either reservation. Existing bookings also retain their saved minimum spending, rescheduling limits, arrival grace, dining duration, and advance-notice terms.
 
 ### E. Access control and reviews
 
@@ -99,23 +104,26 @@ Administrators follow the same reservation, deposit, cancellation, modification,
 
 ## 5. Rules that affect test results
 
-All reservation policy times use **Malaysia time (UTC+8)**.
+All reservation policy times use **Malaysia time (UTC+8)**. Administrators can edit the policy values identified below. Defaults describe initial values, not fixed limits. Each reservation saves its agreed amounts and relevant policy terms when created.
 
 | Rule | Expected behaviour |
 | --- | --- |
 | Party size | 1–5: Indoor/Outdoor; 6–8: Indoor/Outdoor/VIP Room; 9–12: VIP Room |
-| Advance booking | At least 2 hours for Indoor/Outdoor; at least 24 hours for VIP Room |
-| Deposit | RM50 per person |
-| Payment hold | Up to 10 minutes, shortened if the advance-booking cutoff is reached sooner |
-| Minimum food spend | Indoor/Outdoor: RM50 per person; VIP up to 8 guests: RM2,400; VIP 9–12 guests: RM3,600 |
-| Dining duration | Indoor/Outdoor: 2 hours; VIP: until closing time |
-| Modification | Only once, and more than 168 hours before the **original** booking time |
+| Advance booking | Configurable; defaults to at least 2 hours for Indoor/Outdoor and 24 hours for VIP Room |
+| Deposit | Configurable; defaults to RM50 per person; the amount is saved on the reservation |
+| Payment hold | Configurable; defaults to up to 10 minutes, shortened if the advance-booking cutoff is reached sooner |
+| Minimum food spend | Configurable; defaults to Indoor/Outdoor RM50 per person, VIP 6–8 guests RM2,400, VIP 9–12 guests RM3,600 |
+| Dining duration | Indoor/Outdoor duration is configurable (default 2 hours); VIP occupancy ends at closing time |
+| Latest arrival slot | All areas must leave the configured standard dining duration before closing, including VIP Room |
+| Modification | Configurable; defaults to once, more than 168 hours before the **original** booking time; existing bookings use their saved limits |
 | Cancellation | The full deposit is forfeited |
-| Arrival window | 10 minutes from the booked time, extended to 30 minutes when late arrival is notified |
+| Arrival window | Configurable; defaults to 10 minutes from the booked time, extended to 30 minutes when late arrival is notified; existing bookings use their saved terms |
 | Ordering | Requires reservation status `Seated` |
 | Final settlement | Requires served active dishes and the minimum food spend; tax does not count towards that minimum |
 
-To test modification successfully, create a paid booking more than 7 days ahead, such as 10 days ahead. Use a separate booking to test cancellation.
+Party-size eligibility, cancellation forfeiture, seated-only ordering, and settlement checks remain enforced. Restaurant Settings separately controls opening/closing hours and reservation intervals of 15, 30, or 60 minutes, with checks that protect existing bookings.
+
+With default policies, test modification using a paid booking more than 7 days ahead, such as 10 days ahead. If policies differ, use a booking outside its saved modification cutoff and within its allowed modification count. Use a separate booking to test cancellation.
 
 ## 6. Email and registration
 
@@ -138,7 +146,7 @@ For the reservation database integration checks (requires LocalDB):
 dotnet run --project tests/RROMS.Sprint2.Tests/RROMS.Sprint2.Tests.csproj -- --integration
 ```
 
-The integration runner creates an isolated temporary SQL database and uses a fake email sender. Check the terminal for passing results or failure details. These checks supplement the browser walkthrough.
+The integration runner creates an isolated temporary SQL database and uses a fake email sender. Check the terminal for passing results or failure details. These checks supplement the browser walkthrough. Passing the default-policy checks does not verify all editable-policy combinations; also perform the before/after policy test in section 4.
 
 ## 8. Troubleshooting
 
@@ -153,6 +161,7 @@ The integration runner creates an isolated temporary SQL database and uses a fak
 | No available booking slots | Check party size, dining area, advance notice, opening hours, and existing bookings. |
 | Cannot check in or order | Check the booked time and arrival window; the reservation must be seated before ordering. |
 | Cannot settle a bill | Serve all active dishes and meet the food minimum before recording payment. |
+| Amounts or deadlines differ from this guide | Check Restaurant Policies and the reservation's saved terms. The examples use defaults; existing bookings retain their agreed terms after policy edits. |
 | No verification/reset email | Email is disabled by default; SMTP and a real recipient address are required. |
 | Too many login attempts | Wait for the rate-limit window to clear; repeated failed passwords can also lock the account temporarily. |
 
