@@ -165,7 +165,7 @@ public sealed class CustomerConciergeService(
         sb.AppendLine($"Cancellation or no-show forfeits the deposit. More than {policy.ArrivalGraceMinutes} minutes late is no-show, unless Notify Restaurant was used ({policy.ExtendedArrivalGraceMinutes}-minute total grace period).");
         sb.AppendLine($"Minimum spend: Indoor/Outdoor RM{policy.StandardMinimumSpendPerGuest:N2} per guest; VIP rooms: 6–8 guests, RM{policy.VipEightSeatMinimumSpend:N2} (8 seats); 9–12 guests, RM{policy.VipTwelveSeatMinimumSpend:N2} (12 seats).");
         if (!string.IsNullOrWhiteSpace(policy.GeneralGuidelines)) sb.AppendLine($"Other public guidelines: {policy.GeneralGuidelines}");
-        sb.AppendLine("Le Menu Céleste is a four-course dining experience: soup, appetizer, main course and dessert, plus one beverage. Menu dishes can also be purchased à la carte.");
+        sb.AppendLine("The digital menu lists individually priced à la carte dishes; set-menu ordering is not available.");
         sb.AppendLine("No dedicated vegan-only menu is offered. For any food allergy, confirm details with restaurant staff.");
         sb.AppendLine("For table availability, guests must use /Reservations/Create. No ability to view private reservations or place bookings here.");
         sb.AppendLine("Public site links: Home page /; Menu page /Menu; Guest Reviews page /Reviews; Book a Table /Reservations/Create; My Reservations page /Reservations/Index; My Orders page /Orders/Index; My Bill page /MyBill; Sign In page /Account/Login; Register page /Account/Register; Profile page /Account/Profile; Notifications page /Notifications; Announcements section /#announcements.");
@@ -366,7 +366,7 @@ public sealed class CustomerConciergeService(
         if (q.Contains("vip") || q.Contains("private"))
             return $"We have an 8-seat VIP room for 6–8 guests (RM{policy.VipEightSeatMinimumSpend:N2} minimum spend) and a 12-seat VIP room for 9–12 guests (RM{policy.VipTwelveSeatMinimumSpend:N2} minimum spend). VIP rooms are reserved until closing.";
         if (q.Contains("set menu") || q.Contains("four-course") || q.Contains("four course"))
-            return "Le Menu Céleste includes soup, appetizer, main course and dessert, plus one beverage. Dishes are also available à la carte. Please see the Menu page for current selections.";
+            return "Céleste currently offers à la carte ordering only. Please visit the Menu page for available dishes, descriptions and prices.";
         if (q.Contains("vegan"))
             return "Céleste does not currently advertise a dedicated vegan-only menu. Please check the Menu page and speak with our team about your dietary needs.";
         var namedDishes = dishes.Where(d => d.Name

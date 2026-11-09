@@ -69,12 +69,6 @@ namespace RROMS.Models
         [StringLength(40)]
         public string ProteinType { get; set; } = "Vegetarian";
 
-        [Range(0, 5)]
-        public int SpiceLevel
-        {
-            get; set;
-        }
-
         [StringLength(300)]
         public string Allergens { get; set; } = string.Empty;
     }

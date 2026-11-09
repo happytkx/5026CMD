@@ -96,6 +96,10 @@ public static class DevelopmentDataSeeder
         // Correct the initial sample run that put months of fictional future
         // deposits on one startup day. Never change genuine payment records.
         await SpreadCrowdedDemoDepositDaysAsync(db);
+        // Older installations can still contain sample bookings whose deposit
+        // transaction was never created or used an obsolete demo-only type.
+        // Repair those fixtures without changing any real customer's payments.
+        await RepairDemoDepositRecordsAsync(db);
         if (customers.Count == 0) { await transaction.CommitAsync(); return; }
         var settings = await db.RestaurantSettings.OrderBy(s => s.SettingID).FirstAsync();
         var now = ReservationPolicy.Now;
@@ -590,6 +594,78 @@ public static class DevelopmentDataSeeder
             .Where(r => removableIds.Contains(r.ReservationID)).ToListAsync();
         db.Reservations.RemoveRange(unusedReservations);
         await db.SaveChangesAsync();
+    }
+
+    // Older generated reservations are skipped during subsequent seed runs.
+    // Bring their clearly identified fictional deposit records in line with
+    // the reservation snapshot. A real booking is never changed or backfilled.
+    private static async Task RepairDemoDepositRecordsAsync(ApplicationDbContext db)
+    {
+        var bookings = await db.Reservations.AsNoTracking()
+            .Where(r => r.Customer.IsDemo &&
+                r.BookingReference.StartsWith("DEMO-RES-") &&
+                r.DepositStatus == "Paid" &&
+                r.DepositAmount > 0m)
+            .Select(r => new {
+                r.ReservationID, r.BookingReference, r.DepositAmount, r.CreatedDate
+            })
+            .ToListAsync();
+        if (bookings.Count == 0) return;
+
+        var ids = bookings.Select(r => r.ReservationID).ToArray();
+        var paymentsByReservation = (await db.Payments
+            .Where(p => ids.Contains(p.ReservationID))
+            .ToListAsync()).ToLookup(p => p.ReservationID);
+        var repaired = 0;
+
+        foreach (var booking in bookings)
+        {
+            var payments = paymentsByReservation[booking.ReservationID].ToList();
+            if (payments.Any(p => p.PaymentType == "Deposit" &&
+                p.PaymentStatus == "Paid" && p.Amount == booking.DepositAmount))
+                continue;
+
+            var fixtureReference = booking.BookingReference + "-PAY";
+            // The generated reference identifies an original demo payment.
+            // It is safe to correct its old type/amount, but not an unrelated receipt.
+            var generated = payments.FirstOrDefault(p =>
+                p.PaymentReference == fixtureReference &&
+                p.PaymentStatus == "Paid" &&
+                (p.PaymentType == "Deposit" || p.PaymentType == "Demo deposit"));
+            if (generated != null)
+            {
+                generated.PaymentType = "Deposit";
+                generated.Amount = booking.DepositAmount;
+                repaired++;
+                continue;
+            }
+
+            // Any other deposit attempt needs a human review, not a fabricated
+            // second payment. Only completely missing sample payments are restored.
+            if (payments.Any(p =>
+                p.PaymentType == "Deposit" || p.PaymentType == "Demo deposit" ||
+                p.PaymentReference == fixtureReference))
+                continue;
+            if (payments.Any(p => p.PaymentType != "DiningBill" ||
+                !p.PaymentReference.StartsWith("DEMO-BILL-", StringComparison.Ordinal)))
+                continue;
+
+            db.Payments.Add(new Payment
+            {
+                ReservationID = booking.ReservationID,
+                PaymentType = "Deposit",
+                PaymentMethod = "Card",
+                PaymentReference = fixtureReference,
+                Amount = booking.DepositAmount,
+                PaymentStatus = "Paid",
+                PaymentDate = booking.CreatedDate
+            });
+            repaired++;
+        }
+
+        if (repaired == 0) return;
+        await db.SaveChangesAsync();
+        Console.WriteLine($"Repaired {repaired} demo-only deposit transaction(s).");
     }
 
     // A previous version seeded the whole future calendar at startup. This

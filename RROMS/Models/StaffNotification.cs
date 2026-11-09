@@ -25,5 +25,6 @@ public class StaffNotificationRead
     // Identifies either a legacy staff/customer account (numeric) or a new staff account (staff:ID).
     [Required, StringLength(100)] public string RecipientKey { get; set; } = string.Empty;
     public DateTime ReadAt { get; set; }
+    public DateTime? DismissedAt { get; set; }
     public StaffNotification Notification { get; set; } = null!;
 }

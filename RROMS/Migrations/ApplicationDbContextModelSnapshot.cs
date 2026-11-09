@@ -533,9 +533,6 @@ namespace RROMS.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
-                    b.Property<int>("SpiceLevel")
-                        .HasColumnType("int");
-
                     b.Property<int?>("UpdatedByAdministratorID")
                         .HasColumnType("int");
 
@@ -1064,6 +1061,9 @@ namespace RROMS.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffNotificationReadID"));
+
+                    b.Property<DateTime?>("DismissedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime>("ReadAt")
                         .HasColumnType("datetime2");
