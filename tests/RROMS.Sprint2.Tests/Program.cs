@@ -514,8 +514,10 @@ try
             Check((await adminHttp.GetAsync(mergedPage)).IsSuccessStatusCode, "Merged page renders for administrator: " + mergedPage);
         var adminProfile = await (await adminHttp.GetAsync("/Account/Profile")).Content.ReadAsStringAsync();
         Check(adminProfile.Contains("legacy-admin@example.test") && !adminProfile.Contains("name=\"Input.PhoneNo\""), "Administrator profile reads own account without customer fields");
+        var adminEditProfile = await (await adminHttp.GetAsync("/Account/Profile?Edit=true")).Content.ReadAsStringAsync();
         var adminSave = await adminHttp.PostAsync("/Account/Profile", new FormUrlEncodedContent(new Dictionary<string,string> {
-            ["Input.FullName"] = "Updated administrator", ["__RequestVerificationToken"] = Antiforgery(adminProfile) }));
+            ["Edit"] = "true", ["Input.FullName"] = "Updated administrator",
+            ["__RequestVerificationToken"] = Antiforgery(adminEditProfile) }));
         Check(adminSave.StatusCode == System.Net.HttpStatusCode.Redirect && await db.Administrators.AnyAsync(a => a.AdministratorID == migratedAdmin.AdministratorID && a.Name == "Updated administrator"), "Administrator can edit own name in Administrators");
         var deletableDish = new MenuItem { Name = "Delete test dish", Category = await db.MenuCategories.Select(c => c.Name).FirstAsync(), Price = 15 };
         db.MenuItems.Add(deletableDish); await db.SaveChangesAsync();
